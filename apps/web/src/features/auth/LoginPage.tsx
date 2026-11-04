@@ -1,25 +1,44 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { ErrorApi, pedir } from '../../api/cliente'
+import { useAuth } from '../../auth/contexto'
+import type { RespuestaLogin } from '../../auth/tipos'
 import { loginSchema, type LoginFormValues } from './loginSchema'
 
-/**
- * Pantalla de inicio de sesión.
- * Por ahora solo valida el formulario; la conexión con la API (JWT) se hará después.
- */
+/** Pantalla de inicio de sesión conectada a POST /api/auth/login. */
 export function LoginPage() {
-  const [enviado, setEnviado] = useState(false)
+  const { usuario, iniciarSesion } = useAuth()
+  const navegar = useNavigate()
+  const ubicacion = useLocation()
+  // Si se llegó aquí desde una ruta protegida, se regresa a ella al entrar.
+  const destino = (ubicacion.state as { desde?: string } | null)?.desde ?? '/'
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) })
 
-  const onSubmit = () => {
-    // Sin conexión a la API todavía: solo confirmamos que la validación pasó.
-    setEnviado(true)
-  }
+  const login = useMutation({
+    mutationFn: (valores: LoginFormValues) =>
+      pedir<RespuestaLogin>('/auth/login', { metodo: 'POST', cuerpo: valores }),
+    onSuccess: (respuesta) => {
+      iniciarSesion(respuesta)
+      navegar(destino, { replace: true })
+    },
+  })
+
+  if (usuario) return <Navigate to={destino} replace />
+
+  // 401 = credenciales incorrectas (mensaje de la API); otro error = problema técnico.
+  const mensajeError =
+    login.error instanceof ErrorApi
+      ? login.error.status === 401
+        ? 'Correo o contraseña incorrectos'
+        : login.error.message
+      : null
 
   const claseCampo = (conError: boolean) =>
     `mt-1 block w-full rounded-md border px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 ${
@@ -36,7 +55,20 @@ export function LoginPage() {
         </h1>
         <p className="mt-1 text-center text-sm text-slate-500">Inicia sesión para continuar</p>
 
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form
+          className="mt-8 space-y-5"
+          onSubmit={handleSubmit((valores) => login.mutate(valores))}
+          noValidate
+        >
+          {mensajeError && (
+            <p
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              {mensajeError}
+            </p>
+          )}
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700">
               Correo
@@ -47,7 +79,7 @@ export function LoginPage() {
               autoComplete="email"
               aria-invalid={errors.email ? 'true' : 'false'}
               className={claseCampo(Boolean(errors.email))}
-              {...register('email', { onChange: () => setEnviado(false) })}
+              {...register('email', { onChange: () => login.reset() })}
             />
             {errors.email && (
               <p role="alert" className="mt-1 text-xs text-red-600">
@@ -66,7 +98,7 @@ export function LoginPage() {
               autoComplete="current-password"
               aria-invalid={errors.password ? 'true' : 'false'}
               className={claseCampo(Boolean(errors.password))}
-              {...register('password', { onChange: () => setEnviado(false) })}
+              {...register('password', { onChange: () => login.reset() })}
             />
             {errors.password && (
               <p role="alert" className="mt-1 text-xs text-red-600">
@@ -77,17 +109,11 @@ export function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={login.isPending}
             className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-60"
           >
-            Iniciar sesión
+            {login.isPending ? 'Iniciando sesión…' : 'Iniciar sesión'}
           </button>
-
-          {enviado && (
-            <p className="rounded-md bg-slate-50 px-3 py-2 text-center text-xs text-slate-600">
-              Datos válidos. La conexión con la API se agregará en el siguiente paso.
-            </p>
-          )}
         </form>
       </div>
     </main>
