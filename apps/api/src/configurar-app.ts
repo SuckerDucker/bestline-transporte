@@ -32,8 +32,13 @@ export function configurarApp(app: INestApplication): void {
     .setDescription(
       'API para la asignación asistida y el monitoreo de servicios de transporte turístico.',
     )
-    .setVersion('0.1.0')
+    .setVersion('0.2.0')
+    // Botón Authorize: se pega el accessToken de POST /api/auth/login.
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build();
   const documento = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, documento);
+  SwaggerModule.setup('api/docs', app, documento, {
+    // Conserva el token al recargar la página de Swagger.
+    swaggerOptions: { persistAuthorization: true },
+  });
 }
