@@ -6,7 +6,7 @@ Estadía universitaria (UPQROO, Ingeniería en Software) de un solo desarrollado
 - Frontend: React 18 + TypeScript + Vite, TailwindCSS, TanStack Query, React Hook Form + Zod, Recharts, Leaflet + OpenStreetMap
 - Backend: NestJS + TypeScript, JWT y bcrypt, SheetJS y PapaParse, Swagger (OpenAPI) en /api/docs
 - Base de datos: PostgreSQL 16 + Prisma
-- Pruebas: Jest, Supertest, Vitest
+- Pruebas: Jest + Supertest (API), Vitest (web)
 - Infraestructura: Docker, Docker Compose, Nginx, Git y GitHub Actions
 
 ## Estructura
@@ -15,7 +15,7 @@ Estadía universitaria (UPQROO, Ingeniería en Software) de un solo desarrollado
 - `docs/evidencias`: notas de evidencias por módulo para la memoria
 
 ## Estado actual
-- La computadora se formateó y el código local se perdió. En el repositorio solo existen .gitignore, .gitattributes y CLAUDE.md; el monorepo, el esquema de Prisma y el Login se deben crear desde cero.
+- La base del proyecto está completa: monorepo (`apps/api` y `apps/web`), esquema de Prisma con las 15 tablas, migración `esquema_inicial` aplicada, seed con datos de ejemplo y Login (solo interfaz, sin conexión a la API).
 - Docker Desktop está instalado. Para desarrollo, PostgreSQL 16 corre en un contenedor con docker-compose.yml (solo el servicio de base de datos); la API y el frontend corren con Node.js en Windows. El Docker Compose completo (web, api, db y Nginx) se configura al final, en la fase de despliegue.
 
 ## Modelo de datos (15 tablas, debe coincidir con el diagrama entidad–relación de la memoria)
@@ -23,6 +23,8 @@ usuario, bitacora, vehiculo, operador, zona, hotel, tiempo_traslado, parametro_o
 - Modelos de Prisma en español, singular y PascalCase (Operador, Vehiculo); tablas en snake_case con @@map.
 - Roles: ADMINISTRADOR, COORDINADOR, SUPERVISOR, OPERADOR.
 - Estados del servicio: PENDIENTE, PROGRAMADO, EN_RUTA, EN_SERVICIO, COMPLETADO, CANCELADO, INCIDENCIA.
+- Servicio tiene dos campos separados: tipo {LLEGADA, SALIDA, TRASLADO} (sentido; define las anticipaciones por tipo y zona) y modalidad {PRIVADO, COMPARTIDO, GRUPO}.
+- Las fechas se guardan en UTC (columnas timestamptz; la conexión de Prisma usa timezone=UTC) y se muestran en America/Cancun.
 
 ## Reglas del motor de asignación
 - Inicio efectivo = hora del servicio − anticipación (por tipo de servicio y zona). Liberación = inicio efectivo + tiempo de traslado (matriz por sentido).
