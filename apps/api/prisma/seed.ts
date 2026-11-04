@@ -1,15 +1,23 @@
 /**
  * Seed de desarrollo.
  *
- * IMPORTANTE: TODOS LOS DATOS DE ESTE ARCHIVO SON DE EJEMPLO.
- * No son datos reales de Best Line Travel Agency: nombres de hoteles, operadores,
- * vehículos, folios, vuelos, tiempos de traslado y parámetros son ficticios o
- * aproximados y solo sirven para probar el sistema. Las coordenadas de las zonas
- * son aproximadas.
+ * Hay dos clases de datos:
  *
- * El único dato que no está aquí es el usuario ADMINISTRADOR: su correo y su
- * contraseña se leen de apps/api/.env (ADMIN_EMAIL, ADMIN_PASSWORD) y la
- * contraseña se guarda cifrada con bcrypt.
+ * 1) VALORES DE OPERACIÓN (indicados por el alumno para la Fase 6):
+ *    - capacidad máxima por tipo: Van/Urvan 14, Sprinter 20, Autobús 45;
+ *    - anticipación por modalidad: PRIVADO 10, COMPARTIDO 20, GRUPO 30 minutos;
+ *    - horas de cita: turno 1 a las 04:00 y turno 2 a las 05:00;
+ *    - jornada máxima: 9.5 horas;
+ *    - zonas de término: solo Zona Hotelera y Aeropuerto CUN.
+ *
+ * 2) DATOS DE EJEMPLO: todo lo demás (nombres de hoteles, operadores, números
+ *    económicos, folios, vuelos, tiempos de traslado, coordenadas aproximadas y
+ *    los 60 servicios). No son datos reales de Best Line Travel Agency.
+ *
+ * Usuarios: el ADMINISTRADOR toma correo y contraseña de apps/api/.env
+ * (ADMIN_EMAIL, ADMIN_PASSWORD). Los usuarios de ejemplo de COORDINADOR,
+ * SUPERVISOR y OPERADOR usan la contraseña SEED_PASSWORD_EJEMPLO del mismo .env.
+ * Todas las contraseñas se guardan cifradas con bcrypt.
  *
  * Se puede ejecutar varias veces: usa upsert (crear o actualizar) para no duplicar.
  * Ejecutar con: npx prisma db seed
@@ -98,7 +106,8 @@ const ZONAS = [
     nombre: 'Aeropuerto TQO',
     latitud: 20.0856,
     longitud: -87.5967,
-    esZonaTermino: true,
+    // Valor de operación: TQO no es zona de término (solo Zona Hotelera y CUN).
+    esZonaTermino: false,
   },
 ] as const;
 
@@ -217,11 +226,13 @@ const HOTELES: {
   },
 ];
 
-// ───────────── Flota (de ejemplo) ─────────────
+// ───────────── Flota ─────────────
+// Las capacidades son las de operación (máximo por tipo: Van 14, Sprinter 20,
+// Autobús 45). Números económicos y encierro son de ejemplo.
 const VEHICULOS = [
-  ...Array.from({ length: 5 }, () => ({ tipo: 'Van', capacidad: 10 })),
-  ...Array.from({ length: 3 }, () => ({ tipo: 'Sprinter', capacidad: 19 })),
-  ...Array.from({ length: 2 }, () => ({ tipo: 'Autobús', capacidad: 40 })),
+  ...Array.from({ length: 5 }, () => ({ tipo: 'Van', capacidad: 14 })),
+  ...Array.from({ length: 3 }, () => ({ tipo: 'Sprinter', capacidad: 20 })),
+  ...Array.from({ length: 2 }, () => ({ tipo: 'Autobús', capacidad: 45 })),
 ].map((v, i) => ({
   ...v,
   numeroEconomico: `BL-${String(i + 1).padStart(2, '0')}`,
@@ -244,11 +255,19 @@ const OPERADORES = Array.from({ length: 10 }, (_, i) => {
 
 // ───────────── Generador pseudoaleatorio con semilla fija ─────────────
 // Así el seed produce siempre los mismos 60 servicios (resultados reproducibles).
+// Algoritmo mulberry32: opera con enteros de 32 bits (Math.imul) y no pierde
+// precisión. La versión anterior multiplicaba números que pasaban de 2^53 y los
+// bits bajos quedaban en cero, por lo que casi todos los servicios caían en el
+// mismo hotel.
 function crearAleatorio(semilla: number) {
-  let estado = semilla;
+  let estado = semilla >>> 0;
   return (min: number, max: number): number => {
-    estado = (estado * 1103515245 + 12345) % 2147483648;
-    return min + (estado % (max - min + 1));
+    estado = (estado + 0x6d2b79f5) >>> 0;
+    let t = estado;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const aleatorio = ((t ^ (t >>> 14)) >>> 0) / 4294967296; // [0, 1)
+    return min + Math.floor(aleatorio * (max - min + 1));
   };
 }
 
@@ -283,6 +302,37 @@ async function main(): Promise<void> {
     },
   });
 
+  // 1b) Un usuario de ejemplo por cada uno de los demás roles
+  const passwordEjemplo = process.env.SEED_PASSWORD_EJEMPLO;
+  if (!passwordEjemplo) {
+    throw new Error('Falta SEED_PASSWORD_EJEMPLO en apps/api/.env');
+  }
+  const hashEjemplo = await bcrypt.hash(passwordEjemplo, 10);
+  const usuariosEjemplo = [
+    {
+      nombre: 'Coordinador Ejemplo',
+      email: 'coordinador@bestline.local',
+      rol: RolUsuario.COORDINADOR,
+    },
+    {
+      nombre: 'Supervisor Ejemplo',
+      email: 'supervisor@bestline.local',
+      rol: RolUsuario.SUPERVISOR,
+    },
+    {
+      nombre: 'Operador Ejemplo',
+      email: 'operador@bestline.local',
+      rol: RolUsuario.OPERADOR,
+    },
+  ];
+  for (const u of usuariosEjemplo) {
+    await prisma.usuario.upsert({
+      where: { email: u.email },
+      update: { ...u, passwordHash: hashEjemplo, activo: true },
+      create: { ...u, passwordHash: hashEjemplo },
+    });
+  }
+
   // 2) Zonas
   const idZona = {} as Record<ClaveZona, number>;
   for (const { clave, ...zona } of ZONAS) {
@@ -308,31 +358,36 @@ async function main(): Promise<void> {
     }
   }
 
-  // 4) Parámetros de operación
+  // 4) Parámetros de operación (valores de operación, ver encabezado)
   const parametros: { clave: string; valor: string; descripcion: string }[] = [
     {
-      clave: 'hora_cita',
+      clave: 'hora_cita.turno_1',
+      valor: '04:00',
+      descripcion: 'Hora de cita del turno 1 (HH:mm, America/Cancun)',
+    },
+    {
+      clave: 'hora_cita.turno_2',
       valor: '05:00',
-      descripcion:
-        'Valor de ejemplo: hora de cita de los operadores (HH:mm, America/Cancun)',
+      descripcion: 'Hora de cita del turno 2 (HH:mm, America/Cancun)',
     },
     {
       clave: 'jornada_maxima_horas',
       valor: '9.5',
-      descripcion:
-        'Valor de ejemplo: jornada máxima en horas desde la hora de cita',
+      descripcion: 'Jornada máxima en horas desde la hora de cita',
     },
   ];
-  for (const tipo of Object.values(TipoServicio)) {
-    // Valores de ejemplo: LLEGADA = 0 minutos; SALIDA y TRASLADO = 15 minutos.
-    const minutos = tipo === TipoServicio.LLEGADA ? 0 : 15;
-    for (const zona of ZONAS) {
-      parametros.push({
-        clave: `anticipacion.${tipo}.${zona.clave}`,
-        valor: String(minutos),
-        descripcion: `Valor de ejemplo: minutos de anticipación para ${tipo} con origen en ${zona.nombre}`,
-      });
-    }
+  // La anticipación depende solo de la modalidad del servicio.
+  const anticipacion: Record<ModalidadServicio, number> = {
+    PRIVADO: 10,
+    COMPARTIDO: 20,
+    GRUPO: 30,
+  };
+  for (const modalidad of Object.values(ModalidadServicio)) {
+    parametros.push({
+      clave: `anticipacion.${modalidad}`,
+      valor: String(anticipacion[modalidad]),
+      descripcion: `Minutos de anticipación para servicios ${modalidad}`,
+    });
   }
   for (const p of parametros) {
     await prisma.parametroOperacion.upsert({
@@ -341,6 +396,11 @@ async function main(): Promise<void> {
       create: p,
     });
   }
+  // Se eliminan las claves de versiones anteriores del seed (hora_cita única y
+  // anticipaciones por tipo y zona), que ya no aplican.
+  await prisma.parametroOperacion.deleteMany({
+    where: { clave: { notIn: parametros.map((p) => p.clave) } },
+  });
 
   // 5) Mayoristas
   const mayoristas: Mayorista[] = [];
