@@ -36,15 +36,15 @@ docker compose ps             # el servicio "db" debe verse "healthy"
 cd apps/api
 cp .env.example .env          # usa el mismo usuario y contraseña de la BD que en el .env de la raíz
 npm install
-npx prisma migrate dev        # aplica las migraciones y genera el cliente de Prisma
+npx prisma migrate dev        # aplica las migraciones (en Prisma 7 no corre el seed)
 npx prisma db seed            # carga los datos DE EJEMPLO y el usuario administrador
 npm run start:dev
 ```
 
 - Salud: http://localhost:3000/api/health → `{ "status": "ok" }`
 - Swagger: http://localhost:3000/api/docs
-- Ver las tablas: `npx prisma studio`
-- Pruebas: `npm test` (unitarias) y `npm run test:e2e`
+- Ver las tablas: `npx prisma studio --port 5555` y abrir http://localhost:5555
+- Pruebas (Jest): `npm test` (unitarias) y `npm run test:e2e` (Supertest)
 
 ## 3. Web (React) en http://localhost:5173
 
