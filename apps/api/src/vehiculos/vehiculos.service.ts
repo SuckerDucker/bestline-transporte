@@ -56,7 +56,13 @@ export class VehiculosService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const vehiculo = await tx.vehiculo.create({
-          data: { ...dto, estado: dto.estado ?? EstadoVehiculo.DISPONIBLE },
+          data: {
+            numeroEconomico: dto.numeroEconomico,
+            tipo: dto.tipo,
+            capacidad: dto.capacidad,
+            encierroBase: dto.encierroBase,
+            estado: dto.estado ?? EstadoVehiculo.DISPONIBLE,
+          },
         });
         await registrarBitacora(tx, usuarioId, 'CREAR', ENTIDAD, vehiculo.id);
         return vehiculo;
