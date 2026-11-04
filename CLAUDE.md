@@ -23,11 +23,11 @@ usuario, bitacora, vehiculo, operador, zona, hotel, tiempo_traslado, parametro_o
 - Modelos de Prisma en español, singular y PascalCase (Operador, Vehiculo); tablas en snake_case con @@map.
 - Roles: ADMINISTRADOR, COORDINADOR, SUPERVISOR, OPERADOR.
 - Estados del servicio: PENDIENTE, PROGRAMADO, EN_RUTA, EN_SERVICIO, COMPLETADO, CANCELADO, INCIDENCIA.
-- Servicio tiene dos campos separados: tipo {LLEGADA, SALIDA, TRASLADO} (sentido; define las anticipaciones por tipo y zona) y modalidad {PRIVADO, COMPARTIDO, GRUPO}.
+- Servicio tiene dos campos separados: tipo {LLEGADA, SALIDA, TRASLADO} (sentido del servicio) y modalidad {PRIVADO, COMPARTIDO, GRUPO} (define la anticipación).
 - Las fechas se guardan en UTC (columnas timestamptz; la conexión de Prisma usa timezone=UTC) y se muestran en America/Cancun.
 
 ## Reglas del motor de asignación
-- Inicio efectivo = hora del servicio − anticipación (por tipo de servicio y zona). Liberación = inicio efectivo + tiempo de traslado (matriz por sentido).
+- Inicio efectivo = hora del servicio − anticipación por modalidad (PRIVADO 10, COMPARTIDO 20, GRUPO 30 min; ya no depende del tipo ni de la zona). Liberación = inicio efectivo + tiempo de traslado (matriz por sentido).
 - Una unidad toma un servicio solo si: liberación anterior + traslado al nuevo origen <= inicio efectivo; pasajeros <= capacidad; jornada desde la hora de cita <= 9.5 h (parámetro); el último servicio termina en una zona de término válida.
 - Heurística constructiva voraz: ordenar por hora y elegir la unidad factible de menor costo (tiempo muerto + recorrido en vacío). Si ninguna es factible, guardar servicio_no_cubierto con su motivo.
 - El rol, sus asignaciones y los no cubiertos se guardan en una sola transacción.
