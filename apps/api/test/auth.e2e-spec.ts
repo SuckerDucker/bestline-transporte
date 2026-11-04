@@ -106,4 +106,32 @@ describe('Autenticación (e2e)', () => {
         .expect(401);
     });
   });
+
+  describe('Usuario desactivado', () => {
+    it('401: su token deja de funcionar en un endpoint protegido aunque no haya expirado', async () => {
+      const email = 'supervisor@prueba.local';
+      const usuario = await crearUsuario(prisma, email, RolUsuario.SUPERVISOR);
+      const token = await obtenerToken(app, email);
+
+      // Mientras está activo, el token funciona.
+      await request(app.getHttpServer())
+        .get('/api/vehiculos')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      await prisma.usuario.update({
+        where: { id: usuario.id },
+        data: { activo: false },
+      });
+
+      // Con el mismo token (todavía vigente), ahora responde 401.
+      const respuesta = await request(app.getHttpServer())
+        .get('/api/vehiculos')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(401);
+      expect(respuesta.body).toMatchObject({
+        message: 'El usuario no existe o está inactivo',
+      });
+    });
+  });
 });
