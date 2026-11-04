@@ -10,4 +10,4 @@ pgdata/
 *.tsbuildinfo
 
 # Cliente de Prisma generado (se regenera con "npx prisma generate")
-src/generated/
+apps/api/src/generated/
