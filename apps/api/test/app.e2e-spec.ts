@@ -3,24 +3,30 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { configurarApp } from './../src/configurar-app.js';
 
-describe('AppController (e2e)', () => {
+describe('API (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduloPrueba: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduloPrueba.createNestApplication();
+    configurarApp(app);
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('GET /api/health responde { status: "ok" }', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/api/health')
       .expect(200)
-      .expect('Hello World!');
+      .expect({ status: 'ok' });
+  });
+
+  it('GET /api/docs-json publica el documento OpenAPI', () => {
+    return request(app.getHttpServer()).get('/api/docs-json').expect(200);
   });
 
   afterEach(async () => {
