@@ -1,0 +1,26 @@
+# Entorno de desarrollo: solo la base de datos PostgreSQL 16.
+# La API y el frontend corren con Node.js en Windows.
+# Las credenciales se leen del archivo .env de esta carpeta (ver .env.example).
+services:
+  db:
+    image: postgres:16
+    container_name: bestline-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: America/Cancun
+      PGTZ: America/Cancun
+    ports:
+      - "5432:5432"
+    volumes:
+      - bestline_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  bestline_pgdata:
