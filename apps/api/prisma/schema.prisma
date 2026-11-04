@@ -1,0 +1,295 @@
+// Esquema inicial de la base de datos (15 tablas).
+// Debe coincidir con el diagrama entidad-relación de la memoria.
+// Convención: modelos en PascalCase y singular; tablas y columnas en snake_case (@@map / @map).
+// Fechas con hora en timestamptz; la zona horaria de operación es America/Cancun.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  // El proyecto usa "nodenext", que exige extensión .js en los imports.
+  importFileExtension = "js"
+}
+
+// En Prisma 7 la URL de conexión no va aquí: se define en prisma.config.ts.
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================== Enums ==============================
+
+enum RolUsuario {
+  ADMINISTRADOR
+  COORDINADOR
+  SUPERVISOR
+  OPERADOR
+}
+
+enum TipoServicio {
+  LLEGADA
+  SALIDA
+  PRIVADO
+  COMPARTIDO
+  GRUPO
+}
+
+enum EstadoServicio {
+  PENDIENTE
+  PROGRAMADO
+  EN_RUTA
+  EN_SERVICIO
+  COMPLETADO
+  CANCELADO
+  INCIDENCIA
+}
+
+enum EstadoRol {
+  PROPUESTO
+  AUTORIZADO
+}
+
+enum MotivoRechazo {
+  CAPACIDAD
+  EMPALME
+  JORNADA
+  ZONA_TERMINO
+  SIN_UNIDAD
+}
+
+enum EstadoVehiculo {
+  DISPONIBLE
+  MANTENIMIENTO
+  BAJA
+}
+
+// ======================= Usuarios y auditoría =======================
+
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  nombre       String     @db.VarChar(100)
+  email        String     @unique @db.VarChar(150)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+
+  bitacoras        Bitacora[]
+  importaciones    Importacion[]
+  rolesAutorizados RolDiario[]
+  incidencias      Incidencia[]
+
+  @@map("usuario")
+}
+
+model Bitacora {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  accion    String   @db.VarChar(50)
+  entidad   String   @db.VarChar(50)
+  entidadId Int      @map("entidad_id")
+  fecha     DateTime @default(now()) @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("bitacora")
+}
+
+model ParametroOperacion {
+  id          Int    @id @default(autoincrement())
+  clave       String @unique @db.VarChar(100)
+  valor       String @db.VarChar(100)
+  descripcion String @db.VarChar(255)
+
+  @@map("parametro_operacion")
+}
+
+// ===================== Mayoristas e importación =====================
+
+model Mayorista {
+  id     Int    @id @default(autoincrement())
+  nombre String @unique @db.VarChar(100)
+
+  importaciones Importacion[]
+  servicios     Servicio[]
+
+  @@map("mayorista")
+}
+
+model Importacion {
+  id              Int      @id @default(autoincrement())
+  mayoristaId     Int      @map("mayorista_id")
+  usuarioId       Int      @map("usuario_id")
+  archivo         String   @db.VarChar(255)
+  fecha           DateTime @default(now()) @db.Timestamptz(3)
+  filasValidas    Int      @map("filas_validas")
+  filasRechazadas Int      @map("filas_rechazadas")
+
+  mayorista Mayorista  @relation(fields: [mayoristaId], references: [id])
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id])
+  servicios Servicio[]
+
+  @@map("importacion")
+}
+
+// ===================== Zonas, hoteles y tiempos =====================
+
+model Zona {
+  id            Int     @id @default(autoincrement())
+  nombre        String  @unique @db.VarChar(100)
+  latitud       Decimal @db.Decimal(9, 6)
+  longitud      Decimal @db.Decimal(9, 6)
+  esZonaTermino Boolean @map("es_zona_termino")
+
+  hoteles          Hotel[]
+  trasladosOrigen  TiempoTraslado[] @relation("TrasladoOrigen")
+  trasladosDestino TiempoTraslado[] @relation("TrasladoDestino")
+  serviciosOrigen  Servicio[]       @relation("ServicioOrigen")
+  serviciosDestino Servicio[]       @relation("ServicioDestino")
+
+  @@map("zona")
+}
+
+model Hotel {
+  id       Int     @id @default(autoincrement())
+  nombre   String  @db.VarChar(150)
+  zonaId   Int     @map("zona_id")
+  latitud  Decimal @db.Decimal(9, 6)
+  longitud Decimal @db.Decimal(9, 6)
+
+  zona      Zona       @relation(fields: [zonaId], references: [id])
+  servicios Servicio[]
+
+  @@map("hotel")
+}
+
+// Matriz de tiempos por sentido: A -> B puede ser distinto de B -> A.
+model TiempoTraslado {
+  id            Int @id @default(autoincrement())
+  zonaOrigenId  Int @map("zona_origen_id")
+  zonaDestinoId Int @map("zona_destino_id")
+  minutos       Int
+
+  zonaOrigen  Zona @relation("TrasladoOrigen", fields: [zonaOrigenId], references: [id])
+  zonaDestino Zona @relation("TrasladoDestino", fields: [zonaDestinoId], references: [id])
+
+  @@unique([zonaOrigenId, zonaDestinoId])
+  @@map("tiempo_traslado")
+}
+
+// ======================== Flota y operadores ========================
+
+model Vehiculo {
+  id              Int            @id @default(autoincrement())
+  numeroEconomico String         @unique @map("numero_economico") @db.VarChar(20)
+  tipo            String         @db.VarChar(50)
+  capacidad       Int
+  estado          EstadoVehiculo
+  encierroBase    String         @map("encierro_base") @db.VarChar(100)
+
+  asignaciones Asignacion[]
+
+  @@map("vehiculo")
+}
+
+model Operador {
+  id         Int     @id @default(autoincrement())
+  nombre     String  @db.VarChar(150)
+  licencia   String  @db.VarChar(30)
+  telefono   String  @db.VarChar(20)
+  disponible Boolean @default(true)
+
+  asignaciones Asignacion[]
+
+  @@map("operador")
+}
+
+// ============================ Servicios ============================
+
+model Servicio {
+  id            Int            @id @default(autoincrement())
+  mayoristaId   Int            @map("mayorista_id")
+  importacionId Int?           @map("importacion_id")
+  folio         String         @db.VarChar(30)
+  localizador   String         @db.VarChar(30)
+  tipo          TipoServicio
+  fechaHora     DateTime       @map("fecha_hora") @db.Timestamptz(3)
+  pasajeros     Int
+  zonaOrigenId  Int            @map("zona_origen_id")
+  zonaDestinoId Int            @map("zona_destino_id")
+  hotelId       Int?           @map("hotel_id")
+  vuelo         String?        @db.VarChar(15)
+  estado        EstadoServicio @default(PENDIENTE)
+
+  mayorista    Mayorista            @relation(fields: [mayoristaId], references: [id])
+  importacion  Importacion?         @relation(fields: [importacionId], references: [id])
+  zonaOrigen   Zona                 @relation("ServicioOrigen", fields: [zonaOrigenId], references: [id])
+  zonaDestino  Zona                 @relation("ServicioDestino", fields: [zonaDestinoId], references: [id])
+  hotel        Hotel?               @relation(fields: [hotelId], references: [id])
+  asignaciones Asignacion[]
+  noCubiertos  ServicioNoCubierto[]
+  incidencias  Incidencia[]
+
+  @@unique([folio, localizador])
+  @@map("servicio")
+}
+
+// ================= Rol diario y resultado del motor =================
+
+model RolDiario {
+  id            Int       @id @default(autoincrement())
+  fecha         DateTime  @unique @db.Date
+  estado        EstadoRol
+  autorizadoPor Int?      @map("autorizado_por")
+  generadoEn    DateTime  @default(now()) @map("generado_en") @db.Timestamptz(3)
+
+  autorizador  Usuario?             @relation(fields: [autorizadoPor], references: [id])
+  asignaciones Asignacion[]
+  noCubiertos  ServicioNoCubierto[]
+
+  @@map("rol_diario")
+}
+
+model Asignacion {
+  id             Int      @id @default(autoincrement())
+  rolId          Int      @map("rol_id")
+  servicioId     Int      @map("servicio_id")
+  vehiculoId     Int      @map("vehiculo_id")
+  operadorId     Int      @map("operador_id")
+  orden          Int
+  inicioEfectivo DateTime @map("inicio_efectivo") @db.Timestamptz(3)
+  liberacion     DateTime @db.Timestamptz(3)
+
+  rol      RolDiario @relation(fields: [rolId], references: [id])
+  servicio Servicio  @relation(fields: [servicioId], references: [id])
+  vehiculo Vehiculo  @relation(fields: [vehiculoId], references: [id])
+  operador Operador  @relation(fields: [operadorId], references: [id])
+
+  @@map("asignacion")
+}
+
+model ServicioNoCubierto {
+  id         Int           @id @default(autoincrement())
+  rolId      Int           @map("rol_id")
+  servicioId Int           @map("servicio_id")
+  motivo     MotivoRechazo
+
+  rol      RolDiario @relation(fields: [rolId], references: [id])
+  servicio Servicio  @relation(fields: [servicioId], references: [id])
+
+  @@map("servicio_no_cubierto")
+}
+
+// ============================ Incidencias ============================
+
+model Incidencia {
+  id          Int      @id @default(autoincrement())
+  servicioId  Int      @map("servicio_id")
+  usuarioId   Int      @map("usuario_id")
+  tipo        String   @db.VarChar(50)
+  descripcion String   @db.Text
+  fecha       DateTime @default(now()) @db.Timestamptz(3)
+
+  servicio Servicio @relation(fields: [servicioId], references: [id])
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("incidencia")
+}

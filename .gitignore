@@ -8,3 +8,6 @@ coverage/
 *.log
 pgdata/
 *.tsbuildinfo
+
+# Cliente de Prisma generado (se regenera con "npx prisma generate")
+src/generated/
