@@ -27,7 +27,14 @@ import {
   TipoServicio,
 } from '../src/generated/prisma/client.js';
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+// La sesión con PostgreSQL se fuerza a UTC: el adaptador envía las fechas como
+// texto en UTC sin zona, y si el servidor usa otra zona (America/Cancun en el
+// contenedor) las interpretaría mal (+5 h). timestamptz guarda el instante exacto;
+// la conversión a America/Cancun se hace al mostrar los datos.
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  options: '-c timezone=UTC',
+});
 const prisma = new PrismaClient({ adapter });
 
 // Fecha de operación de ejemplo (zona horaria America/Cancun = UTC-05:00 todo el año).
