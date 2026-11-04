@@ -25,9 +25,15 @@ enum RolUsuario {
   OPERADOR
 }
 
+// Sentido del servicio. Determina las anticipaciones (por tipo y zona).
 enum TipoServicio {
   LLEGADA
   SALIDA
+  TRASLADO
+}
+
+// Forma en que se presta el servicio; es independiente del tipo.
+enum ModalidadServicio {
   PRIVADO
   COMPARTIDO
   GRUPO
@@ -205,19 +211,20 @@ model Operador {
 // ============================ Servicios ============================
 
 model Servicio {
-  id            Int            @id @default(autoincrement())
-  mayoristaId   Int            @map("mayorista_id")
-  importacionId Int?           @map("importacion_id")
-  folio         String         @db.VarChar(30)
-  localizador   String         @db.VarChar(30)
+  id            Int               @id @default(autoincrement())
+  mayoristaId   Int               @map("mayorista_id")
+  importacionId Int?              @map("importacion_id")
+  folio         String            @db.VarChar(30)
+  localizador   String            @db.VarChar(30)
   tipo          TipoServicio
-  fechaHora     DateTime       @map("fecha_hora") @db.Timestamptz(3)
+  modalidad     ModalidadServicio
+  fechaHora     DateTime          @map("fecha_hora") @db.Timestamptz(3)
   pasajeros     Int
-  zonaOrigenId  Int            @map("zona_origen_id")
-  zonaDestinoId Int            @map("zona_destino_id")
-  hotelId       Int?           @map("hotel_id")
-  vuelo         String?        @db.VarChar(15)
-  estado        EstadoServicio @default(PENDIENTE)
+  zonaOrigenId  Int               @map("zona_origen_id")
+  zonaDestinoId Int               @map("zona_destino_id")
+  hotelId       Int?              @map("hotel_id")
+  vuelo         String?           @db.VarChar(15)
+  estado        EstadoServicio    @default(PENDIENTE)
 
   mayorista    Mayorista            @relation(fields: [mayoristaId], references: [id])
   importacion  Importacion?         @relation(fields: [importacionId], references: [id])

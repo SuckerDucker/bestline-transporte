@@ -19,6 +19,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
 import {
   EstadoVehiculo,
+  ModalidadServicio,
   type Hotel,
   type Mayorista,
   PrismaClient,
@@ -316,7 +317,7 @@ async function main(): Promise<void> {
     },
   ];
   for (const tipo of Object.values(TipoServicio)) {
-    // Valores de ejemplo: LLEGADA = 0 minutos, el resto = 15 minutos.
+    // Valores de ejemplo: LLEGADA = 0 minutos; SALIDA y TRASLADO = 15 minutos.
     const minutos = tipo === TipoServicio.LLEGADA ? 0 : 15;
     for (const zona of ZONAS) {
       parametros.push({
@@ -383,22 +384,39 @@ async function main(): Promise<void> {
   }
 
   // 9) Servicios: 60 servicios del 2026-11-10
-  // Reparto de ejemplo: 20 LLEGADA, 20 SALIDA, 8 PRIVADO, 7 COMPARTIDO y 5 GRUPO.
-  const reparto: [TipoServicio, number][] = [
-    [TipoServicio.LLEGADA, 20],
-    [TipoServicio.SALIDA, 20],
-    [TipoServicio.PRIVADO, 8],
-    [TipoServicio.COMPARTIDO, 7],
-    [TipoServicio.GRUPO, 5],
+  // Reparto de ejemplo por tipo (sentido) y modalidad:
+  //   LLEGADA:  10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
+  //   SALIDA:   10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
+  //   TRASLADO:  6 PRIVADO,  3 COMPARTIDO, 3 GRUPO  (12)
+  const reparto: [TipoServicio, ModalidadServicio, number][] = [
+    [TipoServicio.LLEGADA, ModalidadServicio.PRIVADO, 10],
+    [TipoServicio.LLEGADA, ModalidadServicio.COMPARTIDO, 10],
+    [TipoServicio.LLEGADA, ModalidadServicio.GRUPO, 4],
+    [TipoServicio.SALIDA, ModalidadServicio.PRIVADO, 10],
+    [TipoServicio.SALIDA, ModalidadServicio.COMPARTIDO, 10],
+    [TipoServicio.SALIDA, ModalidadServicio.GRUPO, 4],
+    [TipoServicio.TRASLADO, ModalidadServicio.PRIVADO, 6],
+    [TipoServicio.TRASLADO, ModalidadServicio.COMPARTIDO, 3],
+    [TipoServicio.TRASLADO, ModalidadServicio.GRUPO, 3],
   ];
   const azar = crearAleatorio(20261110);
   const zonaDeHotel = (h: Hotel) => h.zonaId;
   // Los hoteles de Tulum usan el aeropuerto TQO; los demás, el aeropuerto CUN.
   const aeropuertoDe = (h: Hotel) =>
     h.zonaId === idZona.TULUM ? idZona.AEROPUERTO_TQO : idZona.AEROPUERTO_CUN;
+  const aeropuertos = [idZona.AEROPUERTO_CUN, idZona.AEROPUERTO_TQO];
+
+  // Pasajeros según la modalidad (rangos de ejemplo). Los grupos pueden superar
+  // la capacidad de una van, lo que sirve para probar la regla de capacidad.
+  const pasajerosPorModalidad = (m: ModalidadServicio): number =>
+    m === ModalidadServicio.PRIVADO
+      ? azar(1, 6)
+      : m === ModalidadServicio.COMPARTIDO
+        ? azar(4, 12)
+        : azar(15, 35);
 
   let consecutivo = 0;
-  for (const [tipo, cantidad] of reparto) {
+  for (const [tipo, modalidad, cantidad] of reparto) {
     for (let i = 0; i < cantidad; i++) {
       consecutivo++;
       const mayorista = mayoristas[consecutivo % 2];
@@ -410,38 +428,33 @@ async function main(): Promise<void> {
       let zonaOrigenId: number;
       let zonaDestinoId: number;
       let vuelo: string | null = null;
-      let pasajeros: number;
 
       if (tipo === TipoServicio.LLEGADA) {
+        // Del aeropuerto al hotel; lleva número de vuelo.
         zonaOrigenId = aeropuertoDe(hotel);
         zonaDestinoId = zonaDeHotel(hotel);
         vuelo = `EJ${azar(100, 999)}`;
-        pasajeros = azar(1, 8);
       } else if (tipo === TipoServicio.SALIDA) {
+        // Del hotel al aeropuerto; lleva número de vuelo.
         zonaOrigenId = zonaDeHotel(hotel);
         zonaDestinoId = aeropuertoDe(hotel);
         vuelo = `EJ${azar(100, 999)}`;
-        pasajeros = azar(1, 8);
       } else {
-        // PRIVADO, COMPARTIDO y GRUPO: traslado del hotel a otra zona (de ejemplo).
+        // TRASLADO: del hotel a otra zona que no sea aeropuerto; sin vuelo.
         zonaOrigenId = zonaDeHotel(hotel);
         const otras = ZONAS.map((z) => idZona[z.clave]).filter(
-          (id) => id !== zonaOrigenId,
+          (id) => id !== zonaOrigenId && !aeropuertos.includes(id),
         );
         zonaDestinoId = otras[azar(0, otras.length - 1)];
-        pasajeros =
-          tipo === TipoServicio.PRIVADO
-            ? azar(1, 6)
-            : tipo === TipoServicio.COMPARTIDO
-              ? azar(4, 12)
-              : azar(15, 35);
       }
+      const pasajeros = pasajerosPorModalidad(modalidad);
 
       const folio = `${prefijo}-${String(consecutivo).padStart(4, '0')}`;
       const localizador = `LOC-EJ-${String(consecutivo).padStart(4, '0')}`;
       const datos = {
         mayoristaId: mayorista.id,
         tipo,
+        modalidad,
         fechaHora,
         pasajeros,
         zonaOrigenId,
