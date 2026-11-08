@@ -20,7 +20,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Alias de importación: @/ apunta a src/ (lo usa shadcn/ui) */
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }
