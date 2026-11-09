@@ -3,7 +3,15 @@ import { useEffect, useState } from 'react'
 import { pedir, type Paginado } from '@/api/cliente'
 import { TODOS } from '@/lib/opciones'
 
-export type Recurso = 'vehiculos' | 'operadores' | 'zonas' | 'hoteles' | 'usuarios' | 'bitacora'
+export type Recurso =
+  | 'vehiculos'
+  | 'operadores'
+  | 'zonas'
+  | 'hoteles'
+  | 'usuarios'
+  | 'bitacora'
+  | 'servicios'
+  | 'importaciones'
 export type Filtros = Record<string, string | number | boolean | undefined>
 
 /** Quita los filtros en "todos" para no enviarlos a la API. */

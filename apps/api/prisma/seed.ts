@@ -13,6 +13,8 @@
  * 2) DATOS DE EJEMPLO: todo lo demás (nombres de hoteles, operadores, números
  *    económicos, folios, vuelos, tiempos de traslado, coordenadas aproximadas y
  *    los 60 servicios). No son datos reales de Best Line Travel Agency.
+ *    Los 8 hoteles de HOTELES_LAYOUT son los del archivo de ejemplo anonimizado
+ *    de la empresa (docs/ejemplos), para que su importación encuentre los hoteles.
  *
  * Usuarios: el ADMINISTRADOR toma correo y contraseña de apps/api/.env
  * (ADMIN_EMAIL, ADMIN_PASSWORD). Los usuarios de ejemplo de COORDINADOR,
@@ -226,6 +228,61 @@ const HOTELES: {
   },
 ];
 
+// Hoteles que aparecen en el archivo de ejemplo docs/ejemplos/Layout_Servicios_Nexus.xlsx,
+// con la zona que indica el archivo y coordenadas aproximadas dentro de esa zona.
+// Se agregan para que la importación del ejemplo encuentre sus hoteles; no se
+// usan para generar los 60 servicios de ejemplo (así esos datos no cambian).
+const HOTELES_LAYOUT: typeof HOTELES = [
+  {
+    nombre: 'Planet Hollywood Cancun',
+    zona: 'COSTA_MUJERES',
+    latitud: 21.2376,
+    longitud: -86.806,
+  },
+  {
+    nombre: 'TRS Coral Hotel',
+    zona: 'COSTA_MUJERES',
+    latitud: 21.243,
+    longitud: -86.8015,
+  },
+  {
+    nombre: 'Grand Velas Riviera Maya',
+    zona: 'PUERTO_MORELOS',
+    latitud: 20.8455,
+    longitud: -86.8765,
+  },
+  {
+    nombre: 'Hotel Xcaret Arte',
+    zona: 'PLAYA_DEL_CARMEN',
+    latitud: 20.581,
+    longitud: -87.119,
+  },
+  {
+    nombre: 'Barceló Maya Palace',
+    zona: 'PLAYA_DEL_CARMEN',
+    latitud: 20.6105,
+    longitud: -87.0905,
+  },
+  {
+    nombre: 'Iberostar Selection Cancun',
+    zona: 'ZONA_HOTELERA',
+    latitud: 21.071,
+    longitud: -86.779,
+  },
+  {
+    nombre: 'Hard Rock Hotel Cancun',
+    zona: 'ZONA_HOTELERA',
+    latitud: 21.056,
+    longitud: -86.782,
+  },
+  {
+    nombre: 'Moon Palace Sunrise',
+    zona: 'ZONA_HOTELERA',
+    latitud: 21.0845,
+    longitud: -86.775,
+  },
+];
+
 // ───────────── Flota ─────────────
 // Las capacidades son las de operación (máximo por tipo: Van 14, Sprinter 20,
 // Autobús 45). Números económicos y encierro son de ejemplo.
@@ -415,21 +472,19 @@ async function main(): Promise<void> {
   }
 
   // 6) Hoteles (sin columna única: se busca por nombre para no duplicar)
-  const hoteles: Hotel[] = [];
-  for (const { zona, ...hotel } of HOTELES) {
+  const guardarHotel = async ({ zona, ...hotel }: (typeof HOTELES)[number]) => {
     const datos = { ...hotel, zonaId: idZona[zona] };
     const existente = await prisma.hotel.findFirst({
       where: { nombre: hotel.nombre },
     });
-    hoteles.push(
-      existente
-        ? await prisma.hotel.update({
-            where: { id: existente.id },
-            data: datos,
-          })
-        : await prisma.hotel.create({ data: datos }),
-    );
-  }
+    return existente
+      ? prisma.hotel.update({ where: { id: existente.id }, data: datos })
+      : prisma.hotel.create({ data: datos });
+  };
+  // Solo los hoteles genéricos se usan para generar los servicios de ejemplo.
+  const hoteles: Hotel[] = [];
+  for (const hotel of HOTELES) hoteles.push(await guardarHotel(hotel));
+  for (const hotel of HOTELES_LAYOUT) await guardarHotel(hotel);
 
   // 7) Vehículos
   for (const v of VEHICULOS) {

@@ -27,7 +27,13 @@ export function simularApi(responder: (peticion: Peticion) => Respuesta | Promis
         metodo: opciones?.method ?? 'GET',
         ruta: url.pathname.replace(/^\/api/, ''),
         query: url.searchParams,
-        cuerpo: opciones?.body ? JSON.parse(String(opciones.body)) : undefined,
+        // Los formularios (subida de archivos) se guardan tal cual; lo demás es JSON.
+        cuerpo:
+          opciones?.body instanceof FormData
+            ? opciones.body
+            : opciones?.body
+              ? JSON.parse(String(opciones.body))
+              : undefined,
       }
       peticiones.push(peticion)
       const { status = 200, cuerpo } = await responder(peticion)

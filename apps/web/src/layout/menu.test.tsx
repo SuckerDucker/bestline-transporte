@@ -8,9 +8,12 @@ import { Navegacion } from './Navegacion'
 const etiquetas = (rol: Rol) => opcionesPara(rol).map((o) => o.etiqueta)
 
 describe('Menú según el rol', () => {
-  it('el ADMINISTRADOR ve todo: catálogos, configuración y administración', () => {
+  it('el ADMINISTRADOR ve todo: operación, catálogos, configuración y administración', () => {
     expect(etiquetas('ADMINISTRADOR')).toEqual([
       'Inicio',
+      'Importar servicios',
+      'Servicios',
+      'Historial de importaciones',
       'Vehículos',
       'Operadores',
       'Zonas',
@@ -23,17 +26,27 @@ describe('Menú según el rol', () => {
     ])
     expect(menuAgrupado('ADMINISTRADOR').map((g) => g.grupo)).toEqual([
       null,
+      'Operación',
       'Catálogos',
       'Configuración',
       'Administración',
     ])
   })
 
-  it.each(['COORDINADOR', 'SUPERVISOR'] as const)('%s ve catálogos y configuración, pero no administración', (rol) => {
+  it.each(['COORDINADOR', 'SUPERVISOR'] as const)('%s ve operación, catálogos y configuración, pero no administración', (rol) => {
     expect(etiquetas(rol)).not.toContain('Usuarios')
     expect(etiquetas(rol)).not.toContain('Bitácora')
     expect(etiquetas(rol)).toContain('Parámetros')
-    expect(menuAgrupado(rol).map((g) => g.grupo)).toEqual([null, 'Catálogos', 'Configuración'])
+    expect(etiquetas(rol)).toContain('Servicios')
+    expect(etiquetas(rol)).toContain('Historial de importaciones')
+    expect(menuAgrupado(rol).map((g) => g.grupo)).toEqual([null, 'Operación', 'Catálogos', 'Configuración'])
+  })
+
+  it('solo ADMINISTRADOR y COORDINADOR ven "Importar servicios"', () => {
+    expect(etiquetas('ADMINISTRADOR')).toContain('Importar servicios')
+    expect(etiquetas('COORDINADOR')).toContain('Importar servicios')
+    expect(etiquetas('SUPERVISOR')).not.toContain('Importar servicios')
+    expect(etiquetas('OPERADOR')).not.toContain('Importar servicios')
   })
 
   it('el OPERADOR solo ve Inicio', () => {
@@ -43,6 +56,8 @@ describe('Menú según el rol', () => {
   it('el título de la pantalla sale de la ruta', () => {
     expect(tituloDe('/matriz-tiempos')).toBe('Matriz de tiempos de traslado')
     expect(tituloDe('/no-existe')).toBe('Best Line · Operaciones')
+    // Subrutas: el detalle de una importación usa el título del historial.
+    expect(tituloDe('/importaciones/5')).toBe('Historial de importaciones')
   })
 })
 
