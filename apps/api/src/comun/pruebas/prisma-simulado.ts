@@ -12,6 +12,7 @@ const modelo = () => ({
   count: fn(),
   create: fn(),
   update: fn(),
+  upsert: fn(),
   delete: fn(),
 });
 
@@ -29,6 +30,7 @@ export function crearPrismaSimulado() {
     zona: modelo(),
     hotel: modelo(),
     tiempoTraslado: modelo(),
+    parametroOperacion: modelo(),
     servicio: modelo(),
     $transaction: fn(),
   };

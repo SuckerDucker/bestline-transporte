@@ -17,6 +17,8 @@ interface Props {
   textoConfirmar: string
   abierto: boolean
   procesando: boolean
+  /** Botón rojo (por omisión) para acciones como desactivar o eliminar. */
+  destructiva?: boolean
   alConfirmar: () => void
   alCancelar: () => void
 }
@@ -50,7 +52,7 @@ export function Confirmacion(props: Props) {
         <AlertDialogFooter>
           <AlertDialogCancel disabled={props.procesando}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            variant="destructive"
+            variant={props.destructiva === false ? 'default' : 'destructive'}
             disabled={props.procesando}
             onClick={(e) => {
               // Evita que Radix cierre el diálogo antes de que responda la API.

@@ -53,3 +53,13 @@ export class ConsultaZonasDto extends ConsultaPaginadaDto {
   @IsBoolean({ message: 'esZonaTermino debe ser true o false' })
   esZonaTermino?: boolean;
 }
+
+/** Cuerpo de PATCH /zonas/:id/zona-termino. */
+export class MarcarZonaTerminoDto {
+  @ApiProperty({
+    example: true,
+    description: 'true: una unidad puede terminar su jornada en esta zona',
+  })
+  @IsBoolean({ message: 'esZonaTermino debe ser true o false' })
+  esZonaTermino: boolean;
+}

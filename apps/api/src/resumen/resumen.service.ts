@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EstadoServicio, EstadoVehiculo } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { fechaEnCancun, rangoDelDia } from './fechas.js';
+import { fechaEnCancun, rangoDelDia } from '../comun/fechas.js';
 
 export interface Resumen {
   vehiculos: { activos: number; disponibles: number; enMantenimiento: number };
