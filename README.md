@@ -91,7 +91,7 @@ Interfaz construida con [shadcn/ui](https://ui.shadcn.com) (componentes en `src/
 Pantallas:
 
 - Inicio de sesión e inicio con tarjetas de resumen (`GET /api/resumen`).
-- **Operación:** importar servicios desde el layout del mayorista (.xlsx o .csv, con vista previa por fila antes de confirmar; ADMINISTRADOR y COORDINADOR), consulta de servicios con filtros e historial de importaciones con su detalle. Para probar, importa `docs/ejemplos/Layout_Servicios_Nexus.xlsx` con el mayorista Nexus Tours.
+- **Operación:** generar el rol del día con el motor de asignación (resumen y servicios no cubiertos con su motivo; ADMINISTRADOR y COORDINADOR), importar servicios desde el layout del mayorista (.xlsx o .csv, con vista previa por fila antes de confirmar; ADMINISTRADOR y COORDINADOR), consulta de servicios con filtros e historial de importaciones con su detalle. Para probar, importa `docs/ejemplos/Layout_Servicios_Nexus.xlsx` con el mayorista Nexus Tours.
 - **Catálogos:** vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos).
 - **Configuración:** parámetros de operación, zonas de término y matriz de tiempos de traslado (editable por celda).
 - **Administración:** usuarios (alta, edición, cambio de contraseña, desactivar y reactivar) y bitácora con filtros.
