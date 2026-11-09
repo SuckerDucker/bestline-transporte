@@ -22,6 +22,7 @@ export const ENTIDADES_BITACORA = [
   'parametro_operacion',
   'tiempo_traslado',
   'importacion',
+  'rol_diario',
 ] as const;
 
 /**

@@ -15,6 +15,7 @@ const modelo = () => ({
   update: fn(),
   upsert: fn(),
   delete: fn(),
+  deleteMany: fn(),
 });
 
 /**
@@ -34,6 +35,9 @@ export function crearPrismaSimulado() {
     parametroOperacion: modelo(),
     mayorista: modelo(),
     importacion: modelo(),
+    rolDiario: modelo(),
+    asignacion: modelo(),
+    servicioNoCubierto: modelo(),
     servicio: modelo(),
     $transaction: fn(),
   };
