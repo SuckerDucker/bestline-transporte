@@ -84,9 +84,10 @@ describe('textoAccion', () => {
     expect(textoAccion('CREAR')).toBe('CREAR');
   });
 
-  it('recorta al tamaño de la columna (50 caracteres)', () => {
-    const texto = textoAccion('ACTUALIZAR', 'x'.repeat(80));
-    expect(texto).toHaveLength(50);
-    expect(texto.endsWith('…')).toBe(true);
+  it('ya no recorta los textos largos (la columna admite 255)', () => {
+    const detalle = 'rol ADMINISTRADOR → SUPERVISOR; ' + 'x'.repeat(100);
+    const texto = textoAccion('ACTUALIZAR', detalle);
+    expect(texto).toBe(`ACTUALIZAR: ${detalle}`);
+    expect(texto.length).toBeGreaterThan(50);
   });
 });

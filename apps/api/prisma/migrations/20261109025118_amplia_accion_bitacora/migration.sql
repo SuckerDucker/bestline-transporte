@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "bitacora" ALTER COLUMN "accion" SET DATA TYPE VARCHAR(255);

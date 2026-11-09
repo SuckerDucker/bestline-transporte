@@ -23,20 +23,15 @@ export const ENTIDADES_BITACORA = [
   'tiempo_traslado',
 ] as const;
 
-/** Tamaño de la columna bitacora.accion (VarChar(50)). */
-const LARGO_ACCION = 50;
-
 /**
- * Texto que se guarda en bitacora.accion. La tabla no tiene columna de
- * detalle, así que cuando hace falta (por ejemplo el valor anterior y el nuevo
- * de un parámetro) se agrega después de la acción: "ACTUALIZAR: 9.5 → 10".
- * Se recorta al tamaño de la columna para que nunca falle el registro.
+ * Texto que se guarda en bitacora.accion (VarChar(255)). La tabla no tiene
+ * columna de detalle, así que cuando hace falta (por ejemplo el valor anterior
+ * y el nuevo de un parámetro) se agrega después de la acción:
+ * "ACTUALIZAR: 9.5 → 10". Los valores que se registran ya vienen validados y
+ * son cortos, así que caben completos.
  */
 export function textoAccion(accion: AccionBitacora, detalle?: string): string {
-  const texto = detalle ? `${accion}: ${detalle}` : accion;
-  return texto.length > LARGO_ACCION
-    ? `${texto.slice(0, LARGO_ACCION - 1)}…`
-    : texto;
+  return detalle ? `${accion}: ${detalle}` : accion;
 }
 
 /** Detalle de un cambio de valor: "anterior → nuevo". */

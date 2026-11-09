@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
+import { registrarBitacora } from '../src/comun/bitacora.js';
 import { RolUsuario } from '../src/generated/prisma/client.js';
 import type { PrismaService } from '../src/prisma/prisma.service.js';
 import {
@@ -108,6 +109,23 @@ describe('Bitácora (e2e)', () => {
     await consultar('?desde=05-11-2026').expect(400);
     await consultar('?desde=2026-11-10&hasta=2026-11-01').expect(400);
     await consultar('?accion=BORRAR').expect(400);
+  });
+
+  it('guarda y devuelve completo un texto de acción largo (columna de 255)', async () => {
+    const detalle = `${'x'.repeat(180)} → fin`;
+    await registrarBitacora(
+      prisma,
+      idAdmin,
+      'ACTUALIZAR',
+      'tiempo_traslado',
+      99,
+      detalle,
+    );
+
+    const pagina = (await consultar('?entidad=tiempo_traslado').expect(200))
+      .body as PaginaBitacora;
+    expect(pagina.datos[0].accion).toBe(`ACTUALIZAR: ${detalle}`);
+    expect(pagina.datos[0].accion.length).toBeGreaterThan(190);
   });
 
   it('403: un SUPERVISOR no puede consultar la bitácora', () => {
