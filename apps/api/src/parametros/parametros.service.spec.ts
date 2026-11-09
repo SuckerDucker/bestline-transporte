@@ -10,15 +10,21 @@ import { validarParametro } from './reglas.js';
 
 const ADMIN = 1;
 const PARAMETROS = [
-  { id: 1, clave: 'hora_cita.turno_1', valor: '04:00', descripcion: '' },
+  {
+    id: 1,
+    clave: 'hora_cita.bloque_matutino',
+    valor: '04:00-05:00',
+    descripcion: '',
+  },
   { id: 3, clave: 'jornada_maxima_horas', valor: '9.5', descripcion: '' },
   { id: 4, clave: 'anticipacion.PRIVADO', valor: '10', descripcion: '' },
 ];
 
 describe('validarParametro', () => {
   it.each([
-    ['hora_cita.turno_1', '00:00'],
-    ['hora_cita.turno_2', '23:59'],
+    ['hora_cita.bloque_matutino', '04:00-05:00'],
+    ['hora_cita.bloque_vespertino', '12:00-13:00'],
+    ['hora_cita.bloque_vespertino', '00:00-23:59'],
     ['jornada_maxima_horas', '1'],
     ['jornada_maxima_horas', '9.5'],
     ['jornada_maxima_horas', '12'],
@@ -31,9 +37,13 @@ describe('validarParametro', () => {
   });
 
   it.each([
-    ['hora_cita.turno_1', '4:00'],
-    ['hora_cita.turno_1', '24:00'],
-    ['hora_cita.turno_1', '12:60'],
+    // Una sola hora, inicio igual o después del fin, horas inválidas.
+    ['hora_cita.bloque_matutino', '04:00'],
+    ['hora_cita.bloque_matutino', '05:00-04:00'],
+    ['hora_cita.bloque_matutino', '04:00-04:00'],
+    ['hora_cita.bloque_matutino', '4:00-05:00'],
+    ['hora_cita.bloque_vespertino', '12:00-24:00'],
+    ['hora_cita.bloque_vespertino', '12:60-13:00'],
     ['jornada_maxima_horas', '0.5'],
     ['jornada_maxima_horas', '12.5'],
     ['jornada_maxima_horas', 'diez'],
@@ -78,7 +88,7 @@ describe('ParametrosService', () => {
       [
         { clave: 'jornada_maxima_horas', valor: '10' },
         // Sin cambio: no se actualiza ni se registra.
-        { clave: 'hora_cita.turno_1', valor: '04:00' },
+        { clave: 'hora_cita.bloque_matutino', valor: '04:00-05:00' },
       ],
       ADMIN,
     );
@@ -102,7 +112,7 @@ describe('ParametrosService', () => {
         [
           { clave: 'jornada_maxima_horas', valor: '15' },
           { clave: 'anticipacion.PRIVADO', valor: '15' },
-          { clave: 'hora_cita.turno_1', valor: '4:30' },
+          { clave: 'hora_cita.bloque_matutino', valor: '05:00-04:00' },
         ],
         ADMIN,
       );
@@ -114,7 +124,7 @@ describe('ParametrosService', () => {
     const { errores } = respuesta as { errores: { clave: string }[] };
     expect(errores.map((e) => e.clave)).toEqual([
       'jornada_maxima_horas',
-      'hora_cita.turno_1',
+      'hora_cita.bloque_matutino',
     ]);
     expect(prisma.parametroOperacion.update).not.toHaveBeenCalled();
   });
@@ -122,7 +132,7 @@ describe('ParametrosService', () => {
   it('404 si alguna clave no existe', async () => {
     await expect(
       servicio.actualizar(
-        [{ clave: 'hora_cita.turno_9', valor: '06:00' }],
+        [{ clave: 'hora_cita.bloque_nocturno', valor: '06:00' }],
         ADMIN,
       ),
     ).rejects.toThrow(NotFoundException);

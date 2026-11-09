@@ -27,8 +27,8 @@ interface Props {
 }
 
 const ETIQUETAS: Record<ClaveParametro, string> = {
-  'hora_cita.turno_1': 'Turno 1',
-  'hora_cita.turno_2': 'Turno 2',
+  'hora_cita.bloque_matutino': 'Bloque matutino',
+  'hora_cita.bloque_vespertino': 'Bloque vespertino',
   jornada_maxima_horas: 'Jornada máxima',
   'anticipacion.PRIVADO': 'Privado',
   'anticipacion.COMPARTIDO': 'Compartido',
@@ -64,7 +64,7 @@ export function FormularioParametros({ parametros, soloLectura, alGuardar }: Pro
     }
   }
 
-  /** Error de un campo a partir de su clave ("hora_cita.turno_1"). */
+  /** Error de un campo a partir de su clave ("hora_cita.bloque_matutino"). */
   const errorDe = (clave: ClaveParametro) =>
     (clave.split('.').reduce<unknown>((nodo, parte) => (nodo as Record<string, unknown> | undefined)?.[parte], errors) as
       | FieldError
@@ -93,9 +93,13 @@ export function FormularioParametros({ parametros, soloLectura, alGuardar }: Pro
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="grid gap-5">
       <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
-        <Seccion icono={Clock} titulo="Horas de cita" descripcion="Hora en que el operador se presenta, por turno.">
-          {campo('hora_cita.turno_1', 'HH:mm', '04:00', 'numeric')}
-          {campo('hora_cita.turno_2', 'HH:mm', '05:00', 'numeric')}
+        <Seccion
+          icono={Clock}
+          titulo="Bloques de hora de cita"
+          descripcion="La hora de cita de cada operador debe caer dentro de uno de los dos bloques."
+        >
+          {campo('hora_cita.bloque_matutino', 'inicio-fin', '04:00-05:00', 'numeric')}
+          {campo('hora_cita.bloque_vespertino', 'inicio-fin', '12:00-13:00', 'numeric')}
         </Seccion>
         <Seccion icono={Hourglass} titulo="Jornada" descripcion="Tiempo máximo de trabajo desde la hora de cita.">
           {campo('jornada_maxima_horas', 'horas', '9.5', 'decimal')}

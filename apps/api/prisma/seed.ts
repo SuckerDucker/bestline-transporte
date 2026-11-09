@@ -6,7 +6,8 @@
  * 1) VALORES DE OPERACIÓN (indicados por el alumno para la Fase 6):
  *    - capacidad máxima por tipo: Van/Urvan 14, Sprinter 20, Autobús 45;
  *    - anticipación por modalidad: PRIVADO 10, COMPARTIDO 20, GRUPO 30 minutos;
- *    - horas de cita: turno 1 a las 04:00 y turno 2 a las 05:00;
+ *    - bloques de hora de cita (confirmados por la empresa): matutino
+ *      04:00-05:00 y vespertino 12:00-13:00;
  *    - jornada máxima: 9.5 horas;
  *    - zonas de término: solo Zona Hotelera y Aeropuerto CUN.
  *
@@ -441,14 +442,16 @@ async function main(): Promise<void> {
   // 4) Parámetros de operación (valores de operación, ver encabezado)
   const parametros: { clave: string; valor: string; descripcion: string }[] = [
     {
-      clave: 'hora_cita.turno_1',
-      valor: '04:00',
-      descripcion: 'Hora de cita del turno 1 (HH:mm, America/Cancun)',
+      clave: 'hora_cita.bloque_matutino',
+      valor: '04:00-05:00',
+      descripcion:
+        'Bloque matutino de horas de cita (HH:mm-HH:mm, America/Cancun)',
     },
     {
-      clave: 'hora_cita.turno_2',
-      valor: '05:00',
-      descripcion: 'Hora de cita del turno 2 (HH:mm, America/Cancun)',
+      clave: 'hora_cita.bloque_vespertino',
+      valor: '12:00-13:00',
+      descripcion:
+        'Bloque vespertino de horas de cita (HH:mm-HH:mm, America/Cancun)',
     },
     {
       clave: 'jornada_maxima_horas',

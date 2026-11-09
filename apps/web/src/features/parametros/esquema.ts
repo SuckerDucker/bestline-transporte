@@ -9,10 +9,16 @@ export interface Parametro {
 }
 
 // Mismas reglas que la API (apps/api/src/parametros/reglas.ts).
-const hora = z
+/** Bloque de horas de cita "HH:mm-HH:mm" con el inicio antes que el fin. */
+const bloque = z
   .string()
   .trim()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Usa el formato HH:mm de 24 horas (00:00 a 23:59)')
+  .regex(
+    /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/,
+    'Usa el formato HH:mm-HH:mm de 24 horas (por ejemplo 04:00-05:00)',
+  )
+  // En HH:mm el orden del texto es el orden de las horas.
+  .refine((v) => v.slice(0, 5) < v.slice(6), 'La hora de inicio debe ser antes que la de fin')
 const horasJornada = z
   .string()
   .trim()
@@ -26,10 +32,10 @@ const minutos = z
 
 /**
  * Los nombres de los campos son las claves de la API: React Hook Form lee
- * "hora_cita.turno_1" como el campo turno_1 dentro de hora_cita.
+ * "hora_cita.bloque_matutino" como el campo bloque_matutino dentro de hora_cita.
  */
 export const esquemaParametros = z.object({
-  hora_cita: z.object({ turno_1: hora, turno_2: hora }),
+  hora_cita: z.object({ bloque_matutino: bloque, bloque_vespertino: bloque }),
   jornada_maxima_horas: horasJornada,
   anticipacion: z.object({ PRIVADO: minutos, COMPARTIDO: minutos, GRUPO: minutos }),
   motor: z.object({ penalizacion_carga_min: minutos }),
@@ -38,8 +44,8 @@ export type ValoresParametros = z.infer<typeof esquemaParametros>
 
 /** Claves que muestra el formulario, en orden. */
 export const CLAVES = [
-  'hora_cita.turno_1',
-  'hora_cita.turno_2',
+  'hora_cita.bloque_matutino',
+  'hora_cita.bloque_vespertino',
   'jornada_maxima_horas',
   'anticipacion.PRIVADO',
   'anticipacion.COMPARTIDO',
@@ -52,7 +58,10 @@ export type ClaveParametro = (typeof CLAVES)[number]
 export function aValores(parametros: Parametro[]): ValoresParametros {
   const valor = (clave: ClaveParametro) => parametros.find((p) => p.clave === clave)?.valor ?? ''
   return {
-    hora_cita: { turno_1: valor('hora_cita.turno_1'), turno_2: valor('hora_cita.turno_2') },
+    hora_cita: {
+      bloque_matutino: valor('hora_cita.bloque_matutino'),
+      bloque_vespertino: valor('hora_cita.bloque_vespertino'),
+    },
     jornada_maxima_horas: valor('jornada_maxima_horas'),
     anticipacion: {
       PRIVADO: valor('anticipacion.PRIVADO'),
@@ -66,8 +75,8 @@ export function aValores(parametros: Parametro[]): ValoresParametros {
 /** Valores del formulario → cuerpo de PUT /parametros (solo las claves que existen en la base). */
 export function aLista(valores: ValoresParametros, existentes: Parametro[]): { clave: string; valor: string }[] {
   const plano: Record<ClaveParametro, string> = {
-    'hora_cita.turno_1': valores.hora_cita.turno_1,
-    'hora_cita.turno_2': valores.hora_cita.turno_2,
+    'hora_cita.bloque_matutino': valores.hora_cita.bloque_matutino,
+    'hora_cita.bloque_vespertino': valores.hora_cita.bloque_vespertino,
     jornada_maxima_horas: valores.jornada_maxima_horas,
     'anticipacion.PRIVADO': valores.anticipacion.PRIVADO,
     'anticipacion.COMPARTIDO': valores.anticipacion.COMPARTIDO,
