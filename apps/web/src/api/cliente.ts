@@ -45,7 +45,9 @@ export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): P
 
   const token = leerToken()
   const encabezados: Record<string, string> = {}
-  if (opciones.cuerpo !== undefined) encabezados['Content-Type'] = 'application/json'
+  // FormData (subida de archivos): el navegador pone el Content-Type multipart.
+  const esFormulario = opciones.cuerpo instanceof FormData
+  if (opciones.cuerpo !== undefined && !esFormulario) encabezados['Content-Type'] = 'application/json'
   if (token) encabezados.Authorization = `Bearer ${token}`
 
   let respuesta: Response
@@ -53,7 +55,11 @@ export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): P
     respuesta = await fetch(url, {
       method: opciones.metodo ?? 'GET',
       headers: encabezados,
-      body: opciones.cuerpo !== undefined ? JSON.stringify(opciones.cuerpo) : undefined,
+      body: esFormulario
+        ? (opciones.cuerpo as FormData)
+        : opciones.cuerpo !== undefined
+          ? JSON.stringify(opciones.cuerpo)
+          : undefined,
     })
   } catch {
     throw new ErrorApi(0, 'No se pudo conectar con el servidor. Revisa que la API esté levantada.')
