@@ -5,6 +5,7 @@ import { BitacoraModule } from './bitacora/bitacora.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HotelesModule } from './hoteles/hoteles.module.js';
 import { OperadoresModule } from './operadores/operadores.module.js';
+import { ParametrosModule } from './parametros/parametros.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResumenModule } from './resumen/resumen.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
@@ -26,6 +27,8 @@ import { ZonasModule } from './zonas/zonas.module.js';
     // Administración
     UsuariosModule,
     BitacoraModule,
+    // Configuración de la operación
+    ParametrosModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],
