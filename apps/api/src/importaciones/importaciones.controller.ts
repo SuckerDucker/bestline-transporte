@@ -113,7 +113,7 @@ const ERROR_ENCABEZADOS = {
   },
 };
 
-/** Importación de servicios de los mayoristas (CU-05, RF-04, RF-05). */
+/** Importación de servicios de los mayoristas (CU-10, RF-04, RF-05). */
 @ApiTags('importaciones')
 @ApiBearerAuth()
 @ApiError401()

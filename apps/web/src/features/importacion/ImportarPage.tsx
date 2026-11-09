@@ -18,7 +18,7 @@ const faltantesDe = (error: unknown) =>
   error instanceof ErrorApi ? ((error.datos as { faltantes?: string[] } | null)?.faltantes ?? []) : []
 
 /**
- * Importar servicios (CU-05): elegir mayorista y archivo, revisar la vista
+ * Importar servicios (CU-10): elegir mayorista y archivo, revisar la vista
  * previa con el estado de cada fila y confirmar. Al confirmar se envía el mismo
  * archivo: la API lo vuelve a validar antes de guardar.
  */
