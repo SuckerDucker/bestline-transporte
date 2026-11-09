@@ -34,17 +34,46 @@ docker compose ps             # el servicio "db" debe verse "healthy"
 
 ```bash
 cd apps/api
-cp .env.example .env          # usa el mismo usuario y contraseña de la BD que en el .env de la raíz
+cp .env.example .env          # y reemplaza los marcadores (ver tabla de variables)
 npm install
 npx prisma migrate dev        # aplica las migraciones (en Prisma 7 no corre el seed)
-npx prisma db seed            # carga los datos DE EJEMPLO y el usuario administrador
+npx prisma db seed            # carga los valores de operación, los datos de ejemplo y un usuario por rol
 npm run start:dev
 ```
 
+Variables de `apps/api/.env`:
+
+| Variable | Para qué sirve |
+|---|---|
+| `PORT` | Puerto de la API (3000) |
+| `CORS_ORIGIN` | Origen permitido del frontend (http://localhost:5173) |
+| `DATABASE_URL` | Conexión a la base de desarrollo (mismo usuario y contraseña que el `.env` de la raíz) |
+| `DATABASE_URL_TEST` | Conexión a la base de pruebas e2e (`bestline_test`; se crea y migra sola) |
+| `JWT_SECRET` | Secreto para firmar los tokens (cadena larga y aleatoria) |
+| `JWT_EXPIRES_IN` | Duración del token (por ejemplo `8h`) |
+| `ADMIN_NOMBRE`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Usuario ADMINISTRADOR que crea el seed |
+| `SEED_PASSWORD_EJEMPLO` | Contraseña de los usuarios de ejemplo del seed |
+
+Usuarios que crea el seed:
+
+| Correo | Rol | Contraseña |
+|---|---|---|
+| El de `ADMIN_EMAIL` | ADMINISTRADOR | `ADMIN_PASSWORD` |
+| coordinador@bestline.local | COORDINADOR | `SEED_PASSWORD_EJEMPLO` |
+| supervisor@bestline.local | SUPERVISOR | `SEED_PASSWORD_EJEMPLO` |
+| operador@bestline.local | OPERADOR | `SEED_PASSWORD_EJEMPLO` |
+
 - Salud: http://localhost:3000/api/health → `{ "status": "ok" }`
-- Swagger: http://localhost:3000/api/docs
+- Swagger: http://localhost:3000/api/docs (botón **Authorize**: pega el `accessToken` de `POST /api/auth/login`)
 - Ver las tablas: `npx prisma studio --port 5555` y abrir http://localhost:5555
-- Pruebas (Jest): `npm test` (unitarias) y `npm run test:e2e` (Supertest)
+
+Pruebas (Jest + Supertest):
+
+```bash
+npm test            # unitarias (sin base de datos; Prisma simulado)
+npm run test:cov    # unitarias con reporte de cobertura (carpeta coverage/)
+npm run test:e2e    # e2e contra la base bestline_test (requiere la BD arriba)
+```
 
 ## 3. Web (React) en http://localhost:5173
 
@@ -54,4 +83,14 @@ npm install
 npm run dev
 ```
 
-Por ahora solo muestra la pantalla de inicio de sesión (validación del formulario, sin conexión a la API).
+La URL de la API es `http://localhost:3000/api` por defecto; para cambiarla, copia `apps/web/.env.example` como `apps/web/.env` y ajusta `VITE_API_URL`.
+
+Interfaz construida con [shadcn/ui](https://ui.shadcn.com) (componentes en `src/components/ui`, sobre Radix UI y TailwindCSS) e íconos de lucide-react. Para agregar otro componente: `npx shadcn@latest add <componente>`. La versión actual de shadcn/ui asume React 19; con React 18 hay que envolver con `React.forwardRef` los componentes que reciben `ref` (ver los comentarios en `button.tsx`, `input.tsx` y los overlays).
+
+Pantallas: inicio de sesión, inicio con tarjetas de resumen (`GET /api/resumen`) y los catálogos de vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos). En móvil el menú lateral se abre con el botón ☰. El menú depende del rol:
+
+| Rol | Ve | Puede modificar catálogos |
+|---|---|---|
+| ADMINISTRADOR | Inicio y los 4 catálogos | Sí |
+| COORDINADOR, SUPERVISOR | Inicio y los 4 catálogos | No (solo consulta) |
+| OPERADOR | Inicio | No |

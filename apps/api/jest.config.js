@@ -15,7 +15,18 @@ const config = {
     '^.+\\.ts$': ['ts-jest', { useESM: true }],
   },
   resolver: '<rootDir>/../jest.resolver.cjs',
-  collectCoverageFrom: ['**/*.ts', '!generated/**', '!main.ts'],
+  // Cobertura: solo código con lógica propia. Se excluyen el cliente generado
+  // por Prisma, el arranque (main.ts), los módulos de Nest (solo declaran
+  // piezas), los DTO (solo decoradores de validación) y las ayudas de prueba.
+  collectCoverageFrom: [
+    '**/*.ts',
+    '!generated/**',
+    '!main.ts',
+    '!**/*.module.ts',
+    '!**/dto/**',
+    '!**/pruebas/**',
+    '!**/*.spec.ts',
+  ],
   coverageDirectory: '../coverage',
 };
 

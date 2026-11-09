@@ -1,7 +1,54 @@
+import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { RutaProtegida } from './auth/RutaProtegida'
+import { Skeleton } from './components/ui/skeleton'
 import { LoginPage } from './features/auth/LoginPage'
+import { InicioPage } from './features/inicio/InicioPage'
+import { Layout } from './layout/Layout'
+import { ROLES_CATALOGOS } from './layout/menu'
+
+// Las pantallas de catálogo se descargan solo cuando se abren (paquete inicial más ligero).
+const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
+const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
+const ZonasPage = lazy(() => import('./features/zonas/ZonasPage').then((m) => ({ default: m.ZonasPage })))
+const HotelesPage = lazy(() => import('./features/hoteles/HotelesPage').then((m) => ({ default: m.HotelesPage })))
+
+/** Mientras se descarga una pantalla. */
+const Cargando = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-9 w-full max-w-md" />
+    <Skeleton className="h-72 w-full" />
+  </div>
+)
 
 function App() {
-  return <LoginPage />
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Todo lo de adentro exige sesión iniciada */}
+      <Route element={<RutaProtegida />}>
+        <Route element={<Layout />}>
+          <Route index element={<InicioPage />} />
+          {/* Catálogos: solo para los roles del menú (la API vuelve a revisarlo) */}
+          <Route
+            element={
+              <Suspense fallback={<Cargando />}>
+                <RutaProtegida roles={ROLES_CATALOGOS} />
+              </Suspense>
+            }
+          >
+            <Route path="vehiculos" element={<VehiculosPage />} />
+            <Route path="operadores" element={<OperadoresPage />} />
+            <Route path="zonas" element={<ZonasPage />} />
+            <Route path="hoteles" element={<HotelesPage />} />
+          </Route>
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
 }
 
 export default App

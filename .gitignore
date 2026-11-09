@@ -11,3 +11,6 @@ pgdata/
 
 # Cliente de Prisma generado (se regenera con "npx prisma generate")
 apps/api/src/generated/
+
+# Instrucciones locales para el asistente (no se publican)
+CLAUDE.md
