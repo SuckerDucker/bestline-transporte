@@ -1,9 +1,11 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import {
+  type Columna,
   ENCABEZADO_ANCLA,
   ENCABEZADOS,
-  type Encabezado,
+  ENCABEZADOS_OPCIONALES,
+  type EncabezadoOpcional,
   FILAS_MAXIMAS_ANTES_DE_ENCABEZADOS,
   normalizar,
 } from './mapeo.js';
@@ -12,7 +14,8 @@ import {
 export interface FilaArchivo {
   /** Número de fila en el archivo (como lo ve el usuario en Excel). */
   numero: number;
-  valores: Record<Encabezado, string>;
+  /** Valores por columna; las opcionales que no vienen en el archivo quedan vacías. */
+  valores: Record<Columna, string>;
 }
 
 /** Problema con el archivo completo (no con una fila). Se responde como 400. */
@@ -54,10 +57,17 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
 
   // Columna de cada encabezado, buscada por nombre (sin mayúsculas ni acentos).
   const nombres = celdas[indiceEncabezados].map((c) => normalizar(aTexto(c)));
-  const columna = new Map(
-    ENCABEZADOS.map((e) => [e, nombres.indexOf(normalizar(e))] as const),
+  const columna = new Map<Columna, number>(
+    ENCABEZADOS.map((e) => [e, nombres.indexOf(normalizar(e))]),
   );
   const faltantes = ENCABEZADOS.filter((e) => columna.get(e) === -1);
+  // Opcionales: la primera de sus variantes que aparezca ("Aeropuerto" o "Terminal").
+  for (const [opcional, variantes] of Object.entries(ENCABEZADOS_OPCIONALES)) {
+    const indice = variantes
+      .map((v) => nombres.indexOf(normalizar(v)))
+      .find((i) => i >= 0);
+    columna.set(opcional as EncabezadoOpcional, indice ?? -1);
+  }
   if (faltantes.length) {
     throw new ErrorArchivo(
       `Faltan encabezados: ${faltantes.join(', ')}`,
@@ -69,11 +79,11 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
   celdas.slice(indiceEncabezados + 1).forEach((fila, i) => {
     if (fila.every((c) => aTexto(c).trim() === '')) return;
     const valores = Object.fromEntries(
-      ENCABEZADOS.map((e) => [
-        e,
-        celdaComoTexto(e, fila[columna.get(e) as number]).trim(),
+      [...columna].map(([nombre, indice]) => [
+        nombre,
+        indice < 0 ? '' : celdaComoTexto(nombre, fila[indice]).trim(),
       ]),
-    ) as Record<Encabezado, string>;
+    ) as Record<Columna, string>;
     filas.push({ numero: indiceEncabezados + i + 2, valores });
   });
   return filas;
@@ -111,7 +121,7 @@ function leerXlsx(contenido: Buffer): unknown[][] {
  * como fecha real (número de serie), se convierte al formato del layout:
  * dd/mm/aaaa o HH:mm. Las demás columnas numéricas (Pasajeros) quedan igual.
  */
-function celdaComoTexto(encabezado: Encabezado, valor: unknown): string {
+function celdaComoTexto(encabezado: Columna, valor: unknown): string {
   if (typeof valor !== 'number') return aTexto(valor);
   if (encabezado !== 'Fecha' && encabezado !== 'Hora') return aTexto(valor);
   const f = XLSX.SSF.parse_date_code(valor);

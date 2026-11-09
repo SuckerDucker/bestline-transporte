@@ -20,17 +20,42 @@ export const ENCABEZADOS = [
 ] as const;
 export type Encabezado = (typeof ENCABEZADOS)[number];
 
+/**
+ * Columnas opcionales: si el archivo no las trae, la fila las recibe vacías.
+ * Cada una acepta varios nombres de encabezado.
+ */
+export const ENCABEZADOS_OPCIONALES = {
+  Aeropuerto: ['Aeropuerto', 'Terminal'],
+} as const;
+export type EncabezadoOpcional = keyof typeof ENCABEZADOS_OPCIONALES;
+/** Todas las columnas que se leen de cada fila. */
+export type Columna = Encabezado | EncabezadoOpcional;
+
 /** La fila de encabezados es la que contiene este texto (antes puede haber filas de título). */
 export const ENCABEZADO_ANCLA: Encabezado = 'Folio';
 /** Filas que se revisan para encontrar los encabezados. */
 export const FILAS_MAXIMAS_ANTES_DE_ENCABEZADOS = 20;
 
-/** Zona del aeropuerto para LLEGADA (origen) y SALIDA (destino). */
-export const ZONA_AEROPUERTO = 'Aeropuerto CUN';
+/**
+ * Aeropuertos que acepta la columna opcional "Aeropuerto" (o "Terminal") y la
+ * zona del catálogo que corresponde a cada uno. LLEGADA sale de esa zona y
+ * SALIDA termina en ella.
+ */
+export const ZONAS_AEROPUERTO = {
+  CUN: 'Aeropuerto CUN',
+  TQO: 'Aeropuerto TQO',
+} as const;
+export type Aeropuerto = keyof typeof ZONAS_AEROPUERTO;
 
 /**
- * SUPUESTO POR CONFIRMAR CON LA EMPRESA: si "Tipo de Servicio" no trae la
- * modalidad, se asume COMPARTIDO y la fila queda como ADVERTENCIA.
+ * REGLA CONFIRMADA CON LA EMPRESA: LLEGADA y SALIDA usan el Aeropuerto CUN
+ * cuando el archivo no indica el aeropuerto.
+ */
+export const AEROPUERTO_POR_OMISION: Aeropuerto = 'CUN';
+
+/**
+ * REGLA CONFIRMADA CON LA EMPRESA: si "Tipo de Servicio" no trae la
+ * modalidad, se importa como COMPARTIDO y la fila queda como ADVERTENCIA.
  */
 export const MODALIDAD_POR_OMISION: ModalidadServicio =
   ModalidadServicio.COMPARTIDO;
@@ -83,11 +108,23 @@ export function interpretarTipo(texto: string): TipoInterpretado | null {
 }
 
 /**
+ * Columna "Aeropuerto": CUN o TQO sin distinguir mayúsculas. Vacía (o sin la
+ * columna) → AEROPUERTO_POR_OMISION. Cualquier otro valor → null (error de fila).
+ */
+export function interpretarAeropuerto(texto: string): Aeropuerto | null {
+  if (esVacio(texto)) return AEROPUERTO_POR_OMISION;
+  const codigo = texto.trim().toUpperCase();
+  return Object.hasOwn(ZONAS_AEROPUERTO, codigo)
+    ? (codigo as Aeropuerto)
+    : null;
+}
+
+/**
  * Origen y destino según el sentido:
  * - LLEGADA: aeropuerto → zona del hotel.
  * - SALIDA: zona del hotel → aeropuerto.
- * - TRASLADO: zona del hotel → zona del hotel (SUPUESTO POR CONFIRMAR: el
- *   layout no trae una segunda zona).
+ * - TRASLADO: zona indicada → la misma zona (REGLA CONFIRMADA CON LA EMPRESA:
+ *   el layout no trae una segunda zona).
  */
 export function rutaDelServicio(
   tipo: TipoServicio,

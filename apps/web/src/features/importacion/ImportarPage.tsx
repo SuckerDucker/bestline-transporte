@@ -18,7 +18,7 @@ const faltantesDe = (error: unknown) =>
   error instanceof ErrorApi ? ((error.datos as { faltantes?: string[] } | null)?.faltantes ?? []) : []
 
 /**
- * Importar servicios (CU-05): elegir mayorista y archivo, revisar la vista
+ * Importar servicios (CU-10): elegir mayorista y archivo, revisar la vista
  * previa con el estado de cada fila y confirmar. Al confirmar se envía el mismo
  * archivo: la API lo vuelve a validar antes de guardar.
  */
@@ -118,7 +118,7 @@ export function ImportarPage() {
             <p className="font-medium text-destructive">Al archivo le faltan encabezados</p>
             <p className="text-destructive/90">
               Faltan: {faltantes.join(', ')}. Revisa que la fila de encabezados tenga Folio, Localizador, Agencia, Fecha,
-              Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora.
+              Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora (la columna Aeropuerto o Terminal es opcional).
             </p>
           </div>
         </div>

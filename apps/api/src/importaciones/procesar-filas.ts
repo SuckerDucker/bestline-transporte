@@ -3,14 +3,15 @@ import type {
   TipoServicio,
 } from '../generated/prisma/enums.js';
 import { instanteCancun } from '../comun/fechas.js';
-import type { Encabezado } from './mapeo.js';
+import type { Columna, Encabezado } from './mapeo.js';
 import {
   esVacio,
+  interpretarAeropuerto,
   interpretarTipo,
   LARGO_MAXIMO,
   normalizar,
   rutaDelServicio,
-  ZONA_AEROPUERTO,
+  ZONAS_AEROPUERTO,
 } from './mapeo.js';
 import type { FilaArchivo } from './lectura.js';
 
@@ -54,7 +55,7 @@ export interface FilaProcesada {
   fila: number;
   estado: EstadoFila;
   mensajes: string[];
-  valores: Record<Encabezado, string>;
+  valores: Record<Columna, string>;
   servicio: ServicioNuevo | null;
 }
 
@@ -127,7 +128,7 @@ const OBLIGATORIOS: Encabezado[] = [
 
 /** Convierte una fila; deja en `errores` y `advertencias` lo que encuentre. */
 function convertirFila(
-  v: Record<Encabezado, string>,
+  v: Record<Columna, string>,
   catalogos: Catalogos,
   errores: string[],
   advertencias: string[],
@@ -184,9 +185,17 @@ function convertirFila(
     zona = catalogos.zonas.get(normalizar(v.Zona));
     if (!zona) errores.push(`Zona no registrada en el catálogo: "${v.Zona}"`);
   }
-  const aeropuerto = catalogos.zonas.get(normalizar(ZONA_AEROPUERTO));
-  if (tipo && tipo.tipo !== 'TRASLADO' && !aeropuerto) {
-    errores.push(`La zona "${ZONA_AEROPUERTO}" no está en el catálogo`);
+  // Columna opcional "Aeropuerto" (o "Terminal"): CUN por omisión.
+  const codigoAeropuerto = interpretarAeropuerto(v.Aeropuerto);
+  if (!codigoAeropuerto) errores.push('Aeropuerto no válido (CUN o TQO)');
+  const nombreAeropuerto = codigoAeropuerto
+    ? ZONAS_AEROPUERTO[codigoAeropuerto]
+    : null;
+  const aeropuerto = nombreAeropuerto
+    ? catalogos.zonas.get(normalizar(nombreAeropuerto))
+    : undefined;
+  if (nombreAeropuerto && tipo && tipo.tipo !== 'TRASLADO' && !aeropuerto) {
+    errores.push(`La zona "${nombreAeropuerto}" no está en el catálogo`);
   }
 
   const hotel = vacio('Hotel')

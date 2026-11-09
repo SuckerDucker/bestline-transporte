@@ -2,7 +2,7 @@
 
 ## Qué se hizo
 
-Se implementó la importación de los servicios que envían los mayoristas (CU-05, RF-04, RF-05). La API lee el layout diario de la empresa en Excel (.xlsx, con SheetJS) o en CSV (con PapaParse), encuentra la fila de encabezados aunque antes haya filas de título, lee cada columna por su nombre y valida cada fila: obligatorios, fecha y hora, pasajeros, largo de los campos, tipo de servicio, agencia, zona, hotel y duplicados por folio + localizador dentro del archivo y contra la base. Primero se genera una vista previa que no guarda nada y muestra cada fila como VÁLIDA, ADVERTENCIA, DUPLICADA o ERROR con sus mensajes; al confirmar, el archivo se procesa otra vez y en una sola transacción se guardan la importación, los servicios importables en estado PENDIENTE y el registro en la bitácora. También se agregaron el historial de importaciones con su detalle y la consulta de servicios con filtros. En el frontend se creó el grupo "Operación" con las pantallas Importar servicios, Servicios e Historial de importaciones.
+Se implementó la importación de los servicios que envían los mayoristas (CU-10, RF-04, RF-05). La API lee el layout diario de la empresa en Excel (.xlsx, con SheetJS) o en CSV (con PapaParse), encuentra la fila de encabezados aunque antes haya filas de título, lee cada columna por su nombre y valida cada fila: obligatorios, fecha y hora, pasajeros, largo de los campos, tipo de servicio, agencia, zona, hotel y duplicados por folio + localizador dentro del archivo y contra la base. Primero se genera una vista previa que no guarda nada y muestra cada fila como VÁLIDA, ADVERTENCIA, DUPLICADA o ERROR con sus mensajes; al confirmar, el archivo se procesa otra vez y en una sola transacción se guardan la importación, los servicios importables en estado PENDIENTE y el registro en la bitácora. También se agregaron el historial de importaciones con su detalle y la consulta de servicios con filtros. En el frontend se creó el grupo "Operación" con las pantallas Importar servicios, Servicios e Historial de importaciones.
 
 ## Cómo se hizo
 
@@ -49,11 +49,12 @@ Errores del archivo completo (400): falta el archivo, no es .xlsx ni .csv, super
 
 ## Reglas de mapeo
 
-- **Encabezados:** la fila de encabezados es la que contiene "Folio" (se revisan las primeras 20 filas). Se leen por nombre, sin distinguir mayúsculas ni acentos: Folio, Localizador, Agencia, Fecha, Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora. Si falta alguno → 400 con la lista.
+- **Encabezados:** la fila de encabezados es la que contiene "Folio" (se revisan las primeras 20 filas). Se leen por nombre, sin distinguir mayúsculas ni acentos: Folio, Localizador, Agencia, Fecha, Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora. Si falta alguno → 400 con la lista. Hay además una columna **opcional** "Aeropuerto" (también se acepta el encabezado "Terminal"); si no viene, no es un encabezado faltante.
 - **Fecha y hora:** Fecha en dd/mm/aaaa y Hora en HH:mm forman la `fecha_hora` en hora de Cancún (se guarda en UTC). Si Excel las guarda como fecha real, se convierten.
 - **Agencia → mayorista** por nombre ("Nexus Tours", "TUI"). Si no existe → ERROR. El servicio se guarda con el mayorista de su fila; la importación, con el que elige el usuario. Si alguna fila trae otra agencia, la vista previa lo avisa.
 - **Tipo de Servicio** = sentido (LLEGADA, SALIDA o TRASLADO) + modalidad opcional (PRIVADO, COMPARTIDO o GRUPO), sin distinguir mayúsculas ni acentos. Sin modalidad → COMPARTIDO con ADVERTENCIA. Cualquier otro texto → ERROR.
-- **Origen y destino:** LLEGADA = Aeropuerto CUN → zona del hotel; SALIDA = zona del hotel → Aeropuerto CUN; TRASLADO = zona del hotel → zona del hotel.
+- **Aeropuerto** (columna opcional): CUN o TQO, sin distinguir mayúsculas. Vacía, "—" o sin la columna → CUN. Cualquier otro valor → ERROR "Aeropuerto no válido (CUN o TQO)".
+- **Origen y destino:** LLEGADA = aeropuerto (zona "Aeropuerto CUN" o "Aeropuerto TQO") → zona indicada; SALIDA = zona indicada → aeropuerto; TRASLADO = zona indicada → la misma zona (el aeropuerto no cambia la ruta).
 - **Zona** por nombre en el catálogo: "—" o vacía → ERROR "Zona no indicada"; inexistente → ERROR "Zona no registrada en el catálogo".
 - **Hotel** por nombre: si no existe, la fila es ADVERTENCIA "Hotel no registrado en el catálogo" y se guarda con `hotel_id` nulo. Vacío → ERROR (es obligatorio).
 - **Vuelo:** "—" o vacío = sin vuelo. En TRASLADO no se exige; en LLEGADA o SALIDA sin vuelo → ADVERTENCIA.
@@ -61,18 +62,25 @@ Errores del archivo completo (400): falta el archivo, no es .xlsx ni .csv, super
 - **Estado de cada fila,** por prioridad: ERROR > DUPLICADA (folio + localizador repetido en el archivo o ya en la base) > ADVERTENCIA > VÁLIDA. Se importan VÁLIDA y ADVERTENCIA. En el archivo, la primera fila importable se queda y las siguientes con el mismo folio + localizador salen como DUPLICADA; una fila con error no "ocupa" el folio.
 - **Al confirmar:** `filas_validas` = VÁLIDA + ADVERTENCIA y `filas_rechazadas` = ERROR + DUPLICADA.
 
-## Supuestos por confirmar con la empresa
+## Reglas confirmadas con la empresa
+
+En el código están marcadas como "REGLA CONFIRMADA CON LA EMPRESA".
+
+| # | Regla | Dónde está |
+|---|---|---|
+| 1 | LLEGADA y SALIDA usan el **Aeropuerto CUN** por omisión (si el archivo no trae la columna Aeropuerto o viene vacía) | `AEROPUERTO_POR_OMISION` y `ZONAS_AEROPUERTO` en `mapeo.ts` |
+| 2 | Si "Tipo de Servicio" no trae la modalidad, se importa como **COMPARTIDO** con ADVERTENCIA | `MODALIDAD_POR_OMISION` en `mapeo.ts` |
+| 3 | Un **TRASLADO** va de la zona indicada a la misma zona (el layout no trae una segunda zona) | `rutaDelServicio` en `mapeo.ts` |
+
+## Supuestos que siguen por confirmar con la empresa
 
 | # | Supuesto | Dónde se cambia |
 |---|---|---|
-| 1 | Si "Tipo de Servicio" no trae la modalidad, se asume **COMPARTIDO** (la fila queda como ADVERTENCIA) | `MODALIDAD_POR_OMISION` en `mapeo.ts` |
-| 2 | En un **TRASLADO**, origen y destino son la zona del hotel (el layout no trae una segunda zona) | `rutaDelServicio` en `mapeo.ts` |
-| 3 | Las LLEGADA y SALIDA usan siempre el **Aeropuerto CUN** (el layout no indica aeropuerto; los hoteles de Tulum podrían usar TQO) | `ZONA_AEROPUERTO` en `mapeo.ts` |
-| 4 | Una LLEGADA o SALIDA **sin vuelo** es ADVERTENCIA, no ERROR | `procesar-filas.ts` |
-| 5 | El **Hotel** es obligatorio; si no está en el catálogo, la fila se importa sin hotel | `procesar-filas.ts` |
-| 6 | La zona de la columna **Zona** manda, aunque el hotel del catálogo esté en otra zona | `procesar-filas.ts` |
-| 7 | La Fecha viene en **dd/mm/aaaa** (no en mm/dd/aaaa) | `leerFecha` en `procesar-filas.ts` |
-| 8 | Cada servicio se guarda con la **agencia de su fila**, aunque el usuario haya elegido otro mayorista para la importación | `ImportacionesService` |
+| 1 | Una LLEGADA o SALIDA **sin vuelo** es ADVERTENCIA, no ERROR | `procesar-filas.ts` |
+| 2 | El **Hotel** es obligatorio; si no está en el catálogo, la fila se importa sin hotel | `procesar-filas.ts` |
+| 3 | La zona de la columna **Zona** manda, aunque el hotel del catálogo esté en otra zona | `procesar-filas.ts` |
+| 4 | La Fecha viene en **dd/mm/aaaa** (no en mm/dd/aaaa) | `leerFecha` en `procesar-filas.ts` |
+| 5 | Cada servicio se guarda con la **agencia de su fila**, aunque el usuario haya elegido otro mayorista para la importación | `ImportacionesService` |
 
 ## Decisiones técnicas
 
@@ -86,6 +94,7 @@ Errores del archivo completo (400): falta el archivo, no es .xlsx ni .csv, super
 | SheetJS se instaló desde su CDN oficial (`cdn.sheetjs.com`, 0.20.3) | La versión publicada en npm está desactualizada y tiene vulnerabilidades conocidas; `npm audit` de la API queda sin vulnerabilidades |
 | Se agregaron al seed los 8 hoteles del archivo de ejemplo, sin usarlos para los 60 servicios de ejemplo | Con el catálogo genérico todas las filas salían como "Hotel no registrado"; los servicios de ejemplo del 10/11 no cambian |
 | `GET /api/mayoristas` (solo lectura) | La pantalla necesitaba la lista para el selector y no existía |
+| El aeropuerto va en una columna **opcional** del archivo y no en la base | Así se distingue TQO de CUN sin agregar columnas: el aeropuerto queda guardado como la zona de origen (LLEGADA) o de destino (SALIDA) del servicio. Los archivos actuales, sin esa columna, siguen funcionando igual |
 | Grupo "Operación" al principio del menú | Es el trabajo diario; importar solo lo ven ADMINISTRADOR y COORDINADOR, como en la API |
 
 ## Problemas que surgieron y cómo se resolvieron
@@ -134,11 +143,12 @@ Si falta la modalidad usa la de omisión y lo indica con `modalidadAsumida`, par
   - 30 VÁLIDAS, 28 ADVERTENCIAS (modalidad no indicada), 2 DUPLICADAS (NX-15011 y NX-15044) y 5 ERRORES (3 "Zona no indicada" y 2 "Zona no registrada en el catálogo": "Riviera Maya").
   - Se importan 58 y se rechazan 7.
   - Los números se compararon con una cuenta independiente hecha sobre el CSV.
-- **API, unitarias** (`npm run test:cov`): 16 suites y 170 pruebas aprobadas (antes 13 y 126).
+- **API, unitarias** (`npm run test:cov`): 16 suites y 183 pruebas aprobadas (antes 13 y 126).
   - Lectura y mapeo: el archivo de ejemplo en .xlsx y .csv con resultados idénticos, encabezado faltante con la lista, extensión no permitida, sin fila de "Folio", columnas en otro orden, fecha y hora como fecha real de Excel, archivo dañado, fecha inválida (31/02), hora inválida, pasajeros 0, -2, 2.5 y "dos", tipo inválido, duplicado contra la base, obligatorios y largos, hotel no registrado y vuelo faltante, interpretación del tipo y rutas.
+  - Columna Aeropuerto: LLEGADA a Tulum sin la columna sale del Aeropuerto CUN; con "tqo" sale del Aeropuerto TQO; SALIDA con el encabezado "Terminal" y TQO termina en el Aeropuerto TQO; columna vacía o "—" usa CUN; "MEX" es ERROR "Aeropuerto no válido (CUN o TQO)"; en un TRASLADO no cambia la ruta. El archivo de ejemplo (sin la columna) sigue dando 30 / 28 / 2 / 5.
   - `ImportacionesService`: vista previa sin guardar, duplicados solo con los folios del archivo, aviso de otra agencia, 400, 404, confirmación en transacción con bitácora, 400 sin filas importables y 409.
   - `ServiciosService`: filtros y día de Cancún.
-- **API, cobertura**: **77.8 % de sentencias, 64.45 % de ramas, 68.16 % de funciones y 77.91 % de líneas** (antes 73.96 / 57.14 / 61.96 / 73.65). `mapeo.ts` 100 %; `procesar-filas.ts`, `lectura.ts` e `importaciones.service.ts` entre 95 % y 98 % de líneas.
+- **API, cobertura**: **78.2 % de sentencias, 65.31 % de ramas, 68.58 % de funciones y 78.29 % de líneas** (antes 73.96 / 57.14 / 61.96 / 73.65). `mapeo.ts` 100 %; `procesar-filas.ts`, `lectura.ts` e `importaciones.service.ts` entre 95 % y 98 % de líneas.
 - **API, e2e** (`npm run test:e2e`, contra `bestline_test`): 10 suites y 70 pruebas aprobadas (antes 8 y 55).
   - Importaciones: vista previa del .xlsx y del .csv sin guardar nada, confirmación con 58 servicios PENDIENTE (06:15 de Cancún = 11:15 UTC) y bitácora, reimportación con todo DUPLICADO y 400 al confirmar, historial y detalle (SUPERVISOR), 400 por encabezado faltante, extensión y falta de archivo, acentos del nombre, 403 y 401.
   - Servicios: día de Cancún (un servicio a las 23:30 cuenta en su día), filtros, 400, 403 del OPERADOR, 401 y lista de mayoristas.
@@ -189,7 +199,7 @@ Para Swagger (http://localhost:3000/api/docs) inicia sesión en `POST /api/auth/
 
 **Pruebas (terminal)**
 
-9. **API.** En `apps/api`, `npm run test:cov`. Deben verse "Test Suites: 16 passed", "Tests: 170 passed" y la fila "All files" (77.8 %), con `mapeo.ts` al 100 %.
+9. **API.** En `apps/api`, `npm run test:cov`. Deben verse "Test Suites: 16 passed", "Tests: 183 passed" y la fila "All files" (78.2 %), con `mapeo.ts` al 100 %.
 10. **Web.** En `apps/web`, `npm run test:cov`. Deben verse "Test Files 10 passed (10)", "Tests 63 passed (63)" y la fila "All files" (40.98 %), con `VistaPrevia.tsx` e `ImportarPage.tsx`.
 
 Al terminar, para regresar la base al estado del seed, en la raíz corre (cambia `<usuario_bd>` por el de tu `.env`):
