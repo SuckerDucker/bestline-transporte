@@ -118,7 +118,7 @@ export function ImportarPage() {
             <p className="font-medium text-destructive">Al archivo le faltan encabezados</p>
             <p className="text-destructive/90">
               Faltan: {faltantes.join(', ')}. Revisa que la fila de encabezados tenga Folio, Localizador, Agencia, Fecha,
-              Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora.
+              Tipo de Servicio, Pasajeros, Hotel, Zona, Vuelo y Hora (la columna Aeropuerto o Terminal es opcional).
             </p>
           </div>
         </div>

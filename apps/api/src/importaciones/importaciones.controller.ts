@@ -71,6 +71,7 @@ const FILA_EJEMPLO = {
     Zona: 'Costa Mujeres',
     Vuelo: 'AM691',
     Hora: '06:15',
+    Aeropuerto: '',
   },
   servicio: {
     tipo: 'SALIDA',
@@ -131,7 +132,7 @@ export class ImportacionesController {
   @ApiOperation({
     summary: 'Vista previa de un archivo (no guarda nada)',
     description:
-      'ADMINISTRADOR y COORDINADOR. Lee el .xlsx o .csv, detecta la fila de encabezados (la que contiene "Folio") y devuelve cada fila con su estado: VALIDA, ADVERTENCIA (se importa con un aviso), DUPLICADA (folio + localizador repetido en el archivo o ya en la base) o ERROR, con sus mensajes y los totales.',
+      'ADMINISTRADOR y COORDINADOR. Lee el .xlsx o .csv, detecta la fila de encabezados (la que contiene "Folio"; la columna "Aeropuerto" o "Terminal" es opcional: CUN o TQO, CUN si falta) y devuelve cada fila con su estado: VALIDA, ADVERTENCIA (se importa con un aviso), DUPLICADA (folio + localizador repetido en el archivo o ya en la base) o ERROR, con sus mensajes y los totales.',
   })
   @ApiOkResponse({
     description: 'Filas con su estado y totales',

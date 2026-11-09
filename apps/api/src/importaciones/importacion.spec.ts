@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import * as XLSX from 'xlsx';
 import { ErrorArchivo, leerArchivo } from './lectura.js';
-import { interpretarTipo, normalizar, rutaDelServicio } from './mapeo.js';
+import {
+  interpretarAeropuerto,
+  interpretarTipo,
+  normalizar,
+  rutaDelServicio,
+} from './mapeo.js';
 import {
   type Catalogos,
   contarFilas,
@@ -304,6 +309,88 @@ describe('Validación de cada fila', () => {
       new Set(),
     );
     expect(filas.map((f) => f.estado)).toEqual(['ERROR', 'VALIDA']);
+  });
+});
+
+describe('Columna opcional Aeropuerto (o Terminal)', () => {
+  const ID_TULUM = 7;
+  const ID_AEROPUERTO_TQO = 8;
+  /** Una fila a Tulum con la columna de aeropuerto indicada (o sin ella). */
+  const filaTulum = (tipo: string, columna?: string, valor = '') => {
+    const encabezados = columna ? `${ENCABEZADOS},${columna}` : ENCABEZADOS;
+    const fila = `NX-7,LOC-7,Nexus Tours,05/11/2026,${tipo},2,TRS Coral Hotel,Tulum,AM7,10:00`;
+    const contenido = Buffer.from(
+      `${encabezados}
+${columna ? `${fila},${valor}` : fila}`,
+    );
+    return procesarFilas(
+      leerArchivo(contenido, 'prueba.csv'),
+      catalogos,
+      new Set(),
+    )[0];
+  };
+
+  it('LLEGADA a Tulum sin la columna → sale del Aeropuerto CUN', () => {
+    const fila = filaTulum('LLEGADA PRIVADO');
+    expect(fila.estado).toBe('VALIDA');
+    expect(fila.valores.Aeropuerto).toBe('');
+    expect(fila.servicio).toMatchObject({
+      zonaOrigenId: ID_AEROPUERTO,
+      zonaDestinoId: ID_TULUM,
+    });
+  });
+
+  it('LLEGADA a Tulum con "tqo" → sale del Aeropuerto TQO', () => {
+    const fila = filaTulum('LLEGADA PRIVADO', 'Aeropuerto', 'tqo');
+    expect(fila.estado).toBe('VALIDA');
+    expect(fila.servicio).toMatchObject({
+      zonaOrigenId: ID_AEROPUERTO_TQO,
+      zonaDestinoId: ID_TULUM,
+    });
+  });
+
+  it('SALIDA con TQO (encabezado "Terminal") → termina en el Aeropuerto TQO', () => {
+    const fila = filaTulum('SALIDA GRUPO', 'Terminal', 'TQO');
+    expect(fila.servicio).toMatchObject({
+      zonaOrigenId: ID_TULUM,
+      zonaDestinoId: ID_AEROPUERTO_TQO,
+    });
+  });
+
+  it('con la columna vacía o con "—" se usa CUN', () => {
+    for (const valor of ['', '—']) {
+      expect(
+        filaTulum('LLEGADA PRIVADO', 'Aeropuerto', valor).servicio,
+      ).toMatchObject({ zonaOrigenId: ID_AEROPUERTO });
+    }
+  });
+
+  it('un valor que no es CUN ni TQO → ERROR', () => {
+    const fila = filaTulum('LLEGADA PRIVADO', 'Aeropuerto', 'MEX');
+    expect(fila.estado).toBe('ERROR');
+    expect(fila.mensajes).toEqual(['Aeropuerto no válido (CUN o TQO)']);
+    expect(fila.servicio).toBeNull();
+  });
+
+  it('en un TRASLADO el aeropuerto no cambia la ruta (zona indicada → misma zona)', () => {
+    expect(
+      filaTulum('TRASLADO PRIVADO', 'Aeropuerto', 'TQO').servicio,
+    ).toMatchObject({
+      zonaOrigenId: ID_TULUM,
+      zonaDestinoId: ID_TULUM,
+    });
+  });
+
+  it.each([
+    ['CUN', 'CUN'],
+    ['tqo', 'TQO'],
+    [' Tqo ', 'TQO'],
+    ['', 'CUN'],
+    ['N/A', 'CUN'],
+    ['MEX', null],
+    ['Aeropuerto CUN', null],
+  ])('interpretarAeropuerto("%s") → %s', (texto, esperado) => {
+    expect(interpretarAeropuerto(texto)).toBe(esperado);
   });
 });
 
