@@ -22,3 +22,8 @@ export function rangoDelDia(fecha: string): { inicio: Date; fin: Date } {
   const inicio = new Date(`${fecha}T00:00:00${DESFASE_CANCUN}`);
   return { inicio, fin: new Date(inicio.getTime() + UN_DIA_MS) };
 }
+
+/** Instante UTC de una fecha (AAAA-MM-DD) y hora (HH:mm) de Cancún. */
+export function instanteCancun(fecha: string, hora: string): Date {
+  return new Date(`${fecha}T${hora}:00${DESFASE_CANCUN}`);
+}
