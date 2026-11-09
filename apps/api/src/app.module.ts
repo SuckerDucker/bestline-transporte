@@ -9,6 +9,7 @@ import { OperadoresModule } from './operadores/operadores.module.js';
 import { ParametrosModule } from './parametros/parametros.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResumenModule } from './resumen/resumen.module.js';
+import { ServiciosModule } from './servicios/servicios.module.js';
 import { TiemposTrasladoModule } from './tiempos-traslado/tiempos-traslado.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { VehiculosModule } from './vehiculos/vehiculos.module.js';
@@ -34,6 +35,7 @@ import { ZonasModule } from './zonas/zonas.module.js';
     TiemposTrasladoModule,
     // Operación
     ImportacionesModule,
+    ServiciosModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],
