@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider'
+import { Toaster } from './components/ui/sonner'
 import './index.css'
 
 // Caché de TanStack Query: los listados se consideran vigentes 30 s y no se
@@ -26,6 +27,8 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <App />
+          {/* Avisos (Sonner) al crear, editar, desactivar, eliminar o al fallar */}
+          <Toaster position="top-right" richColors closeButton />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

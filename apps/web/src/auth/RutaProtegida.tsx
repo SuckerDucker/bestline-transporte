@@ -1,5 +1,8 @@
+import { ShieldAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from './contexto'
 import type { Rol } from './tipos'
 
@@ -23,10 +26,18 @@ export function RutaProtegida({ roles, children }: Props) {
   }
   if (roles && !roles.includes(usuario.rol)) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
-        <h1 className="text-base font-semibold">Acceso denegado</h1>
-        <p className="mt-1">Tu rol no tiene permiso para ver esta sección.</p>
-      </div>
+      <Card className="mx-auto max-w-md text-center">
+        <CardContent className="flex flex-col items-center gap-3 py-10">
+          <span className="flex size-12 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+            <ShieldAlert className="size-6" />
+          </span>
+          <h2 className="text-lg font-semibold">Acceso denegado</h2>
+          <p className="text-sm text-muted-foreground">Tu rol no tiene permiso para ver esta sección.</p>
+          <Button asChild variant="outline" className="mt-2">
+            <Link to="/">Volver al inicio</Link>
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
   return children ?? <Outlet />
