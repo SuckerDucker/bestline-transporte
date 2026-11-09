@@ -85,7 +85,9 @@ npm run dev
 
 La URL de la API es `http://localhost:3000/api` por defecto; para cambiarla, copia `apps/web/.env.example` como `apps/web/.env` y ajusta `VITE_API_URL`.
 
-Pantallas: inicio de sesión, inicio y los catálogos de vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación). El menú depende del rol:
+Interfaz construida con [shadcn/ui](https://ui.shadcn.com) (componentes en `src/components/ui`, sobre Radix UI y TailwindCSS) e íconos de lucide-react. Para agregar otro componente: `npx shadcn@latest add <componente>`. La versión actual de shadcn/ui asume React 19; con React 18 hay que envolver con `React.forwardRef` los componentes que reciben `ref` (ver los comentarios en `button.tsx`, `input.tsx` y los overlays).
+
+Pantallas: inicio de sesión, inicio con tarjetas de resumen (`GET /api/resumen`) y los catálogos de vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos). En móvil el menú lateral se abre con el botón ☰. El menú depende del rol:
 
 | Rol | Ve | Puede modificar catálogos |
 |---|---|---|
