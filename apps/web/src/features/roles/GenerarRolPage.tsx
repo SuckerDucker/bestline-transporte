@@ -55,7 +55,14 @@ const COLUMNAS: Columna<NoCubierto>[] = [
   { encabezado: 'Pax', alineacion: 'derecha', celda: (n) => n.servicio.pasajeros },
   {
     encabezado: 'Motivo',
-    celda: (n) => <EstadoBadge texto={MOTIVO[n.motivo].etiqueta} tono={MOTIVO[n.motivo].tono} />,
+    celda: (n) => (
+      <div className="flex flex-col items-start gap-1">
+        <EstadoBadge texto={MOTIVO[n.motivo].etiqueta} tono={MOTIVO[n.motivo].tono} />
+        {MOTIVO[n.motivo].nota && (
+          <span className="text-xs font-medium text-amber-800">{MOTIVO[n.motivo].nota}</span>
+        )}
+      </div>
+    ),
   },
 ]
 

@@ -89,6 +89,9 @@ describe('Pantalla Generar rol', () => {
     expect(fila).toHaveTextContent('Aeropuerto CUN → Zona Hotelera')
     expect(fila).toHaveTextContent('32')
     expect(within(fila).getByText('Capacidad')).toBeInTheDocument()
+    // Regla confirmada: el grupo se reporta para contratar una unidad externa.
+    expect(within(fila).getByText('Requiere unidad externa (Monitoreo)')).toBeInTheDocument()
+    expect(screen.getAllByText('Requiere unidad externa (Monitoreo)')).toHaveLength(1)
     expect((screen.getByText('S-55').closest('tr') as HTMLElement)).toHaveTextContent('Jornada')
   })
 
