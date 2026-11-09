@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import type { Rol } from '@/auth/tipos'
 import { cn } from '@/lib/utils'
 import { Marca } from './Marca'
-import { opcionesPara, type OpcionMenu } from './menu'
+import { menuAgrupado, type OpcionMenu } from './menu'
 
 interface Props {
   rol: Rol
@@ -10,11 +10,9 @@ interface Props {
   alNavegar?: () => void
 }
 
-/** Contenido del menú lateral: marca, opciones sueltas y grupo "Catálogos". */
+/** Contenido del menú lateral: marca, opciones sueltas y los grupos (Catálogos, Configuración, Administración). */
 export function Navegacion({ rol, alNavegar }: Props) {
-  const opciones = opcionesPara(rol)
-  const sueltas = opciones.filter((o) => !o.grupo)
-  const catalogos = opciones.filter((o) => o.grupo === 'Catálogos')
+  const grupos = menuAgrupado(rol)
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -22,24 +20,20 @@ export function Navegacion({ rol, alNavegar }: Props) {
       <div className="mx-5 h-px bg-sidebar-border" />
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Menú principal">
-        <ul className="space-y-1">
-          {sueltas.map((o) => (
-            <Opcion key={o.ruta} opcion={o} alNavegar={alNavegar} />
-          ))}
-        </ul>
-
-        {catalogos.length > 0 && (
-          <div>
-            <p className="px-3 pb-2 text-[0.7rem] font-semibold tracking-wider text-sidebar-foreground/50 uppercase">
-              Catálogos
-            </p>
+        {grupos.map(({ grupo, opciones }) => (
+          <div key={grupo ?? 'sueltas'} role="group" aria-label={grupo ?? 'General'}>
+            {grupo && (
+              <p className="px-3 pb-2 text-[0.7rem] font-semibold tracking-wider text-sidebar-foreground/50 uppercase">
+                {grupo}
+              </p>
+            )}
             <ul className="space-y-1">
-              {catalogos.map((o) => (
+              {opciones.map((o) => (
                 <Opcion key={o.ruta} opcion={o} alNavegar={alNavegar} />
               ))}
             </ul>
           </div>
-        )}
+        ))}
       </nav>
 
       <p className="px-5 py-4 text-[0.7rem] text-sidebar-foreground/40">Best Line Travel Agency · Cancún</p>

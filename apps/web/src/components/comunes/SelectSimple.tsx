@@ -15,6 +15,7 @@ interface Props {
   opciones: readonly Opcion[]
   placeholder?: string
   invalido?: boolean
+  deshabilitado?: boolean
   ariaLabel?: string
   className?: string
 }
@@ -27,11 +28,12 @@ export function SelectSimple({
   opciones,
   placeholder,
   invalido,
+  deshabilitado,
   ariaLabel,
   className,
 }: Props) {
   return (
-    <Select value={valor} onValueChange={alCambiar}>
+    <Select value={valor} onValueChange={alCambiar} disabled={deshabilitado}>
       <SelectTrigger
         id={id}
         aria-label={ariaLabel}

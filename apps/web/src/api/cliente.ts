@@ -6,17 +6,20 @@ const URL_API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 /** Error de la API con su código HTTP y un mensaje listo para mostrar. */
 export class ErrorApi extends Error {
   readonly status: number
+  /** Cuerpo completo de la respuesta (por ejemplo, los errores por campo o por celda). */
+  readonly datos: unknown
 
-  constructor(status: number, mensaje: string) {
+  constructor(status: number, mensaje: string, datos: unknown = null) {
     super(mensaje)
     this.status = status
+    this.datos = datos
   }
 }
 
 type ValorQuery = string | number | boolean | undefined | null
 
 interface OpcionesPeticion {
-  metodo?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   cuerpo?: unknown
   query?: Record<string, ValorQuery>
 }
@@ -59,7 +62,7 @@ export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): P
   const datos: unknown = await respuesta.json().catch(() => null)
   if (!respuesta.ok) {
     if (respuesta.status === 401 && token) alRecibir401?.()
-    throw new ErrorApi(respuesta.status, mensajeDeError(datos))
+    throw new ErrorApi(respuesta.status, mensajeDeError(datos), datos)
   }
   return datos as T
 }

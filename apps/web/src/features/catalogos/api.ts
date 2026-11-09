@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { pedir, type Paginado } from '@/api/cliente'
 import { TODOS } from '@/lib/opciones'
 
-export type Recurso = 'vehiculos' | 'operadores' | 'zonas' | 'hoteles'
+export type Recurso = 'vehiculos' | 'operadores' | 'zonas' | 'hoteles' | 'usuarios' | 'bitacora'
 export type Filtros = Record<string, string | number | boolean | undefined>
 
 /** Quita los filtros en "todos" para no enviarlos a la API. */
@@ -21,7 +21,7 @@ export function useListado<T>(recurso: Recurso, filtros: Filtros) {
 }
 
 /** Después de un cambio se recargan el listado y el resumen de la pantalla de inicio. */
-function useInvalidar(recurso: Recurso) {
+export function useInvalidar(recurso: Recurso) {
   const queryClient = useQueryClient()
   return () =>
     Promise.all([
