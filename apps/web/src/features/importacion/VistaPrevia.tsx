@@ -37,6 +37,23 @@ const COLUMNAS: Columna<FilaVistaPrevia>[] = [
     ),
   },
   {
+    encabezado: 'Mensajes',
+    // Las celdas no saltan de línea por omisión; los mensajes sí, para leerlos completos.
+    className: 'min-w-60 whitespace-normal',
+    celda: (f) =>
+      f.mensajes.length ? (
+        <ul className="space-y-0.5 text-xs">
+          {f.mensajes.map((m) => (
+            <li key={m} className={f.estado === 'ERROR' || f.estado === 'DUPLICADA' ? 'text-destructive' : 'text-amber-700'}>
+              {m}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="text-xs text-muted-foreground">—</span>
+      ),
+  },
+  {
     encabezado: 'Fecha y hora',
     celda: (f) => (
       <span className="whitespace-nowrap tabular-nums">
@@ -67,22 +84,6 @@ const COLUMNAS: Columna<FilaVistaPrevia>[] = [
         </span>
       ) : (
         <span className="text-muted-foreground">{f.valores.Zona}</span>
-      ),
-  },
-  {
-    encabezado: 'Mensajes',
-    className: 'min-w-64',
-    celda: (f) =>
-      f.mensajes.length ? (
-        <ul className="space-y-0.5 text-xs">
-          {f.mensajes.map((m) => (
-            <li key={m} className={f.estado === 'ERROR' || f.estado === 'DUPLICADA' ? 'text-destructive' : 'text-amber-700'}>
-              {m}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <span className="text-xs text-muted-foreground">—</span>
       ),
   },
 ]

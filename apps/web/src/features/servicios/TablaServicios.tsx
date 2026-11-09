@@ -46,14 +46,17 @@ export function TablaServicios({ servicios, cargando, error, mensajeVacio, conMa
     },
     { encabezado: 'Pax', celda: (s) => s.pasajeros, alineacion: 'derecha' },
     {
-      encabezado: 'Ruta',
+      // El hotel va debajo de la ruta: es el punto de recogida o de entrega.
+      encabezado: 'Ruta y hotel',
       celda: (s) => (
-        <span className="whitespace-nowrap">
-          {s.zonaOrigen.nombre} → {s.zonaDestino.nombre}
-        </span>
+        <div className="flex flex-col">
+          <span className="whitespace-nowrap">
+            {s.zonaOrigen.nombre} → {s.zonaDestino.nombre}
+          </span>
+          <span className="text-xs text-muted-foreground">{s.hotel?.nombre ?? 'Hotel no registrado'}</span>
+        </div>
       ),
     },
-    { encabezado: 'Hotel', celda: (s) => s.hotel?.nombre ?? <span className="text-muted-foreground">Sin hotel</span> },
     { encabezado: 'Vuelo', celda: (s) => s.vuelo ?? <span className="text-muted-foreground">—</span> },
     {
       encabezado: 'Estado',

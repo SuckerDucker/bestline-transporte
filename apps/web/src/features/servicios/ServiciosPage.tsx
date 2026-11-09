@@ -36,7 +36,7 @@ const opciones = (todos: string, valores: readonly string[], nombre: (v: string)
 ]
 const OPCIONES_TIPO = opciones('Todos los tipos', TIPOS_SERVICIO, (v) => NOMBRE_TIPO[v])
 const OPCIONES_MODALIDAD = opciones('Todas', MODALIDADES, (v) => NOMBRE_MODALIDAD[v])
-const OPCIONES_ESTADO = opciones('Todos los estados', ESTADOS_SERVICIO, (v) => ESTADO_SERVICIO[v as keyof typeof ESTADO_SERVICIO].etiqueta)
+const OPCIONES_ESTADO = opciones('Todos', ESTADOS_SERVICIO, (v) => ESTADO_SERVICIO[v as keyof typeof ESTADO_SERVICIO].etiqueta)
 
 /** Servicios importados y de ejemplo, con filtros (solo consulta). */
 export function ServiciosPage() {
@@ -62,7 +62,7 @@ export function ServiciosPage() {
     <section>
       <p className="mb-6 text-sm text-muted-foreground">
         Servicios por atender, ordenados por hora de Cancún. Se cargan desde la importación de los archivos de los
-        mayoristas.
+        mayoristas. El filtro de zona encuentra los servicios que salen de esa zona o llegan a ella.
       </p>
 
       <BarraFiltros
@@ -103,7 +103,7 @@ export function ServiciosPage() {
             className="h-9"
           />
         </Campo>
-        <Campo etiqueta="Zona (origen o destino)" htmlFor="filtro-zona">
+        <Campo etiqueta="Zona" htmlFor="filtro-zona">
           <SelectSimple
             id="filtro-zona"
             valor={filtros.zonaId}
