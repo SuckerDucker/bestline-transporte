@@ -15,7 +15,10 @@ const admin = { usuario: usuarioDePrueba('ADMINISTRADOR') }
 describe('Pantalla de vehículos', () => {
   it('muestra el esqueleto mientras carga y después las filas', async () => {
     let responder: (valor: { cuerpo: unknown }) => void = () => {}
-    simularApi(() => new Promise((resolver) => (responder = resolver)))
+    // Las zonas (para el formulario) responden enseguida; el listado queda en espera.
+    simularApi(({ ruta }) =>
+      ruta === '/zonas' ? { cuerpo: pagina([]) } : new Promise((resolver) => (responder = resolver)),
+    )
     const { container } = renderizar(<VehiculosPage />, admin)
 
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0)
@@ -45,8 +48,9 @@ describe('Pantalla de vehículos', () => {
     const { peticiones } = simularApi(() => ({ cuerpo: pagina(VEHICULOS) }))
     renderizar(<VehiculosPage />, admin)
     await screen.findByText('BL-01')
-    expect(peticiones[0].query.has('tipo')).toBe(false)
-    expect(peticiones[0].query.get('pagina')).toBe('1')
+    const primera = peticiones.find((p) => p.ruta === '/vehiculos')
+    expect(primera?.query.has('tipo')).toBe(false)
+    expect(primera?.query.get('pagina')).toBe('1')
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Buscar vehículos' }), 'BL-0')
     await esperarPeticion(peticiones, (p) => p.query.get('buscar') === 'BL-0')

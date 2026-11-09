@@ -12,6 +12,7 @@ const PARAMETROS: Parametro[] = [
   { id: 1, clave: 'hora_cita.turno_1', valor: '04:00', descripcion: 'Hora de cita del turno 1' },
   { id: 2, clave: 'hora_cita.turno_2', valor: '05:00', descripcion: 'Hora de cita del turno 2' },
   { id: 3, clave: 'jornada_maxima_horas', valor: '9.5', descripcion: 'Jornada máxima' },
+  { id: 7, clave: 'motor.penalizacion_carga_min', valor: '15', descripcion: 'Penalización por carga' },
 ]
 const validos = aValores(PARAMETROS)
 const errorEn = (valores: object) => esquemaParametros.safeParse({ ...validos, ...valores }).error?.issues[0]?.message
@@ -49,6 +50,7 @@ describe('esquemaParametros (mismas reglas que la API)', () => {
       { clave: 'anticipacion.PRIVADO', valor: '10' },
       { clave: 'anticipacion.COMPARTIDO', valor: '20' },
       { clave: 'anticipacion.GRUPO', valor: '30' },
+      { clave: 'motor.penalizacion_carga_min', valor: '15' },
     ])
   })
 })
@@ -80,7 +82,7 @@ describe('Formulario de parámetros', () => {
 
     await vi.waitFor(() => expect(alGuardar).toHaveBeenCalledTimes(1))
     expect(alGuardar.mock.calls[0][0]).toContainEqual({ clave: 'jornada_maxima_horas', valor: '10' })
-    expect(alGuardar.mock.calls[0][0]).toHaveLength(6)
+    expect(alGuardar.mock.calls[0][0]).toHaveLength(7)
   })
 
   it('muestra en su campo el error que devuelve la API', async () => {

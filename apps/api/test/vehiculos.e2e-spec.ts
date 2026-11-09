@@ -20,7 +20,7 @@ describe('Vehículos (e2e)', () => {
     numeroEconomico: 'E2E-01',
     tipo: 'Sprinter',
     capacidad: 20,
-    encierroBase: 'Encierro de prueba',
+    encierroBase: 'Centro Cancún',
   };
 
   beforeAll(async () => {
@@ -34,6 +34,15 @@ describe('Vehículos (e2e)', () => {
     );
     tokenAdmin = await obtenerToken(app, 'admin@prueba.local');
     tokenCoordinador = await obtenerToken(app, 'coordinador@prueba.local');
+    // El encierro base debe ser una zona del catálogo.
+    await prisma.zona.create({
+      data: {
+        nombre: 'Centro Cancún',
+        latitud: 21.16,
+        longitud: -86.85,
+        esZonaTermino: false,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -71,6 +80,17 @@ describe('Vehículos (e2e)', () => {
     expect(respuesta.body).toMatchObject({
       message:
         'La capacidad de un vehículo Sprinter debe estar entre 1 y 20 pasajeros',
+    });
+  });
+
+  it('400: encierro base que no es una zona del catálogo', async () => {
+    const respuesta = await crear(tokenAdmin, {
+      ...vehiculoValido,
+      numeroEconomico: 'E2E-07',
+      encierroBase: 'Bodega X',
+    }).expect(400);
+    expect(respuesta.body).toMatchObject({
+      message: 'El encierro base "Bodega X" no es una zona del catálogo',
     });
   });
 

@@ -32,6 +32,7 @@ export const esquemaParametros = z.object({
   hora_cita: z.object({ turno_1: hora, turno_2: hora }),
   jornada_maxima_horas: horasJornada,
   anticipacion: z.object({ PRIVADO: minutos, COMPARTIDO: minutos, GRUPO: minutos }),
+  motor: z.object({ penalizacion_carga_min: minutos }),
 })
 export type ValoresParametros = z.infer<typeof esquemaParametros>
 
@@ -43,6 +44,7 @@ export const CLAVES = [
   'anticipacion.PRIVADO',
   'anticipacion.COMPARTIDO',
   'anticipacion.GRUPO',
+  'motor.penalizacion_carga_min',
 ] as const
 export type ClaveParametro = (typeof CLAVES)[number]
 
@@ -57,6 +59,7 @@ export function aValores(parametros: Parametro[]): ValoresParametros {
       COMPARTIDO: valor('anticipacion.COMPARTIDO'),
       GRUPO: valor('anticipacion.GRUPO'),
     },
+    motor: { penalizacion_carga_min: valor('motor.penalizacion_carga_min') },
   }
 }
 
@@ -69,6 +72,7 @@ export function aLista(valores: ValoresParametros, existentes: Parametro[]): { c
     'anticipacion.PRIVADO': valores.anticipacion.PRIVADO,
     'anticipacion.COMPARTIDO': valores.anticipacion.COMPARTIDO,
     'anticipacion.GRUPO': valores.anticipacion.GRUPO,
+    'motor.penalizacion_carga_min': valores.motor.penalizacion_carga_min,
   }
   return CLAVES.filter((clave) => existentes.some((p) => p.clave === clave)).map((clave) => ({
     clave,

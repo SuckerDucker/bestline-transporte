@@ -24,6 +24,8 @@ describe('validarParametro', () => {
     ['jornada_maxima_horas', '12'],
     ['anticipacion.GRUPO', '0'],
     ['anticipacion.GRUPO', '120'],
+    ['motor.penalizacion_carga_min', '0'],
+    ['motor.penalizacion_carga_min', '15'],
   ])('%s = "%s" es válido', (clave, valor) => {
     expect(validarParametro(clave, valor)).toBeNull();
   });
@@ -38,6 +40,8 @@ describe('validarParametro', () => {
     ['anticipacion.PRIVADO', '121'],
     ['anticipacion.PRIVADO', '-5'],
     ['anticipacion.PRIVADO', '10.5'],
+    ['motor.penalizacion_carga_min', '121'],
+    ['motor.penalizacion_carga_min', '7.5'],
     ['otra.clave', '1'],
   ])('%s = "%s" es inválido', (clave, valor) => {
     expect(validarParametro(clave, valor)).toEqual(expect.any(String));

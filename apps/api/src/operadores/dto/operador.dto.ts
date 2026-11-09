@@ -1,12 +1,15 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 import {
   aBooleano,
@@ -42,6 +45,30 @@ export class CrearOperadorDto {
   @IsOptional()
   @IsBoolean({ message: 'disponible debe ser true o false' })
   disponible?: boolean;
+
+  @ApiPropertyOptional({
+    example: 3,
+    nullable: true,
+    description:
+      'Vehículo que maneja (un vehículo solo puede tener un operador). null = sin vehículo: no participa en el rol',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'vehiculoId debe ser un número entero' })
+  @Min(1, { message: 'vehiculoId debe ser mayor o igual a 1' })
+  vehiculoId?: number | null;
+
+  @ApiPropertyOptional({
+    example: '04:30',
+    nullable: true,
+    description:
+      'Hora de cita HH:mm (America/Cancun). null = se usa el parámetro hora_cita.turno_1',
+  })
+  @IsOptional()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'horaCita debe tener el formato HH:mm (00:00 a 23:59)',
+  })
+  horaCita?: string | null;
 }
 
 /** En la edición todos los campos son opcionales. */

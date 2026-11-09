@@ -12,6 +12,7 @@ describe('Menú según el rol', () => {
     expect(etiquetas('ADMINISTRADOR')).toEqual([
       'Inicio',
       'Importar servicios',
+      'Generar rol',
       'Servicios',
       'Historial de importaciones',
       'Vehículos',
@@ -40,6 +41,12 @@ describe('Menú según el rol', () => {
     expect(etiquetas(rol)).toContain('Servicios')
     expect(etiquetas(rol)).toContain('Historial de importaciones')
     expect(menuAgrupado(rol).map((g) => g.grupo)).toEqual([null, 'Operación', 'Catálogos', 'Configuración'])
+  })
+
+  it('solo ADMINISTRADOR y COORDINADOR ven "Generar rol"', () => {
+    expect(etiquetas('COORDINADOR')).toContain('Generar rol')
+    expect(etiquetas('SUPERVISOR')).not.toContain('Generar rol')
+    expect(etiquetas('OPERADOR')).not.toContain('Generar rol')
   })
 
   it('solo ADMINISTRADOR y COORDINADOR ven "Importar servicios"', () => {

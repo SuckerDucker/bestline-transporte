@@ -97,7 +97,7 @@ export function validarParametro(clave: string, valor: string): string | null {
       ? null
       : 'debe ser un número de horas entre 1 y 12';
   }
-  if (clave.startsWith('anticipacion.')) {
+  if (esMinutos(clave)) {
     return /^\d{1,3}$/.test(valor) && Number(valor) <= 120
       ? null
       : 'debe ser un número entero de minutos entre 0 y 120';

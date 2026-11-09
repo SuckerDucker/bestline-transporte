@@ -23,6 +23,7 @@ import {
   ApiError400,
   ApiError401,
   ApiError404,
+  ApiError409,
   ApiErroresEscritura,
 } from '../comun/swagger.js';
 import type { UsuarioAutenticado } from '../auth/tipos.js';
@@ -39,7 +40,19 @@ const EJEMPLO = {
   licencia: 'LIC-EJEMPLO-11',
   telefono: '998-000-0011',
   disponible: true,
+  vehiculoId: 3,
+  horaCita: '04:15',
+  vehiculo: {
+    id: 3,
+    numeroEconomico: 'BL-03',
+    tipo: 'Van',
+    capacidad: 14,
+    estado: 'DISPONIBLE',
+  },
 };
+const ERROR_VEHICULO = 'No existe el vehículo 99';
+const ERROR_HORA = 'horaCita debe tener el formato HH:mm (00:00 a 23:59)';
+const VEHICULO_OCUPADO = 'El vehículo BL-03 ya tiene un operador asignado';
 
 @ApiTags('operadores')
 @ApiBearerAuth()
@@ -88,6 +101,8 @@ export class OperadoresController {
           nombre: 'Operador Ejemplo 11',
           licencia: 'LIC-EJEMPLO-11',
           telefono: '998-000-0011',
+          vehiculoId: 3,
+          horaCita: '04:15',
         },
       },
     },
@@ -96,7 +111,8 @@ export class OperadoresController {
     description: 'Operador creado',
     schema: { example: EJEMPLO },
   })
-  @ApiErroresEscritura('nombre no debe estar vacío')
+  @ApiErroresEscritura('nombre no debe estar vacío', ERROR_VEHICULO, ERROR_HORA)
+  @ApiError409(VEHICULO_OCUPADO)
   crear(
     @Body() dto: CrearOperadorDto,
     @UsuarioActual() usuario: UsuarioAutenticado,
@@ -117,6 +133,14 @@ export class OperadoresController {
         summary: 'Cambiar teléfono',
         value: { telefono: '998-111-2233' },
       },
+      unidad: {
+        summary: 'Asignar vehículo y hora de cita',
+        value: { vehiculoId: 3, horaCita: '04:30' },
+      },
+      sinUnidad: {
+        summary: 'Quitar el vehículo (no participa en el rol)',
+        value: { vehiculoId: null },
+      },
     },
   })
   @ApiOkResponse({
@@ -125,8 +149,11 @@ export class OperadoresController {
   })
   @ApiErroresEscritura(
     'telefono solo admite dígitos, espacios, +, - y paréntesis (7 a 20)',
+    ERROR_VEHICULO,
+    ERROR_HORA,
   )
   @ApiError404('No existe el operador 99')
+  @ApiError409(VEHICULO_OCUPADO)
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarOperadorDto,

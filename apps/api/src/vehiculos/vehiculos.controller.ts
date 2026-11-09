@@ -40,7 +40,7 @@ const EJEMPLO = {
   tipo: 'Sprinter',
   capacidad: 20,
   estado: 'DISPONIBLE',
-  encierroBase: 'Encierro Centro Cancún',
+  encierroBase: 'Centro Cancún',
 };
 const ERROR_CAPACIDAD =
   'La capacidad de un vehículo Sprinter debe estar entre 1 y 20 pasajeros';
@@ -93,7 +93,7 @@ export class VehiculosController {
           numeroEconomico: 'BL-11',
           tipo: 'Sprinter',
           capacidad: 20,
-          encierroBase: 'Encierro Centro Cancún',
+          encierroBase: 'Centro Cancún',
         },
       },
       capacidadInvalida: {
@@ -102,7 +102,7 @@ export class VehiculosController {
           numeroEconomico: 'BL-12',
           tipo: 'Sprinter',
           capacidad: 25,
-          encierroBase: 'Encierro Centro Cancún',
+          encierroBase: 'Centro Cancún',
         },
       },
     },
@@ -111,7 +111,10 @@ export class VehiculosController {
     description: 'Vehículo creado',
     schema: { example: EJEMPLO },
   })
-  @ApiErroresEscritura(ERROR_CAPACIDAD)
+  @ApiErroresEscritura(
+    ERROR_CAPACIDAD,
+    'El encierro base "Bodega X" no es una zona del catálogo',
+  )
   @ApiError409('Ya existe un vehículo con el número económico BL-11')
   crear(
     @Body() dto: CrearVehiculoDto,
@@ -139,7 +142,10 @@ export class VehiculosController {
     description: 'Vehículo actualizado',
     schema: { example: EJEMPLO },
   })
-  @ApiErroresEscritura(ERROR_CAPACIDAD)
+  @ApiErroresEscritura(
+    ERROR_CAPACIDAD,
+    'El encierro base "Bodega X" no es una zona del catálogo',
+  )
   @ApiError404('No existe el vehículo 99')
   @ApiError409('Ya existe un vehículo con el número económico BL-11')
   actualizar(

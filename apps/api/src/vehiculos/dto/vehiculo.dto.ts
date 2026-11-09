@@ -36,7 +36,12 @@ export class CrearVehiculoDto {
   @IsInt({ message: 'capacidad debe ser un número entero' })
   capacidad: number;
 
-  @ApiProperty({ example: 'Encierro Centro Cancún', maxLength: 100 })
+  @ApiProperty({
+    example: 'Centro Cancún',
+    maxLength: 100,
+    description:
+      'Nombre de una zona del catálogo: de ahí sale la unidad al inicio del día',
+  })
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'encierroBase no debe estar vacío' })

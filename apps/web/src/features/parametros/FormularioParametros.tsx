@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Clock, Hourglass, Loader2, Timer, Undo2 } from 'lucide-react'
+import { Clock, Cpu, Hourglass, Loader2, Timer, Undo2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { type FieldError, useForm } from 'react-hook-form'
@@ -33,6 +33,7 @@ const ETIQUETAS: Record<ClaveParametro, string> = {
   'anticipacion.PRIVADO': 'Privado',
   'anticipacion.COMPARTIDO': 'Compartido',
   'anticipacion.GRUPO': 'Grupo',
+  'motor.penalizacion_carga_min': 'Penalización por carga',
 }
 
 /** Formulario de los parámetros de operación (CU-08), validado con Zod. */
@@ -91,7 +92,7 @@ export function FormularioParametros({ parametros, soloLectura, alGuardar }: Pro
 
   return (
     <form onSubmit={handleSubmit(enviar)} noValidate className="grid gap-5">
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-4">
         <Seccion icono={Clock} titulo="Horas de cita" descripcion="Hora en que el operador se presenta, por turno.">
           {campo('hora_cita.turno_1', 'HH:mm', '04:00', 'numeric')}
           {campo('hora_cita.turno_2', 'HH:mm', '05:00', 'numeric')}
@@ -103,6 +104,13 @@ export function FormularioParametros({ parametros, soloLectura, alGuardar }: Pro
           {campo('anticipacion.PRIVADO', 'min', '10', 'numeric')}
           {campo('anticipacion.COMPARTIDO', 'min', '20', 'numeric')}
           {campo('anticipacion.GRUPO', 'min', '30', 'numeric')}
+        </Seccion>
+        <Seccion
+          icono={Cpu}
+          titulo="Motor de asignación"
+          descripcion="Minutos que se suman al costo por cada servicio que la unidad ya tiene, para repartir la carga."
+        >
+          {campo('motor.penalizacion_carga_min', 'min', '15', 'numeric')}
         </Seccion>
       </div>
 

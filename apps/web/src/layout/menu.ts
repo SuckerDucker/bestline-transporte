@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Bus,
+  CalendarCog,
   ClipboardList,
   FileUp,
   Flag,
@@ -40,7 +41,7 @@ export interface OpcionMenu {
  */
 export const ROLES_CATALOGOS: readonly Rol[] = ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR']
 
-/** Importar y confirmar archivos de los mayoristas (igual que en la API). */
+/** Importar archivos de los mayoristas y generar el rol (igual que en la API). */
 export const ROLES_IMPORTAR: readonly Rol[] = ['ADMINISTRADOR', 'COORDINADOR']
 
 /** Usuarios y bitácora: solo el ADMINISTRADOR (igual que en la API). */
@@ -56,6 +57,14 @@ export const MENU: readonly OpcionMenu[] = [
     etiqueta: 'Importar servicios',
     titulo: 'Importar servicios',
     icono: FileUp,
+    grupo: 'Operación',
+    roles: ROLES_IMPORTAR,
+  },
+  {
+    ruta: '/generar-rol',
+    etiqueta: 'Generar rol',
+    titulo: 'Generar rol',
+    icono: CalendarCog,
     grupo: 'Operación',
     roles: ROLES_IMPORTAR,
   },

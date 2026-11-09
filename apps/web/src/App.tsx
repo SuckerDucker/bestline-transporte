@@ -13,6 +13,7 @@ const HistorialPage = lazy(() => import('./features/importacion/HistorialPage').
 const DetalleImportacionPage = lazy(() =>
   import('./features/importacion/DetalleImportacionPage').then((m) => ({ default: m.DetalleImportacionPage })),
 )
+const GenerarRolPage = lazy(() => import('./features/roles/GenerarRolPage').then((m) => ({ default: m.GenerarRolPage })))
 const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
@@ -62,7 +63,7 @@ function App() {
             <Route path="zonas-termino" element={<ZonasTerminoPage />} />
             <Route path="matriz-tiempos" element={<MatrizPage />} />
           </Route>
-          {/* Importar archivos: ADMINISTRADOR y COORDINADOR */}
+          {/* Importar archivos y generar el rol: ADMINISTRADOR y COORDINADOR */}
           <Route
             element={
               <Suspense fallback={<Cargando />}>
@@ -71,6 +72,7 @@ function App() {
             }
           >
             <Route path="importar" element={<ImportarPage />} />
+            <Route path="generar-rol" element={<GenerarRolPage />} />
           </Route>
           {/* Administración: solo ADMINISTRADOR */}
           <Route

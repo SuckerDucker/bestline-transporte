@@ -13,7 +13,7 @@ import { useGuardar, useListado, useQuitar, useRetrasado } from '../catalogos/ap
 import { BarraFiltros } from '../catalogos/BarraFiltros'
 import { Encabezado } from '../catalogos/Encabezado'
 import { EstadoBadge } from '../catalogos/EstadoBadge'
-import { ESTADOS_VEHICULO, NOMBRE_ESTADO_VEHICULO, TIPOS_VEHICULO, type Vehiculo } from '../catalogos/tipos'
+import { ESTADOS_VEHICULO, NOMBRE_ESTADO_VEHICULO, TIPOS_VEHICULO, type Vehiculo, type Zona } from '../catalogos/tipos'
 import type { ValoresVehiculo } from './esquema'
 import { FormularioVehiculo } from './FormularioVehiculo'
 
@@ -42,6 +42,9 @@ export function VehiculosPage() {
     pagina,
     limite: LIMITE,
   })
+  // Zonas del catálogo para el encierro base.
+  const zonas = useListado<Zona>('zonas', { limite: 100 })
+  const nombresZona = (zonas.data?.datos ?? []).map((z) => z.nombre)
   const guardar = useGuardar<Vehiculo>('vehiculos')
   const desactivar = useQuitar('vehiculos', 'desactivar')
 
@@ -149,6 +152,7 @@ export function VehiculosPage() {
         alCerrar={() => setEnEdicion(null)}
       >
         <FormularioVehiculo
+          zonas={nombresZona}
           key={enEdicion === 'nuevo' ? 'nuevo' : enEdicion?.id}
           inicial={enEdicion === 'nuevo' ? null : enEdicion}
           guardando={guardar.isPending}

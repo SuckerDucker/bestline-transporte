@@ -20,7 +20,7 @@ const vehiculo = (cambios = {}) => ({
   tipo: 'Van',
   capacidad: 14,
   estado: EstadoVehiculo.DISPONIBLE,
-  encierroBase: 'Encierro Centro',
+  encierroBase: 'Centro Cancún',
   ...cambios,
 });
 
@@ -76,8 +76,12 @@ describe('VehiculosService', () => {
       numeroEconomico: 'BL-05',
       tipo: 'Van',
       capacidad: 14,
-      encierroBase: 'Encierro Centro',
+      encierroBase: 'Centro Cancún',
     };
+
+    beforeEach(() => {
+      prisma.zona.findFirst.mockResolvedValue({ nombre: 'Centro Cancún' });
+    });
 
     it('crea con estado DISPONIBLE y registra CREAR en la bitácora', async () => {
       prisma.vehiculo.create.mockResolvedValue(vehiculo());
@@ -89,6 +93,30 @@ describe('VehiculosService', () => {
       expect(prisma.bitacora.create).toHaveBeenCalledWith(
         registroBitacora(ADMIN, 'CREAR', 'vehiculo', 5),
       );
+    });
+
+    it('guarda el encierro con el nombre exacto de la zona del catálogo', async () => {
+      prisma.vehiculo.create.mockResolvedValue(vehiculo());
+
+      await servicio.crear({ ...dto, encierroBase: 'centro cancun' }, ADMIN);
+
+      expect(prisma.zona.findFirst).toHaveBeenCalledWith({
+        where: { nombre: { equals: 'centro cancun', mode: 'insensitive' } },
+        select: { nombre: true },
+      });
+      expect(prisma.vehiculo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ encierroBase: 'Centro Cancún' }),
+      });
+    });
+
+    it('responde 400 si el encierro no es una zona del catálogo', async () => {
+      prisma.zona.findFirst.mockResolvedValue(null);
+      await expect(
+        servicio.crear({ ...dto, encierroBase: 'Bodega X' }, ADMIN),
+      ).rejects.toThrow(
+        'El encierro base "Bodega X" no es una zona del catálogo',
+      );
+      expect(prisma.vehiculo.create).not.toHaveBeenCalled();
     });
 
     it('responde 400 si la capacidad excede el máximo y no toca la base', async () => {
