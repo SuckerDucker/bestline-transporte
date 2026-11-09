@@ -2,7 +2,7 @@
 
 ## Qué se hizo
 
-Se implementaron la administración de usuarios (CU-03, RF-02), la consulta de la bitácora (CU-04, RF-03), la edición de los parámetros de operación (CU-08, RF-07), el marcado de zonas de término y la matriz de tiempos de traslado entre zonas (CU-09, RF-08), tanto en la API como en el frontend. En la API se agregaron los endpoints con su documentación completa en Swagger (ejemplos de petición y de respuesta para 200/201, 400, 401, 403, 404 y 409), validaciones por clave para los parámetros y por celda para la matriz, guardado de varios valores en una sola transacción y registro de cada cambio en la bitácora dentro de la misma transacción, guardando el valor anterior y el nuevo en el texto de la acción sin agregar columnas. En el frontend se agregaron las pantallas de Usuarios y Bitácora en el grupo "Administración" (solo ADMINISTRADOR) y las de Parámetros, Zonas de término y Matriz de tiempos en el grupo "Configuración" (el coordinador y el supervisor las ven en modo consulta), con los componentes de shadcn/ui ya existentes. Por último, se configuraron Vitest y React Testing Library en el frontend con reporte de cobertura.
+Se implementaron la administración de usuarios (CU-03, RF-02), la consulta de la bitácora (CU-04, RF-03), la edición de los parámetros de operación (CU-08, RF-07), el marcado de zonas de término y la matriz de tiempos de traslado entre zonas (CU-09, RF-08), tanto en la API como en el frontend. En la API se agregaron los endpoints con su documentación completa en Swagger (ejemplos de petición y de respuesta para 200/201, 400, 401, 403, 404 y 409), validaciones por clave para los parámetros y por celda para la matriz, guardado de varios valores en una sola transacción y registro de cada cambio en la bitácora dentro de la misma transacción, guardando el valor anterior y el nuevo en el texto de la acción sin agregar columnas. En el frontend se agregaron las pantallas de Usuarios y Bitácora en el grupo "Administración" (solo ADMINISTRADOR) y las de Parámetros, Zonas de término y Matriz de tiempos en el grupo "Configuración" (el coordinador y el supervisor las ven en modo consulta), con los componentes de shadcn/ui ya existentes. Por último, se configuraron Vitest y React Testing Library en el frontend con reporte de cobertura. En una revisión posterior se amplió la columna `bitacora.accion` a 255 caracteres con una migración, se agregó la regla de que siempre debe existir al menos una zona de término y se agregaron pruebas de las pantallas de listado de vehículos y usuarios.
 
 ## Endpoints
 
@@ -20,7 +20,7 @@ Todas las rutas llevan el prefijo `/api` y exigen `Authorization: Bearer <token>
 | GET | `/bitacora` | ADMINISTRADOR | Filtros `usuarioId`, `desde`, `hasta` (días de Cancún, ambos incluidos), `accion`, `entidad`; del más reciente al más antiguo, con paginación | 200, 400, 401, 403 |
 | GET | `/parametros` | Autenticado | Parámetros de operación ordenados por clave | 200, 401 |
 | PUT | `/parametros` | ADMINISTRADOR | Guarda varios parámetros en una transacción (todo o nada), validados por clave | 200, 400, 401, 403, 404 |
-| PATCH | `/zonas/:id/zona-termino` | ADMINISTRADOR | Marca o desmarca una zona de término | 200, 400, 401, 403, 404 |
+| PATCH | `/zonas/:id/zona-termino` | ADMINISTRADOR | Marca o desmarca una zona de término. Desmarcar la última responde 400 "Debe existir al menos una zona de término" | 200, 400, 401, 403, 404 |
 | GET | `/tiempos-traslado/matriz` | Autenticado | Zonas, matriz origen × destino en minutos (`null` = falta) y lista de combinaciones faltantes | 200, 401 |
 | PUT | `/tiempos-traslado/matriz` | ADMINISTRADOR | Crea o actualiza varias celdas en una transacción (enteros de 1 a 300) | 200, 400, 401, 403 |
 
@@ -49,7 +49,7 @@ En la matriz, cada error lleva `zonaOrigenId` y `zonaDestinoId` en lugar de `cla
 
 | Decisión | Por qué |
 |---|---|
-| El detalle del cambio va en el texto de la acción de la bitácora: `ACTUALIZAR: 9.5 → 10`, `ACTUALIZAR: rol SUPERVISOR → OPERADOR`, `CREAR: 10 min` | La tabla `bitacora` no tiene columna de detalle y no se agregan columnas. `accion` es `VarChar(50)`; la función `textoAccion` recorta a 50 caracteres para que el registro nunca falle. La clave del parámetro o el par de zonas se identifica con `entidad` y `entidad_id` |
+| El detalle del cambio va en el texto de la acción de la bitácora: `ACTUALIZAR: 9.5 → 10`, `ACTUALIZAR: rol SUPERVISOR → OPERADOR`, `CREAR: 10 min` | La tabla `bitacora` no tiene columna de detalle y no se agregan columnas. La columna `accion` se amplió de `VarChar(50)` a `VarChar(255)` con la migración `amplia_accion_bitacora` (solo cambia el tamaño, no agrega columnas ni pierde datos), así que el texto se guarda completo, sin recortes. La clave del parámetro o el par de zonas se identifica con `entidad` y `entidad_id` |
 | El filtro por acción de la bitácora usa "empieza con" | Así `accion=ACTUALIZAR` también encuentra los registros con detalle |
 | Las fechas del filtro de la bitácora son días de Cancún (UTC-05:00), ambos incluidos; `desde` posterior a `hasta` → 400 | Las fechas se guardan en UTC y se muestran en America/Cancun. Se reutilizó `rangoDelDia`, que se movió de `resumen/` a `comun/fechas.ts` |
 | Parámetros y matriz se guardan con un solo `PUT` que recibe varios valores, en una transacción | El formulario y la matriz tienen un solo botón "Guardar cambios": si un valor es inválido no se guarda ninguno y no queda la configuración a medias. Clave inexistente → 404 con la lista de claves |
@@ -62,8 +62,11 @@ En la matriz, cada error lleva `zonaOrigenId` y `zonaDestinoId` en lugar de `cla
 | `@Roles(ADMINISTRADOR)` a nivel de clase en usuarios y bitácora | Todo el módulo es de administración; se evita olvidarlo en una ruta nueva |
 | "Configuración" visible para ADMINISTRADOR, COORDINADOR y SUPERVISOR; "Administración" solo para ADMINISTRADOR | Igual que los catálogos: la API deja leer parámetros y matriz a cualquier rol autenticado, pero al OPERADOR no le sirven estas pantallas |
 | El menú arma sus grupos a partir de la lista de opciones (`menuAgrupado`) | Agregar una pantalla es agregar una línea a `MENU`; la misma función se prueba con Vitest |
-| Zonas de término: cada casilla guarda al momento | Es un cambio de un solo valor; si no queda ninguna zona de término, la pantalla muestra un aviso (la regla del motor la necesita) |
+| Zonas de término: cada casilla guarda al momento | Es un cambio de un solo valor |
+| Siempre debe existir al menos una zona de término (400 "Debe existir al menos una zona de término") | Regla del motor: el último servicio de cada unidad debe terminar en una zona de término. Se revisa en las tres formas de perder la última: desmarcarla (`PATCH /zonas/:id/zona-termino`), editarla (`PATCH /zonas/:id`) o eliminarla (`DELETE /zonas/:id`). La revisión (`exigirOtraZonaTermino`) cuenta las otras zonas de término dentro de la misma transacción del cambio. El frontend muestra el mensaje en un aviso rojo y la casilla sigue marcada |
 | Vitest reutiliza `vite.config.ts` | Mismo alias `@/` y mismo plugin de React que la aplicación |
+| La cobertura web no mide `src/components/ui/**`, `main.tsx` ni los archivos de tipos (`tipos.ts`, `*.d.ts`) | Los componentes de shadcn/ui son código copiado de una librería, `main.tsx` solo arranca la aplicación y los tipos no tienen lógica; medirlos solo distorsiona el porcentaje |
+| Las pruebas de pantallas simulan la API reemplazando `fetch` (`src/pruebas/api-simulada.ts`) | Se prueban la pantalla y el cliente HTTP reales; cada prueba revisa qué peticiones y filtros se enviaron |
 
 ## Problemas que surgieron y cómo se resolvieron
 
@@ -74,6 +77,7 @@ En la matriz, cada error lleva `zonaOrigenId` y `zonaDestinoId` en lugar de `cla
 | Los componentes Select y Checkbox de Radix fallan en jsdom (faltan `ResizeObserver`, `hasPointerCapture` y `scrollIntoView`) | Se simulan en `src/pruebas/configuracion.ts`; con eso la prueba del vehículo abre el Select y elige "Sprinter" como lo haría un usuario |
 | En la revisión en el navegador, las celdas con error de la matriz casi no se distinguían y las celdas sin editar no parecían editables | Se definió una prioridad de resaltado (error rojo con contorno > modificada azul > faltante ámbar > normal con borde) y se revisó de nuevo con una zona temporal que dejó 17 combinaciones faltantes |
 | La prueba e2e del filtro de fechas de la bitácora encontraba registros de más | Los inicios de sesión de la propia prueba caen dentro del rango; la prueba ignora `INICIO_SESION` |
+| La regla de "al menos una zona de término" podía saltarse por otras rutas | Además de la casilla, una zona se puede desmarcar con la edición general o eliminarse; la misma revisión se aplicó en las tres operaciones, con pruebas unitarias para cada una y e2e para la casilla y la edición |
 | `npm audit` reporta 6 avisos (2 bajos, 4 moderados) en el frontend | Todos vienen del paquete de línea de comandos `shadcn` (`deepmerge` y `minimatch`), que solo se usa para copiar componentes y no forma parte del build. Ya estaban antes de esta fase; la única corrección es `npm audit fix --force`, que bajaría shadcn a la versión 1.0, así que no se aplicó |
 
 ## Función destacada
@@ -108,31 +112,34 @@ Es una función pura (sin base de datos), así que sus 17 casos se prueban direc
 
 ## Resultado de las pruebas
 
-- **API, unitarias** (`npm run test:cov`): 13 suites y 123 pruebas aprobadas (antes 9 y 76).
+- **API, unitarias** (`npm run test:cov`): 13 suites y 126 pruebas aprobadas (antes 9 y 76).
   - `UsuariosService`: filtros sin `password_hash`, bcrypt en alta y cambio de contraseña, 409 por correo repetido, cambio de rol en la bitácora, 400 al quitarse el rol o desactivarse, reactivar e idempotencia.
-  - `BitacoraService` y `textoAccion`: orden, paginación, filtros, rango de días de Cancún, 400 por rango invertido y recorte a 50 caracteres.
+  - `BitacoraService` y `textoAccion`: orden, paginación, filtros, rango de días de Cancún, 400 por rango invertido y un texto de acción largo que se guarda completo.
   - `validarParametro` (17 casos) y `ParametrosService`: solo cambia lo modificado, bitácora con antes y después, 400 por clave sin guardar nada, 404 y claves repetidas.
   - `TiemposTrasladoService`: matriz con faltantes, guardado en transacción con `ACTUALIZAR`/`CREAR` y 400 con el error de cada celda.
-  - `ZonasService.marcarZonaTermino`: bitácora, sin cambios y 404.
-- **API, cobertura**: **73.39 % de sentencias, 55.98 % de ramas, 61.72 % de funciones y 73.38 % de líneas** (antes 69.5 / 49.78 / 55.44 / 69.45). Los servicios nuevos tienen 100 % de líneas.
-- **API, e2e** (`npm run test:e2e`, contra `bestline_test`): 8 suites y 53 pruebas aprobadas (antes 4 y 22).
+  - `ZonasService`: marcar con bitácora, sin cambios, 404 y 400 al quitar la última zona de término (al desmarcar, editar o eliminar); se permite si queda otra.
+- **API, cobertura**: **73.96 % de sentencias, 57.14 % de ramas, 61.96 % de funciones y 73.65 % de líneas** (antes 69.5 / 49.78 / 55.44 / 69.45). Los servicios nuevos tienen 100 % de líneas.
+- **API, e2e** (`npm run test:e2e`, contra `bestline_test`): 8 suites y 55 pruebas aprobadas (antes 4 y 22).
   - Usuarios: 201 con hash bcrypt y login del usuario nuevo, 409, 400, 200 con filtros, 403, 401, 404, edición con bitácora, 400 por quitarse el rol o desactivarse, cambio de contraseña (la anterior deja de servir) y desactivar/reactivar con su efecto en el login.
-  - Bitácora: orden, filtros por entidad, acción, usuario y fechas (un registro a las 23:30 de Cancún cuenta en su día), 400, 403 y 401.
+  - Bitácora: orden, filtros por entidad, acción, usuario y fechas (un registro a las 23:30 de Cancún cuenta en su día), un texto de acción de más de 190 caracteres guardado y devuelto completo (columna de 255), 400, 403 y 401.
   - Parámetros: 200 para coordinador, 401, 200 con la bitácora `ACTUALIZAR: 9.5 → 10`, 400 sin guardar ninguno, 404 y 403.
-  - Matriz y zonas de término: faltantes, guardado completo con bitácora, 400 sin guardar ninguna celda, 403, y 200/400/403/404 al marcar una zona.
-- **Web** (`npm run test:cov`, Vitest + React Testing Library): 5 archivos y 38 pruebas aprobadas.
+  - Matriz y zonas de término: faltantes, guardado completo con bitácora, 400 sin guardar ninguna celda, 403, y 200/400/403/404 al marcar una zona, incluido el 400 al quitar la última zona de término por la casilla y por la edición general (la zona sigue marcada).
+- **Web** (`npm run test:cov`, Vitest + React Testing Library): 8 archivos y 54 pruebas aprobadas.
   - Login: esquema, errores de validación sin llamar a la API, correo mal escrito y llamada a `POST /auth/login` con el 401 en pantalla.
   - Vehículo: regla de capacidad de los 4 tipos, error bajo el campo y cambio de tipo a Sprinter con el Select.
   - Menú según el rol: opciones y grupos de los 4 roles, enlaces del menú lateral y opción activa.
   - Parámetros: reglas del esquema, errores en pantalla sin enviar, envío de las 6 claves, error de la API en su campo y modo consulta.
   - Matriz: validación de celdas y armado de los cambios.
-- **Web, cobertura**: 19.09 % de sentencias y 18.68 % de líneas en total. El total es bajo porque las pantallas de listado no tienen pruebas todavía; los archivos probados quedan entre 83 % y 100 % de líneas (`menu.ts`, `Navegacion.tsx`, `celdas.ts`, `loginSchema.ts` y los esquemas de vehículo y parámetros al 100 %; `FormularioParametros.tsx` 94 %; `LoginPage.tsx` 88 %).
+  - Pantalla de vehículos: esqueleto mientras carga y luego las filas, estado vacío, error de la API, búsqueda y filtro por tipo enviados a la API (sin mandar "todos"), y botón "Nuevo vehículo" y acciones por fila solo para ADMINISTRADOR (COORDINADOR y SUPERVISOR ven "Solo consulta").
+  - Pantalla de usuarios (dentro de la misma ruta protegida que usa la aplicación): carga, estado vacío, filtros de rol y estado, "Nuevo usuario" y acciones para el ADMINISTRADOR (con "Desactivar" deshabilitado en su propia fila y "Reactivar" en un inactivo), y "Acceso denegado" sin botones ni peticiones para los otros 3 roles.
+  - Zonas de término: el 400 de la API se muestra en un aviso y la casilla sigue marcada; el coordinador ve las casillas deshabilitadas.
+- **Web, cobertura** (sin `src/components/ui/**`, `main.tsx` ni archivos de tipos): **38.86 % de sentencias, 39.52 % de ramas, 34.43 % de funciones y 39.42 % de líneas** (antes 19.09 % de sentencias). `menu.ts`, `Navegacion.tsx`, `celdas.ts`, `TablaDatos.tsx`, `BarraFiltros.tsx`, `Encabezado.tsx`, `AccionesFila.tsx` y los esquemas de login, vehículo y parámetros quedan al 100 % de líneas; `FormularioParametros.tsx` 94 %, `ZonasTerminoPage.tsx` 88 %, `catalogos/api.ts` 84 %, `VehiculosPage.tsx` 63 % y `UsuariosPage.tsx` 48 % (lo que falta en estas dos es guardar, desactivar y cambiar contraseña). Sin pruebas todavía: las pantallas de operadores, zonas, hoteles, bitácora, matriz e inicio, y el layout.
 - **Build y lint**: `npm run build` y `npm run lint` sin errores ni avisos en la API y en la web.
 - **Revisión en el navegador** (recorrido automatizado con Playwright fuera del proyecto, escritorio de 1440 px y móvil de 390 px):
   - Usuarios: validación del alta, alta, 409, edición de rol, cambio de contraseña, desactivar, reactivar y la opción deshabilitada en la fila propia.
   - Bitácora con filtros y aviso de rango invertido.
   - Parámetros: validación, guardado y regreso al valor original.
-  - Zonas de término: marcar y desmarcar.
+  - Zonas de término: marcar y desmarcar; al quitar la última (con Aeropuerto CUN ya desmarcada, desmarcar Zona Hotelera) aparece el aviso rojo "Debe existir al menos una zona de término" y la casilla sigue marcada.
   - Matriz: errores locales, guardado, celdas faltantes con una zona temporal y 400 por celda desde la API.
   - Coordinador: Configuración en modo consulta, sin Administración y "Acceso denegado" en `/usuarios`.
   - Móvil: menú ☰ con los tres grupos y sin desborde horizontal en las cinco pantallas (las tablas se desplazan).
@@ -143,7 +150,7 @@ Es una función pura (sin base de datos), así que sus 17 casos se prueban direc
 Antes de empezar:
 
 1. En la raíz, `docker compose up -d`.
-2. En `apps/api`, `npx prisma db seed` y luego `npm run start:dev`.
+2. En `apps/api`, `npx prisma migrate dev` (aplica la migración `amplia_accion_bitacora` si tu base aún no la tiene), `npx prisma db seed` y luego `npm run start:dev`.
 3. En `apps/web`, `npm run dev`.
 
 Las contraseñas están en `apps/api/.env` (`ADMIN_PASSWORD` y `SEED_PASSWORD_EJEMPLO`).
@@ -168,7 +175,7 @@ Para las capturas de Swagger (http://localhost:3000/api/docs), primero obtén el
 
 **Pruebas (terminal)**
 
-11. **API.** En `apps/api`, `npm run test:cov`. Deben verse "Test Suites: 13 passed", "Tests: 123 passed" y la tabla de cobertura con la fila "All files" (73.39 %) y los servicios nuevos (`usuarios`, `bitacora`, `parametros`, `tiempos-traslado`) al 100 % de líneas.
-12. **Web.** En `apps/web`, `npm run test:cov`. Deben verse "Test Files 5 passed (5)", "Tests 38 passed (38)" y la tabla de cobertura con `menu.ts`, `Navegacion.tsx`, `celdas.ts` y los esquemas de login, vehículo y parámetros al 100 % de líneas.
+11. **API.** En `apps/api`, `npm run test:cov`. Deben verse "Test Suites: 13 passed", "Tests: 126 passed" y la tabla de cobertura con la fila "All files" (73.96 %) y los servicios nuevos (`usuarios`, `bitacora`, `parametros`, `tiempos-traslado`) al 100 % de líneas.
+12. **Web.** En `apps/web`, `npm run test:cov`. Deben verse "Test Files 8 passed (8)", "Tests 54 passed (54)" y la tabla de cobertura con la fila "All files" (38.86 %), sin la carpeta `components/ui`, y las filas `VehiculosPage.tsx` y `UsuariosPage.tsx`.
 
 Al terminar, regresa la jornada a `9.5` en la pantalla de Parámetros y, si quieres, desactiva el usuario de la captura 5 desde Usuarios.
