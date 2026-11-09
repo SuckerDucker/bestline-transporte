@@ -6,6 +6,7 @@ import { HotelesModule } from './hoteles/hoteles.module.js';
 import { OperadoresModule } from './operadores/operadores.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResumenModule } from './resumen/resumen.module.js';
+import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { VehiculosModule } from './vehiculos/vehiculos.module.js';
 import { ZonasModule } from './zonas/zonas.module.js';
 
@@ -21,6 +22,8 @@ import { ZonasModule } from './zonas/zonas.module.js';
     OperadoresModule,
     ZonasModule,
     HotelesModule,
+    // Administración
+    UsuariosModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],

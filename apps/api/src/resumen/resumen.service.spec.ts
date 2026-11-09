@@ -3,7 +3,7 @@ import {
   crearPrismaSimulado,
   type PrismaSimulado,
 } from '../comun/pruebas/prisma-simulado.js';
-import { fechaEnCancun, rangoDelDia } from './fechas.js';
+import { fechaEnCancun, rangoDelDia } from '../comun/fechas.js';
 import { ResumenService } from './resumen.service.js';
 
 describe('fechas de Cancún', () => {
