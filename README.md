@@ -12,6 +12,7 @@ Proyecto de estadía (UPQROO, Ingeniería en Software).
 │   ├── api/          # Backend NestJS + Prisma (monolito modular)
 │   └── web/          # Frontend React 18 + Vite + TailwindCSS
 ├── docs/evidencias/  # Notas de evidencias por módulo
+├── docs/ejemplos/    # Layout de servicios de la empresa (anonimizado) en .xlsx y .csv
 ├── docker-compose.yml  # Solo PostgreSQL 16 (desarrollo)
 └── .env.example        # Credenciales de la base de datos (marcadores)
 ```
@@ -90,6 +91,7 @@ Interfaz construida con [shadcn/ui](https://ui.shadcn.com) (componentes en `src/
 Pantallas:
 
 - Inicio de sesión e inicio con tarjetas de resumen (`GET /api/resumen`).
+- **Operación:** importar servicios desde el layout del mayorista (.xlsx o .csv, con vista previa por fila antes de confirmar; ADMINISTRADOR y COORDINADOR), consulta de servicios con filtros e historial de importaciones con su detalle. Para probar, importa `docs/ejemplos/Layout_Servicios_Nexus.xlsx` con el mayorista Nexus Tours.
 - **Catálogos:** vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos).
 - **Configuración:** parámetros de operación, zonas de término y matriz de tiempos de traslado (editable por celda).
 - **Administración:** usuarios (alta, edición, cambio de contraseña, desactivar y reactivar) y bitácora con filtros.
@@ -99,7 +101,8 @@ En móvil el menú lateral se abre con el botón ☰. El menú depende del rol:
 | Rol | Ve | Puede modificar |
 |---|---|---|
 | ADMINISTRADOR | Todo | Sí |
-| COORDINADOR, SUPERVISOR | Inicio, Catálogos y Configuración | No (solo consulta) |
+| COORDINADOR | Inicio, Operación, Catálogos y Configuración | Importa servicios; catálogos y configuración solo en consulta |
+| SUPERVISOR | Inicio, Operación (sin importar), Catálogos y Configuración | No (solo consulta) |
 | OPERADOR | Inicio | No |
 
 Pruebas (Vitest + React Testing Library):
