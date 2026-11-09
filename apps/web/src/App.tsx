@@ -5,9 +5,15 @@ import { Skeleton } from './components/ui/skeleton'
 import { LoginPage } from './features/auth/LoginPage'
 import { InicioPage } from './features/inicio/InicioPage'
 import { Layout } from './layout/Layout'
-import { ROLES_ADMINISTRACION, ROLES_CATALOGOS } from './layout/menu'
+import { ROLES_ADMINISTRACION, ROLES_CATALOGOS, ROLES_IMPORTAR } from './layout/menu'
 
 // Las pantallas internas se descargan solo cuando se abren (paquete inicial más ligero).
+const ImportarPage = lazy(() => import('./features/importacion/ImportarPage').then((m) => ({ default: m.ImportarPage })))
+const HistorialPage = lazy(() => import('./features/importacion/HistorialPage').then((m) => ({ default: m.HistorialPage })))
+const DetalleImportacionPage = lazy(() =>
+  import('./features/importacion/DetalleImportacionPage').then((m) => ({ default: m.DetalleImportacionPage })),
+)
+const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
 const ZonasPage = lazy(() => import('./features/zonas/ZonasPage').then((m) => ({ default: m.ZonasPage })))
@@ -35,7 +41,7 @@ function App() {
       <Route element={<RutaProtegida />}>
         <Route element={<Layout />}>
           <Route index element={<InicioPage />} />
-          {/* Catálogos y configuración: solo para los roles del menú (la API vuelve a revisarlo) */}
+          {/* Operación, catálogos y configuración: solo para los roles del menú (la API vuelve a revisarlo) */}
           <Route
             element={
               <Suspense fallback={<Cargando />}>
@@ -43,6 +49,10 @@ function App() {
               </Suspense>
             }
           >
+            {/* Operación: consulta de servicios e importaciones */}
+            <Route path="servicios" element={<ServiciosPage />} />
+            <Route path="importaciones" element={<HistorialPage />} />
+            <Route path="importaciones/:id" element={<DetalleImportacionPage />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="operadores" element={<OperadoresPage />} />
             <Route path="zonas" element={<ZonasPage />} />
@@ -51,6 +61,16 @@ function App() {
             <Route path="parametros" element={<ParametrosPage />} />
             <Route path="zonas-termino" element={<ZonasTerminoPage />} />
             <Route path="matriz-tiempos" element={<MatrizPage />} />
+          </Route>
+          {/* Importar archivos: ADMINISTRADOR y COORDINADOR */}
+          <Route
+            element={
+              <Suspense fallback={<Cargando />}>
+                <RutaProtegida roles={ROLES_IMPORTAR} />
+              </Suspense>
+            }
+          >
+            <Route path="importar" element={<ImportarPage />} />
           </Route>
           {/* Administración: solo ADMINISTRADOR */}
           <Route
