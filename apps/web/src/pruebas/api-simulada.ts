@@ -1,4 +1,5 @@
-import { vi } from 'vitest'
+import { waitFor } from '@testing-library/react'
+import { expect, vi } from 'vitest'
 
 /** Petición que recibió la API simulada. */
 export interface Peticion {
@@ -38,3 +39,7 @@ export function simularApi(responder: (peticion: Peticion) => Respuesta | Promis
 
 /** Respuesta paginada como la de la API. */
 export const pagina = <T>(datos: T[], total = datos.length) => ({ datos, total, pagina: 1, limite: 10 })
+
+/** Espera (hasta 2 s) a que la API reciba una petición que cumpla la condición. */
+export const esperarPeticion = (peticiones: Peticion[], condicion: (p: Peticion) => boolean) =>
+  waitFor(() => expect(peticiones.some(condicion)).toBe(true), { timeout: 2000 })

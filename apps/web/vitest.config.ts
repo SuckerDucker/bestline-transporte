@@ -18,8 +18,17 @@ export default mergeConfig(
         reportsDirectory: './coverage',
         reporter: ['text', 'html'],
         include: ['src/**/*.{ts,tsx}'],
-        // Se excluyen los componentes copiados de shadcn/ui, el arranque y las ayudas de prueba.
-        exclude: ['src/components/ui/**', 'src/main.tsx', 'src/pruebas/**', 'src/**/*.test.{ts,tsx}', 'src/vite-env.d.ts'],
+        // No se mide código que no es propio o que no tiene lógica: los componentes
+        // copiados de shadcn/ui, el arranque (main.tsx), los archivos de tipos y
+        // las propias pruebas con sus ayudas.
+        exclude: [
+          'src/components/ui/**',
+          'src/main.tsx',
+          'src/**/tipos.ts',
+          'src/**/*.d.ts',
+          'src/pruebas/**',
+          'src/**/*.test.{ts,tsx}',
+        ],
       },
     },
   }),
