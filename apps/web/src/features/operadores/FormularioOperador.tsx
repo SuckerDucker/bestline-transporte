@@ -2,20 +2,23 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { BotonesFormulario } from '@/components/comunes/BotonesFormulario'
 import { Campo } from '@/components/comunes/Campo'
+import { SelectSimple } from '@/components/comunes/SelectSimple'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { Operador } from '../catalogos/tipos'
-import { esquemaOperador, type ValoresOperador } from './esquema'
+import type { Operador, Vehiculo } from '../catalogos/tipos'
+import { esquemaOperador, SIN_VEHICULO, type ValoresOperador } from './esquema'
 
 interface Props {
   inicial: Operador | null
+  /** Vehículos que se pueden asignar (la página los carga). */
+  vehiculos: Pick<Vehiculo, 'id' | 'numeroEconomico' | 'tipo'>[]
   guardando: boolean
   alGuardar: (valores: ValoresOperador) => void
   alCancelar: () => void
 }
 
-export function FormularioOperador({ inicial, guardando, alGuardar, alCancelar }: Props) {
+export function FormularioOperador({ inicial, vehiculos, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
@@ -29,9 +32,15 @@ export function FormularioOperador({ inicial, guardando, alGuardar, alCancelar }
           licencia: inicial.licencia,
           telefono: inicial.telefono,
           disponible: inicial.disponible,
+          vehiculo: inicial.vehiculoId ? String(inicial.vehiculoId) : SIN_VEHICULO,
+          horaCita: inicial.horaCita ?? '',
         }
-      : { disponible: true },
+      : { disponible: true, vehiculo: SIN_VEHICULO, horaCita: '' },
   })
+  const opcionesVehiculo = [
+    { valor: SIN_VEHICULO, etiqueta: 'Sin unidad (no participa en el rol)' },
+    ...vehiculos.map((v) => ({ valor: String(v.id), etiqueta: `${v.numeroEconomico} · ${v.tipo}` })),
+  ]
 
   return (
     <form onSubmit={handleSubmit(alGuardar)} noValidate className="grid gap-5">
@@ -50,6 +59,32 @@ export function FormularioOperador({ inicial, guardando, alGuardar, alCancelar }
             placeholder="998-000-0000"
             aria-invalid={!!errors.telefono || undefined}
             {...register('telefono')}
+          />
+        </Campo>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Campo etiqueta="Unidad" htmlFor="vehiculo" ayuda="Un vehículo solo puede tener un operador.">
+          <Controller
+            control={control}
+            name="vehiculo"
+            render={({ field }) => (
+              <SelectSimple id="vehiculo" valor={field.value} alCambiar={field.onChange} opciones={opcionesVehiculo} />
+            )}
+          />
+        </Campo>
+        <Campo
+          etiqueta="Hora de cita"
+          htmlFor="horaCita"
+          error={errors.horaCita?.message}
+          ayuda="HH:mm. Vacía = hora del turno 1 (Parámetros)."
+        >
+          <Input
+            id="horaCita"
+            inputMode="numeric"
+            placeholder="04:00"
+            aria-invalid={!!errors.horaCita || undefined}
+            {...register('horaCita')}
           />
         </Campo>
       </div>

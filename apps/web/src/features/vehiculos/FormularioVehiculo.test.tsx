@@ -5,7 +5,8 @@ import type { Vehiculo } from '../catalogos/tipos'
 import { esquemaVehiculo } from './esquema'
 import { FormularioVehiculo } from './FormularioVehiculo'
 
-const base = { numeroEconomico: 'BL-11', encierroBase: 'Encierro Cancún', estado: 'DISPONIBLE' as const }
+const ZONAS = ['Centro Cancún', 'Zona Hotelera']
+const base = { numeroEconomico: 'BL-11', encierroBase: 'Centro Cancún', estado: 'DISPONIBLE' as const }
 
 describe('Regla de capacidad por tipo (esquemaVehiculo)', () => {
   it.each([
@@ -35,12 +36,12 @@ describe('Formulario de vehículo', () => {
     tipo: 'Van',
     capacidad: 14,
     estado: 'DISPONIBLE',
-    encierroBase: 'Encierro Cancún',
+    encierroBase: 'Centro Cancún',
   }
 
   it('muestra el error de capacidad bajo el campo y no guarda', async () => {
     const alGuardar = vi.fn()
-    render(<FormularioVehiculo inicial={van} guardando={false} alGuardar={alGuardar} alCancelar={vi.fn()} />)
+    render(<FormularioVehiculo inicial={van} zonas={ZONAS} guardando={false} alGuardar={alGuardar} alCancelar={vi.fn()} />)
 
     const capacidad = screen.getByLabelText(/Capacidad/)
     await userEvent.clear(capacidad)
@@ -54,7 +55,7 @@ describe('Formulario de vehículo', () => {
 
   it('al cambiar el tipo a Sprinter, 20 pasajeros sí es válido', async () => {
     const alGuardar = vi.fn()
-    render(<FormularioVehiculo inicial={van} guardando={false} alGuardar={alGuardar} alCancelar={vi.fn()} />)
+    render(<FormularioVehiculo inicial={van} zonas={ZONAS} guardando={false} alGuardar={alGuardar} alCancelar={vi.fn()} />)
 
     await userEvent.click(screen.getByRole('combobox', { name: 'Tipo' }))
     await userEvent.click(await screen.findByRole('option', { name: 'Sprinter (máx. 20)' }))
@@ -65,5 +66,22 @@ describe('Formulario de vehículo', () => {
 
     await vi.waitFor(() => expect(alGuardar).toHaveBeenCalled())
     expect(alGuardar.mock.calls[0][0]).toMatchObject({ tipo: 'Sprinter', capacidad: 20 })
+  })
+  it('en un alta pide elegir el encierro entre las zonas del catálogo', async () => {
+    const alGuardar = vi.fn()
+    render(<FormularioVehiculo inicial={null} zonas={ZONAS} guardando={false} alGuardar={alGuardar} alCancelar={vi.fn()} />)
+
+    await userEvent.type(screen.getByLabelText('Número económico'), 'BL-20')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Tipo' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'Van (máx. 14)' }))
+    await userEvent.type(screen.getByLabelText(/Capacidad/), '10')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Elige el encierro base')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Encierro base' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'Zona Hotelera' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await vi.waitFor(() => expect(alGuardar).toHaveBeenCalled())
+    expect(alGuardar.mock.calls[0][0]).toMatchObject({ encierroBase: 'Zona Hotelera' })
   })
 })

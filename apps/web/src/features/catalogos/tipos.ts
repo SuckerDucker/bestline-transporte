@@ -35,6 +35,11 @@ export interface Operador {
   licencia: string
   telefono: string
   disponible: boolean
+  /** Vehículo que maneja; sin vehículo no participa en el rol. */
+  vehiculoId: number | null
+  /** HH:mm; null = se usa el parámetro hora_cita.turno_1. */
+  horaCita: string | null
+  vehiculo: Pick<Vehiculo, 'id' | 'numeroEconomico' | 'tipo' | 'capacidad' | 'estado'> | null
 }
 
 export interface Zona {

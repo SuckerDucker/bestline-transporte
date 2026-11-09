@@ -16,6 +16,8 @@ import { esquemaVehiculo, type ValoresVehiculo } from './esquema'
 
 interface Props {
   inicial: Vehiculo | null
+  /** Nombres de las zonas del catálogo: el encierro base debe ser una de ellas. */
+  zonas: string[]
   guardando: boolean
   alGuardar: (valores: ValoresVehiculo) => void
   alCancelar: () => void
@@ -24,7 +26,7 @@ interface Props {
 const OPCIONES_TIPO = TIPOS_VEHICULO.map((t) => ({ valor: t, etiqueta: `${t} (máx. ${CAPACIDAD_MAXIMA[t]})` }))
 const OPCIONES_ESTADO = ESTADOS_VEHICULO.map((e) => ({ valor: e, etiqueta: NOMBRE_ESTADO_VEHICULO[e] }))
 
-export function FormularioVehiculo({ inicial, guardando, alGuardar, alCancelar }: Props) {
+export function FormularioVehiculo({ inicial, zonas, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
@@ -40,7 +42,7 @@ export function FormularioVehiculo({ inicial, guardando, alGuardar, alCancelar }
           encierroBase: inicial.encierroBase,
           estado: inicial.estado,
         }
-      : { estado: 'DISPONIBLE' },
+      : { estado: 'DISPONIBLE', encierroBase: '' },
   })
   const tipo = useWatch({ control, name: 'tipo' })
 
@@ -89,12 +91,25 @@ export function FormularioVehiculo({ inicial, guardando, alGuardar, alCancelar }
         </Campo>
       </div>
 
-      <Campo etiqueta="Encierro base" htmlFor="encierroBase" error={errors.encierroBase?.message}>
-        <Input
-          id="encierroBase"
-          placeholder="Encierro Centro Cancún"
-          aria-invalid={!!errors.encierroBase || undefined}
-          {...register('encierroBase')}
+      <Campo
+        etiqueta="Encierro base"
+        htmlFor="encierroBase"
+        error={errors.encierroBase?.message}
+        ayuda="Zona de donde sale la unidad al inicio del día."
+      >
+        <Controller
+          control={control}
+          name="encierroBase"
+          render={({ field }) => (
+            <SelectSimple
+              id="encierroBase"
+              valor={field.value ?? ''}
+              alCambiar={field.onChange}
+              opciones={zonas.map((z) => ({ valor: z, etiqueta: z }))}
+              placeholder="Elige la zona"
+              invalido={!!errors.encierroBase}
+            />
+          )}
         />
       </Campo>
 

@@ -17,7 +17,7 @@ export const esquemaVehiculo = z
     encierroBase: z
       .string()
       .trim()
-      .min(1, 'Ingresa el encierro base')
+      .min(1, 'Elige el encierro base')
       .max(100, 'Máximo 100 caracteres'),
     estado: z.enum(ESTADOS_VEHICULO),
   })
