@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { BitacoraModule } from './bitacora/bitacora.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HotelesModule } from './hoteles/hoteles.module.js';
+import { ImportacionesModule } from './importaciones/importaciones.module.js';
 import { OperadoresModule } from './operadores/operadores.module.js';
 import { ParametrosModule } from './parametros/parametros.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -31,6 +32,8 @@ import { ZonasModule } from './zonas/zonas.module.js';
     // Configuración de la operación
     ParametrosModule,
     TiemposTrasladoModule,
+    // Operación
+    ImportacionesModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],

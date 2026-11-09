@@ -21,6 +21,7 @@ export const ENTIDADES_BITACORA = [
   'hotel',
   'parametro_operacion',
   'tiempo_traslado',
+  'importacion',
 ] as const;
 
 /**
