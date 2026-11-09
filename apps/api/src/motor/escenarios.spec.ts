@@ -36,7 +36,10 @@ const ANTICIPACION: Record<Modalidad, number> = {
   COMPARTIDO: 20,
   GRUPO: 30,
 };
-const CAPACIDADES = [14, 14, 14, 14, 14, 20, 20, 20, 45, 45];
+// Flota confirmada por la empresa: 4 Van/Urvan (14), 5 Sprinter (20) y 1 Autobús (45).
+const CAPACIDADES = [14, 14, 14, 14, 20, 20, 20, 20, 20, 45];
+// Bloques confirmados: 5 operadores con cita de 04:00 a 05:00 y 5 de 12:00 a 13:00.
+const INICIO_BLOQUE = [240, 240, 240, 240, 240, 720, 720, 720, 720, 720];
 
 /**
  * Un día de operación al azar con el volumen de la empresa: 60 a 75
@@ -57,7 +60,8 @@ function escenario(semilla: number) {
     capacidad,
     operadorId: 100 + i,
     disponible: azar(1, 10) > 1, // ~90 % disponibles
-    cita: 240 + 15 * azar(0, 4), // 04:00 a 05:00
+    // Una hora de cita al azar dentro del bloque de cada operador (cada 15 min).
+    cita: INICIO_BLOQUE[i] + 15 * azar(0, 4),
     encierro: 3,
   }));
   const modalidades: Modalidad[] = ['PRIVADO', 'COMPARTIDO', 'GRUPO'];
