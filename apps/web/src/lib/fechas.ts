@@ -11,3 +11,7 @@ export const horaCancun = (iso: string) => HORA.format(new Date(iso))
 export const diaCancun = (iso: string) => DIA.format(new Date(iso))
 /** "5 nov 2026, 6:15 a.m." */
 export const diaYHoraCancun = (iso: string) => DIA_Y_HORA.format(new Date(iso))
+
+const DIA_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' })
+/** Fecha de mañana en Cancún, AAAA-MM-DD (el rol se genera el día anterior). */
+export const mananaCancun = (ahora = new Date()) => DIA_ISO.format(new Date(ahora.getTime() + 24 * 60 * 60 * 1000))

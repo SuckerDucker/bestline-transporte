@@ -19,6 +19,8 @@ export const ENTIDADES = [
   { valor: 'hotel', etiqueta: 'Hotel' },
   { valor: 'parametro_operacion', etiqueta: 'Parámetro' },
   { valor: 'tiempo_traslado', etiqueta: 'Tiempo de traslado' },
+  { valor: 'importacion', etiqueta: 'Importación' },
+  { valor: 'rol_diario', etiqueta: 'Rol diario' },
 ]
 
 /** "ACTUALIZAR: 9.5 → 10" → { accion: "ACTUALIZAR", detalle: "9.5 → 10" }. */
