@@ -189,8 +189,10 @@ model Vehiculo {
   tipo            String         @db.VarChar(50)
   capacidad       Int
   estado          EstadoVehiculo
+  // Nombre de la zona del catálogo donde inicia el día (se valida en alta y edición).
   encierroBase    String         @map("encierro_base") @db.VarChar(100)
 
+  operador     Operador?
   asignaciones Asignacion[]
 
   @@map("vehiculo")
@@ -202,7 +204,13 @@ model Operador {
   licencia   String  @db.VarChar(30)
   telefono   String  @db.VarChar(20)
   disponible Boolean @default(true)
+  // Unidad que maneja (un vehículo solo puede tener un operador). Sin vehículo
+  // el operador no participa en el rol.
+  vehiculoId Int?    @unique @map("vehiculo_id")
+  // Hora de cita HH:mm (America/Cancun). Si es nula se usa hora_cita.turno_1.
+  horaCita   String? @map("hora_cita") @db.VarChar(5)
 
+  vehiculo     Vehiculo?    @relation(fields: [vehiculoId], references: [id])
   asignaciones Asignacion[]
 
   @@map("operador")

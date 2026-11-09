@@ -13,6 +13,9 @@
  * 2) DATOS DE EJEMPLO: todo lo demás (nombres de hoteles, operadores, números
  *    económicos, folios, vuelos, tiempos de traslado, coordenadas aproximadas y
  *    los 60 servicios). No son datos reales de Best Line Travel Agency.
+ *    También son de ejemplo: el vehículo de cada operador, sus horas de cita
+ *    (04:00 a 05:00), el encierro base de las unidades (zona Centro Cancún,
+ *    supuesto por confirmar) y la penalización de carga del motor (15 min).
  *    Los 8 hoteles de HOTELES_LAYOUT son los del archivo de ejemplo anonimizado
  *    de la empresa (docs/ejemplos), para que su importación encuentre los hoteles.
  *
@@ -285,7 +288,10 @@ const HOTELES_LAYOUT: typeof HOTELES = [
 
 // ───────────── Flota ─────────────
 // Las capacidades son las de operación (máximo por tipo: Van 14, Sprinter 20,
-// Autobús 45). Números económicos y encierro son de ejemplo.
+// Autobús 45). Números económicos son de ejemplo.
+// SUPUESTO POR CONFIRMAR: el encierro base es el nombre de una zona del catálogo
+// (de ahí sale cada unidad al inicio del día); todas usan Centro Cancún.
+const ENCIERRO_BASE = 'Centro Cancún';
 const VEHICULOS = [
   ...Array.from({ length: 5 }, () => ({ tipo: 'Van', capacidad: 14 })),
   ...Array.from({ length: 3 }, () => ({ tipo: 'Sprinter', capacidad: 20 })),
@@ -295,18 +301,35 @@ const VEHICULOS = [
   numeroEconomico: `BL-${String(i + 1).padStart(2, '0')}`,
   // Una unidad en mantenimiento para que el motor tenga un caso que descartar.
   estado: i === 9 ? EstadoVehiculo.MANTENIMIENTO : EstadoVehiculo.DISPONIBLE,
-  encierroBase: 'Encierro Centro Cancún (ejemplo)',
+  encierroBase: ENCIERRO_BASE,
 }));
 
 // ───────────── Operadores (genéricos, de ejemplo) ─────────────
+// Cada operador maneja el vehículo de su mismo número (Operador 03 → BL-03).
+// Horas de cita de ejemplo repartidas entre los turnos de 04:00 y 05:00.
+const HORAS_CITA = [
+  '04:00',
+  '04:00',
+  '04:15',
+  '04:15',
+  '04:30',
+  '04:30',
+  '04:45',
+  '04:45',
+  '05:00',
+  '05:00',
+];
 const OPERADORES = Array.from({ length: 10 }, (_, i) => {
   const n = String(i + 1).padStart(2, '0');
   return {
     nombre: `Operador Ejemplo ${n}`,
     licencia: `LIC-EJEMPLO-${n}`,
     telefono: `998-000-00${n}`,
-    // Un operador no disponible para probar ese caso.
+    // Un operador no disponible para probar ese caso (su unidad, BL-10, además
+    // está en mantenimiento: esa unidad no participa en el rol).
     disponible: i !== 9,
+    horaCita: HORAS_CITA[i],
+    numeroEconomico: `BL-${n}`,
   };
 });
 
@@ -432,6 +455,14 @@ async function main(): Promise<void> {
       valor: '9.5',
       descripcion: 'Jornada máxima en horas desde la hora de cita',
     },
+    {
+      // Valor de ejemplo: minutos que se suman al costo por cada servicio que
+      // la unidad ya tiene, para repartir la carga entre unidades.
+      clave: 'motor.penalizacion_carga_min',
+      valor: '15',
+      descripcion:
+        'Minutos de penalización por servicio ya asignado a la unidad (motor)',
+    },
   ];
   // La anticipación depende solo de la modalidad del servicio.
   const anticipacion: Record<ModalidadServicio, number> = {
@@ -495,14 +526,38 @@ async function main(): Promise<void> {
     });
   }
 
-  // 8) Operadores (sin columna única: se busca por nombre)
-  for (const op of OPERADORES) {
+  // 8) Operadores (sin columna única: se busca por nombre) con su vehículo.
+  // Primero se sueltan los vehículos del seed para no chocar con el índice
+  // único de vehiculo_id al volver a correr el seed.
+  const idVehiculo = new Map(
+    (
+      await prisma.vehiculo.findMany({
+        select: { id: true, numeroEconomico: true },
+      })
+    ).map((v) => [v.numeroEconomico, v.id]),
+  );
+  await prisma.operador.updateMany({
+    where: {
+      vehiculoId: {
+        in: OPERADORES.map((o) => idVehiculo.get(o.numeroEconomico) ?? -1),
+      },
+    },
+    data: { vehiculoId: null },
+  });
+  for (const { numeroEconomico, ...op } of OPERADORES) {
+    const datos = {
+      ...op,
+      vehiculoId: idVehiculo.get(numeroEconomico) ?? null,
+    };
     const existente = await prisma.operador.findFirst({
       where: { nombre: op.nombre },
     });
     if (existente)
-      await prisma.operador.update({ where: { id: existente.id }, data: op });
-    else await prisma.operador.create({ data: op });
+      await prisma.operador.update({
+        where: { id: existente.id },
+        data: datos,
+      });
+    else await prisma.operador.create({ data: datos });
   }
 
   // 9) Servicios: 60 servicios del 2026-11-10

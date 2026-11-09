@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   EstadoVehiculo,
   type Prisma,
@@ -51,8 +55,27 @@ export class VehiculosService {
     return vehiculo;
   }
 
+  /**
+   * SUPUESTO POR CONFIRMAR: el encierro base es el nombre de una zona del
+   * catálogo (de ahí sale la unidad al inicio del día en el motor). Se busca
+   * sin distinguir mayúsculas y se guarda con el nombre exacto de la zona.
+   */
+  private async zonaDelEncierro(nombre: string): Promise<string> {
+    const zona = await this.prisma.zona.findFirst({
+      where: { nombre: { equals: nombre, mode: 'insensitive' } },
+      select: { nombre: true },
+    });
+    if (!zona) {
+      throw new BadRequestException(
+        `El encierro base "${nombre}" no es una zona del catálogo`,
+      );
+    }
+    return zona.nombre;
+  }
+
   async crear(dto: CrearVehiculoDto, usuarioId: number): Promise<Vehiculo> {
     validarCapacidad(dto.tipo, dto.capacidad);
+    const encierroBase = await this.zonaDelEncierro(dto.encierroBase);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const vehiculo = await tx.vehiculo.create({
@@ -60,7 +83,7 @@ export class VehiculosService {
             numeroEconomico: dto.numeroEconomico,
             tipo: dto.tipo,
             capacidad: dto.capacidad,
-            encierroBase: dto.encierroBase,
+            encierroBase,
             estado: dto.estado ?? EstadoVehiculo.DISPONIBLE,
           },
         });
@@ -86,9 +109,15 @@ export class VehiculosService {
       dto.tipo ?? actual.tipo,
       dto.capacidad ?? actual.capacidad,
     );
+    if (dto.encierroBase) {
+      dto.encierroBase = await this.zonaDelEncierro(dto.encierroBase);
+    }
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const vehiculo = await tx.vehiculo.update({ where: { id }, data: dto });
+        const vehiculo = await tx.vehiculo.update({
+          where: { id },
+          data: dto,
+        });
         await registrarBitacora(tx, usuarioId, 'ACTUALIZAR', ENTIDAD, id);
         return vehiculo;
       });
