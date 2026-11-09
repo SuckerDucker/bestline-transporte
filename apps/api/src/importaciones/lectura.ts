@@ -43,7 +43,7 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
   const indiceEncabezados = celdas
     .slice(0, FILAS_MAXIMAS_ANTES_DE_ENCABEZADOS)
     .findIndex((fila) =>
-      fila.some((c) => normalizar(String(c)) === normalizar(ENCABEZADO_ANCLA)),
+      fila.some((c) => normalizar(aTexto(c)) === normalizar(ENCABEZADO_ANCLA)),
     );
   if (indiceEncabezados < 0) {
     throw new ErrorArchivo(
@@ -53,7 +53,7 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
   }
 
   // Columna de cada encabezado, buscada por nombre (sin mayúsculas ni acentos).
-  const nombres = celdas[indiceEncabezados].map((c) => normalizar(String(c)));
+  const nombres = celdas[indiceEncabezados].map((c) => normalizar(aTexto(c)));
   const columna = new Map(
     ENCABEZADOS.map((e) => [e, nombres.indexOf(normalizar(e))] as const),
   );
@@ -67,7 +67,7 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
 
   const filas: FilaArchivo[] = [];
   celdas.slice(indiceEncabezados + 1).forEach((fila, i) => {
-    if (fila.every((c) => String(c ?? '').trim() === '')) return;
+    if (fila.every((c) => aTexto(c).trim() === '')) return;
     const valores = Object.fromEntries(
       ENCABEZADOS.map((e) => [
         e,
@@ -81,9 +81,11 @@ export function leerArchivo(contenido: Buffer, nombre: string): FilaArchivo[] {
 
 function leerCsv(contenido: Buffer): string[][] {
   // Se quita el BOM que agrega Excel al guardar en UTF-8.
-  const texto = contenido.toString('utf8').replace(/^﻿/, '');
+  const BOM = String.fromCharCode(0xfeff);
+  const leido = contenido.toString('utf8');
+  const texto = leido.startsWith(BOM) ? leido.slice(1) : leido;
   const { data } = Papa.parse<string[]>(texto, { skipEmptyLines: false });
-  return data.map((fila) => fila.map((c) => String(c ?? '')));
+  return data;
 }
 
 function leerXlsx(contenido: Buffer): unknown[][] {
@@ -110,11 +112,20 @@ function leerXlsx(contenido: Buffer): unknown[][] {
  * dd/mm/aaaa o HH:mm. Las demás columnas numéricas (Pasajeros) quedan igual.
  */
 function celdaComoTexto(encabezado: Encabezado, valor: unknown): string {
-  if (typeof valor !== 'number') return String(valor ?? '');
-  if (encabezado !== 'Fecha' && encabezado !== 'Hora') return String(valor);
+  if (typeof valor !== 'number') return aTexto(valor);
+  if (encabezado !== 'Fecha' && encabezado !== 'Hora') return aTexto(valor);
   const f = XLSX.SSF.parse_date_code(valor);
   const dos = (n: number) => String(n).padStart(2, '0');
   return encabezado === 'Fecha'
     ? `${dos(f.d)}/${dos(f.m)}/${f.y}`
     : `${dos(f.H)}:${dos(f.M)}`;
+}
+
+/** Texto de una celda: texto, número o booleano; cualquier otra cosa cuenta como vacía. */
+function aTexto(valor: unknown): string {
+  if (typeof valor === 'string') return valor;
+  if (typeof valor === 'number' || typeof valor === 'boolean') {
+    return String(valor);
+  }
+  return '';
 }
