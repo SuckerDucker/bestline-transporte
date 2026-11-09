@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { Eye, Flag, TriangleAlert } from 'lucide-react'
+import { Eye, Flag, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { pedir } from '@/api/cliente'
 import { usePuedeEscribir } from '@/auth/contexto'
@@ -27,6 +27,7 @@ export function ZonasTerminoPage() {
       toast.success(`${zona.nombre} ${zona.esZonaTermino ? 'marcada' : 'desmarcada'} como zona de término`)
       return invalidar()
     },
+    // Por ejemplo, el 400 de la API al desmarcar la última: "Debe existir al menos una zona de término".
     onError: (error) => toast.error('No se pudo cambiar la zona', { description: error.message }),
   })
 
@@ -54,12 +55,10 @@ export function ZonasTerminoPage() {
         )}
       </div>
 
-      {zonas.data && deTermino === 0 && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-          No hay zonas de término: el motor no podrá cerrar la jornada de ninguna unidad.
-        </div>
-      )}
+      <p className="mb-4 flex items-start gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 size-4 shrink-0" />
+        Debe quedar al menos una zona de término: el motor la necesita para cerrar la jornada de cada unidad.
+      </p>
       {zonas.error && <p className="text-sm text-destructive">{zonas.error.message}</p>}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

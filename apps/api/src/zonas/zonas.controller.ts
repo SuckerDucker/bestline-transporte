@@ -127,7 +127,10 @@ export class ZonasController {
     description: 'Zona actualizada',
     schema: { example: EJEMPLO },
   })
-  @ApiErroresEscritura('esZonaTermino debe ser true o false')
+  @ApiErroresEscritura(
+    'esZonaTermino debe ser true o false',
+    'Debe existir al menos una zona de término',
+  )
   @ApiError404('No existe la zona 99')
   @ApiError409('Ya existe una zona con el nombre "Isla Mujeres"')
   actualizar(
@@ -143,7 +146,7 @@ export class ZonasController {
   @ApiOperation({
     summary: 'Marcar o desmarcar una zona de término',
     description:
-      'Solo ADMINISTRADOR. Indica si una unidad puede terminar su jornada en esta zona (regla del motor). El cambio queda en la bitácora ("ACTUALIZAR: es_zona_termino false → true").',
+      'Solo ADMINISTRADOR. Indica si una unidad puede terminar su jornada en esta zona (regla del motor). Debe quedar al menos una zona de término: desmarcar la última responde 400. El cambio queda en la bitácora ("ACTUALIZAR: es_zona_termino false → true").',
   })
   @ApiBody({
     type: MarcarZonaTerminoDto,
@@ -156,7 +159,10 @@ export class ZonasController {
     description: 'Zona actualizada',
     schema: { example: { ...EJEMPLO, esZonaTermino: true } },
   })
-  @ApiErroresEscritura('esZonaTermino debe ser true o false')
+  @ApiErroresEscritura(
+    'esZonaTermino debe ser true o false',
+    'Debe existir al menos una zona de término',
+  )
   @ApiError404('No existe la zona 99')
   marcarZonaTermino(
     @Param('id', ParseIntPipe) id: number,
@@ -177,7 +183,10 @@ export class ZonasController {
     description: 'Zona eliminada',
     schema: { example: { id: 9 } },
   })
-  @ApiErroresEscritura('Validation failed (numeric string is expected)')
+  @ApiErroresEscritura(
+    'Validation failed (numeric string is expected)',
+    'Debe existir al menos una zona de término',
+  )
   @ApiError404('No existe la zona 99')
   @ApiError409(
     'No se puede eliminar la zona "Tulum": está referenciada por 1 hotel(es), 16 tiempo(s) de traslado y 6 servicio(s)',

@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   comoPrisma,
   crearPrismaSimulado,
@@ -126,6 +130,47 @@ describe('ZonasService', () => {
           4,
         ),
       );
+    });
+
+    it('400 al desmarcar la última zona de término, sin guardar ni registrar', async () => {
+      prisma.zona.findUnique.mockResolvedValue(zonaBd({ esZonaTermino: true }));
+      prisma.zona.count.mockResolvedValue(0);
+
+      await expect(servicio.marcarZonaTermino(4, false, ADMIN)).rejects.toThrow(
+        new BadRequestException('Debe existir al menos una zona de término'),
+      );
+      expect(prisma.zona.count).toHaveBeenCalledWith({
+        where: { esZonaTermino: true, id: { not: 4 } },
+      });
+      expect(prisma.zona.update).not.toHaveBeenCalled();
+      expect(prisma.bitacora.create).not.toHaveBeenCalled();
+    });
+
+    it('permite desmarcar si queda otra zona de término', async () => {
+      prisma.zona.findUnique.mockResolvedValue(zonaBd({ esZonaTermino: true }));
+      prisma.zona.count.mockResolvedValue(1);
+      prisma.zona.update.mockResolvedValue(zonaBd());
+
+      await expect(
+        servicio.marcarZonaTermino(4, false, ADMIN),
+      ).resolves.toMatchObject({ esZonaTermino: false });
+    });
+
+    it('la misma regla aplica al editar la zona y al eliminarla', async () => {
+      prisma.zona.findUnique.mockResolvedValue(zonaBd({ esZonaTermino: true }));
+      prisma.zona.count.mockResolvedValue(0);
+      prisma.hotel.count.mockResolvedValue(0);
+      prisma.tiempoTraslado.count.mockResolvedValue(0);
+      prisma.servicio.count.mockResolvedValue(0);
+
+      await expect(
+        servicio.actualizar(4, { esZonaTermino: false }, ADMIN),
+      ).rejects.toThrow(BadRequestException);
+      await expect(servicio.eliminar(4, ADMIN)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.zona.update).not.toHaveBeenCalled();
+      expect(prisma.zona.delete).not.toHaveBeenCalled();
     });
 
     it('si ya tenía ese valor no modifica ni registra', async () => {

@@ -1,9 +1,13 @@
 // Se ejecuta antes de cada archivo de pruebas.
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  // Quita el fetch simulado (simularApi) para que no pase a la siguiente prueba.
+  vi.unstubAllGlobals()
+})
 
 // jsdom no implementa estas APIs del navegador que usan los componentes de
 // Radix (Select y Checkbox); se simulan para poder abrirlos en las pruebas.

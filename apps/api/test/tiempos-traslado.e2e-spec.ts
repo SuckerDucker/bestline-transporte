@@ -154,6 +154,28 @@ describe('Matriz de tiempos y zonas de término (e2e)', () => {
       );
     });
 
+    it('400: no se puede quitar la última zona de término', async () => {
+      // Hay dos (Aeropuerto CUN y Tulum): quitar una sí se permite.
+      await marcar(cun, { esZonaTermino: false }).expect(200);
+
+      const respuesta = await marcar(tulum, { esZonaTermino: false }).expect(
+        400,
+      );
+      expect(respuesta.body).toMatchObject({
+        message: 'Debe existir al menos una zona de término',
+      });
+      // Tampoco por la edición general de la zona.
+      await http()
+        .patch(`/api/zonas/${tulum}`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ esZonaTermino: false })
+        .expect(400);
+      const zona = await prisma.zona.findUniqueOrThrow({
+        where: { id: tulum },
+      });
+      expect(zona.esZonaTermino).toBe(true);
+    });
+
     it('404: zona inexistente', () => {
       return marcar(9999, { esZonaTermino: true }).expect(404);
     });

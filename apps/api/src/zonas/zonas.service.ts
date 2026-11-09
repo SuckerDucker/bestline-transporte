@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -16,6 +17,8 @@ import type {
 } from './dto/zona.dto.js';
 
 const ENTIDAD = 'zona';
+export const MENSAJE_SIN_ZONA_TERMINO =
+  'Debe existir al menos una zona de término';
 export type ZonaRespuesta = ReturnType<typeof conCoordenadasNumericas<Zona>>;
 
 @Injectable()
@@ -71,9 +74,12 @@ export class ZonasService {
     dto: ActualizarZonaDto,
     usuarioId: number,
   ): Promise<ZonaRespuesta> {
-    await this.obtener(id);
+    const actual = await this.obtener(id);
     try {
       const zona = await this.prisma.$transaction(async (tx) => {
+        if (actual.esZonaTermino && dto.esZonaTermino === false) {
+          await this.exigirOtraZonaTermino(tx, id);
+        }
         const actualizada = await tx.zona.update({ where: { id }, data: dto });
         await registrarBitacora(tx, usuarioId, 'ACTUALIZAR', ENTIDAD, id);
         return actualizada;
@@ -98,6 +104,7 @@ export class ZonasService {
     const actual = await this.obtener(id);
     if (actual.esZonaTermino === esZonaTermino) return actual;
     const zona = await this.prisma.$transaction(async (tx) => {
+      if (!esZonaTermino) await this.exigirOtraZonaTermino(tx, id);
       const actualizada = await tx.zona.update({
         where: { id },
         data: { esZonaTermino },
@@ -139,6 +146,7 @@ export class ZonasService {
     }
     try {
       await this.prisma.$transaction(async (tx) => {
+        if (zona.esZonaTermino) await this.exigirOtraZonaTermino(tx, id);
         await tx.zona.delete({ where: { id } });
         await registrarBitacora(tx, usuarioId, 'ELIMINAR', ENTIDAD, id);
       });
@@ -149,5 +157,20 @@ export class ZonasService {
       });
     }
     return { id };
+  }
+
+  /**
+   * Regla del motor: el último servicio de una unidad debe terminar en una zona
+   * de término, así que siempre debe quedar al menos una. Se llama dentro de la
+   * transacción del cambio (desmarcar, editar o eliminar una zona de término).
+   */
+  private async exigirOtraZonaTermino(
+    tx: Prisma.TransactionClient,
+    id: number,
+  ): Promise<void> {
+    const otras = await tx.zona.count({
+      where: { esZonaTermino: true, id: { not: id } },
+    });
+    if (otras === 0) throw new BadRequestException(MENSAJE_SIN_ZONA_TERMINO);
   }
 }
