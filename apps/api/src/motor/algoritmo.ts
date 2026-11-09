@@ -1,0 +1,224 @@
+// Motor de asignación: implementa el Código 1 y la Figura 23 de la memoria
+// (GenerarRol). Son funciones puras: no leen ni escriben en la base de datos.
+import {
+  type NoCubierto,
+  type ParametrosMotor,
+  type Restriccion,
+  RESTRICCIONES,
+  type ResultadoRol,
+  type ServicioCalculado,
+  type ServicioMotor,
+  type UnidadEnRol,
+  type UnidadMotor,
+} from './tipos.js';
+
+/**
+ * PARA CADA s EN servicios:
+ *   s.inicio ← s.hora − anticipación(s.modalidad)
+ *   s.liberación ← s.hora + tiempo(s.origen, s.destino)
+ */
+export function calcularHoras(
+  servicios: ServicioMotor[],
+  p: ParametrosMotor,
+): ServicioCalculado[] {
+  return servicios.map((s) => ({
+    ...s,
+    inicio: s.hora - p.anticipacion[s.modalidad],
+    liberacion: s.hora + p.tiempo(s.origen, s.destino),
+  }));
+}
+
+/**
+ * Dónde está la unidad y desde cuándo está libre: después de su último
+ * servicio o, si todavía no tiene, en su encierro a la hora de cita.
+ */
+export function posicion(u: UnidadEnRol): { zona: number; libre: number } {
+  const anterior = u.secuencia.at(-1);
+  return anterior
+    ? { zona: anterior.destino, libre: anterior.liberacion }
+    : { zona: u.encierro, libre: u.cita };
+}
+
+/**
+ * VerificarRestricciones(u, s): devuelve la primera restricción que falla, en
+ * el orden CAPACIDAD, EMPALME, JORNADA, o null si la unidad puede tomar s.
+ * (La disponibilidad se revisa antes: una unidad no disponible no participa.)
+ */
+export function verificarRestricciones(
+  u: UnidadEnRol,
+  s: ServicioCalculado,
+  p: ParametrosMotor,
+): Restriccion | null {
+  if (s.pasajeros > u.capacidad) return 'CAPACIDAD';
+  // Primer servicio: sale del encierro a la hora de cita del operador.
+  const { zona, libre } = posicion(u);
+  if (libre + p.tiempo(zona, s.origen) > s.inicio) return 'EMPALME';
+  if (s.liberacion - u.cita > p.jornadaMaxima) return 'JORNADA';
+  return null;
+}
+
+/**
+ * Costo(u, s) = minutos de espera + minutos en vacío + penalización por cada
+ * servicio que la unidad ya tiene asignado.
+ */
+export function costo(
+  u: UnidadEnRol,
+  s: ServicioCalculado,
+  p: ParametrosMotor,
+): number {
+  const { zona, libre } = posicion(u);
+  const vacio = p.tiempo(zona, s.origen);
+  const espera = s.inicio - (libre + vacio);
+  return espera + vacio + p.penalizacionCarga * u.secuencia.length;
+}
+
+/** Desempate reproducible: menor número económico (BL-2 antes que BL-10). */
+export const porNumeroEconomico = (a: UnidadMotor, b: UnidadMotor) =>
+  a.numeroEconomico.localeCompare(b.numeroEconomico, 'es', { numeric: true });
+
+/**
+ * Motivo del no cubierto: la restricción que lo rechazó en más unidades. En
+ * empate gana la que va primero en el orden de verificación (regla
+ * confirmada con el alumno).
+ */
+export function motivoPorMayoria(rechazos: Restriccion[]): Restriccion {
+  const cuenta = (r: Restriccion) => rechazos.filter((x) => x === r).length;
+  return RESTRICCIONES.reduce((mejor, r) =>
+    cuenta(r) > cuenta(mejor) ? r : mejor,
+  );
+}
+
+/**
+ * GenerarRol(servicios, unidades, parámetros). Devuelve las secuencias de
+ * cada unidad y los no cubiertos con su motivo (no guarda nada).
+ */
+export function generarRol(
+  servicios: ServicioMotor[],
+  unidades: UnidadMotor[],
+  p: ParametrosMotor,
+): ResultadoRol {
+  // Ordenar servicios por s.inicio de menor a mayor (orden estable).
+  const ordenados = calcularHoras(servicios, p).sort(
+    (a, b) => a.inicio - b.inicio,
+  );
+  // Las unidades no disponibles no participan en el rol.
+  const participantes: UnidadEnRol[] = unidades
+    .filter((u) => u.disponible)
+    .sort(porNumeroEconomico)
+    .map((u) => ({ ...u, secuencia: [] }));
+  const noCubiertos: NoCubierto[] = [];
+
+  for (const s of ordenados) {
+    if (participantes.length === 0) {
+      noCubiertos.push({ servicio: s, motivo: 'SIN_UNIDAD' });
+      continue;
+    }
+    // factibles ← { u EN unidades | VerificarRestricciones(u, s) }
+    const revision = participantes.map((u) => ({
+      u,
+      rechazo: verificarRestricciones(u, s, p),
+    }));
+    const factibles = revision.filter((r) => r.rechazo === null);
+    if (factibles.length === 0) {
+      const rechazos = revision.map((r) => r.rechazo as Restriccion);
+      noCubiertos.push({ servicio: s, motivo: motivoPorMayoria(rechazos) });
+      continue;
+    }
+    // u ← unidad de factibles con menor Costo(u, s); empate: menor número económico.
+    const elegida = factibles
+      .map(({ u }) => ({ u, c: costo(u, s, p) }))
+      .reduce((mejor, x) =>
+        x.c < mejor.c ||
+        (x.c === mejor.c && porNumeroEconomico(x.u, mejor.u) < 0)
+          ? x
+          : mejor,
+      ).u;
+    elegida.secuencia.push(s);
+  }
+
+  noCubiertos.push(...reubicarPorZonaTermino(participantes, p));
+  return { unidades: participantes, noCubiertos };
+}
+
+/**
+ * PARA CADA u EN unidades
+ *   MIENTRAS el último servicio de u termina fuera de zona válida
+ *     s ← quitar el último servicio de u
+ *     SI s no cabe entre dos servicios de otra unidad → (s, ZONA_TERMINO)
+ *
+ * Modifica las secuencias de `unidades` y devuelve los no cubiertos.
+ * Reglas confirmadas con el alumno: las unidades se recorren por número
+ * económico, solo se inserta en unidades que ya terminan en zona válida y,
+ * si cabe en varios huecos, se elige el de menor costo.
+ */
+export function reubicarPorZonaTermino(
+  unidades: UnidadEnRol[],
+  p: ParametrosMotor,
+): NoCubierto[] {
+  const noCubiertos: NoCubierto[] = [];
+  const terminaBien = (u: UnidadEnRol) =>
+    p.zonasTermino.has((u.secuencia.at(-1) as ServicioCalculado).destino);
+
+  for (const u of [...unidades].sort(porNumeroEconomico)) {
+    while (u.secuencia.length > 0 && !terminaBien(u)) {
+      const s = u.secuencia.pop() as ServicioCalculado;
+      const otras = unidades.filter(
+        (v) => v !== u && v.secuencia.length > 1 && terminaBien(v),
+      );
+      const hueco = mejorHueco(otras, s, p);
+      if (hueco) hueco.unidad.secuencia.splice(hueco.indice, 0, s);
+      else noCubiertos.push({ servicio: s, motivo: 'ZONA_TERMINO' });
+    }
+  }
+  return noCubiertos;
+}
+
+/**
+ * "Cabe entre dos servicios de otra unidad": entre dos servicios consecutivos
+ * cumpliendo CAPACIDAD, EMPALME con el anterior y con el siguiente, y JORNADA.
+ * Devuelve el hueco de menor costo (empate: menor número económico y luego el
+ * hueco más temprano), o null si no cabe en ninguno.
+ */
+export function mejorHueco(
+  unidades: UnidadEnRol[],
+  s: ServicioCalculado,
+  p: ParametrosMotor,
+): { unidad: UnidadEnRol; indice: number } | null {
+  let mejor: { unidad: UnidadEnRol; indice: number; c: number } | null = null;
+  for (const v of [...unidades].sort(porNumeroEconomico)) {
+    for (let i = 1; i < v.secuencia.length; i++) {
+      const anterior = v.secuencia[i - 1];
+      const siguiente = v.secuencia[i];
+      const llegada =
+        anterior.liberacion + p.tiempo(anterior.destino, s.origen);
+      const cabe =
+        s.pasajeros <= v.capacidad &&
+        llegada <= s.inicio &&
+        s.liberacion + p.tiempo(s.destino, siguiente.origen) <=
+          siguiente.inicio &&
+        s.liberacion - v.cita <= p.jornadaMaxima;
+      if (!cabe) continue;
+      // Mismo Costo(u, s) del motor, visto desde el servicio anterior del hueco.
+      const vacio = p.tiempo(anterior.destino, s.origen);
+      const c =
+        s.inicio - llegada + vacio + p.penalizacionCarga * v.secuencia.length;
+      if (!mejor || c < mejor.c) mejor = { unidad: v, indice: i, c };
+    }
+  }
+  return mejor && { unidad: mejor.unidad, indice: mejor.indice };
+}
+
+/** Matriz de tiempos como función; si falta un par lanza un error. */
+export function crearTiempo(
+  matriz: Map<string, number>,
+): (origen: number, destino: number) => number {
+  return (origen, destino) => {
+    const minutos = matriz.get(`${origen}-${destino}`);
+    if (minutos === undefined) {
+      throw new Error(
+        `Falta el tiempo de la zona ${origen} a la zona ${destino}`,
+      );
+    }
+    return minutos;
+  };
+}
