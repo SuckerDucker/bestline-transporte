@@ -1,12 +1,16 @@
+import { Hotel as IconoHotel } from 'lucide-react'
 import { useState } from 'react'
-import { usePuedeEscribir } from '../../auth/contexto'
-import { Aviso } from '../../components/Aviso'
-import { claseEntrada } from '../../components/estilos'
-import { Confirmacion } from '../../components/Confirmacion'
-import { Modal } from '../../components/Modal'
-import { Paginacion } from '../../components/Paginacion'
-import { TablaDatos, type Columna } from '../../components/TablaDatos'
+import { toast } from 'sonner'
+import { usePuedeEscribir } from '@/auth/contexto'
+import { Confirmacion } from '@/components/comunes/Confirmacion'
+import { DialogoFormulario } from '@/components/comunes/DialogoFormulario'
+import { Paginacion } from '@/components/comunes/Paginacion'
+import { SelectSimple } from '@/components/comunes/SelectSimple'
+import { TablaDatos, type Columna } from '@/components/comunes/TablaDatos'
+import { TODOS } from '@/lib/opciones'
+import { AccionesFila } from '../catalogos/AccionesFila'
 import { useGuardar, useListado, useQuitar, useRetrasado } from '../catalogos/api'
+import { BarraFiltros } from '../catalogos/BarraFiltros'
 import { formatoCoordenada } from '../catalogos/coordenadas'
 import { Encabezado } from '../catalogos/Encabezado'
 import type { Hotel, Zona } from '../catalogos/tipos'
@@ -18,15 +22,13 @@ const LIMITE = 10
 export function HotelesPage() {
   const puedeEscribir = usePuedeEscribir()
   const [buscar, setBuscar] = useState('')
-  const [zonaId, setZonaId] = useState('')
+  const [zonaId, setZonaId] = useState(TODOS)
   const [pagina, setPagina] = useState(1)
   const [enEdicion, setEnEdicion] = useState<Hotel | 'nuevo' | null>(null)
   const [porEliminar, setPorEliminar] = useState<Hotel | null>(null)
-  const [exito, setExito] = useState<string | null>(null)
 
-  const buscarRetrasado = useRetrasado(buscar)
   const listado = useListado<Hotel>('hoteles', {
-    buscar: buscarRetrasado,
+    buscar: useRetrasado(buscar),
     zonaId,
     pagina,
     limite: LIMITE,
@@ -36,14 +38,13 @@ export function HotelesPage() {
   const guardar = useGuardar<Hotel>('hoteles')
   const eliminar = useQuitar('hoteles', 'eliminar')
 
-  const cambiarFiltro = (aplicar: () => void) => {
+  const filtroZona = [
+    { valor: TODOS, etiqueta: 'Todas las zonas' },
+    ...(zonas.data?.datos ?? []).map((z) => ({ valor: String(z.id), etiqueta: z.nombre })),
+  ]
+  const filtrar = (aplicar: () => void) => {
     aplicar()
     setPagina(1)
-  }
-  const abrirFormulario = (valor: Hotel | 'nuevo') => {
-    guardar.reset()
-    setExito(null)
-    setEnEdicion(valor)
   }
   const alGuardar = (valores: ValoresHotel) => {
     const id = enEdicion && enEdicion !== 'nuevo' ? enEdicion.id : undefined
@@ -52,48 +53,42 @@ export function HotelesPage() {
       {
         onSuccess: () => {
           setEnEdicion(null)
-          setExito(`Hotel ${valores.nombre} ${id ? 'actualizado' : 'dado de alta'}.`)
+          toast.success(`Hotel ${valores.nombre} ${id ? 'actualizado' : 'dado de alta'}`)
         },
+        onError: (error) => toast.error('No se pudo guardar el hotel', { description: error.message }),
       },
     )
   }
   const confirmarEliminar = () => {
     if (!porEliminar) return
-    // Si el hotel tiene servicios, la API responde 409 y el mensaje se muestra en el diálogo.
+    // Si el hotel tiene servicios, la API responde 409 y su mensaje aparece en el aviso.
     eliminar.mutate(porEliminar.id, {
-      onSuccess: () => {
-        setExito(`Hotel ${porEliminar.nombre} eliminado.`)
-        setPorEliminar(null)
-      },
+      onSuccess: () => toast.success(`Hotel ${porEliminar.nombre} eliminado`),
+      onError: (error) => toast.error('No se pudo eliminar el hotel', { description: error.message }),
+      onSettled: () => setPorEliminar(null),
     })
   }
 
   const columnas: Columna<Hotel>[] = [
-    { encabezado: 'Nombre', celda: (h) => <span className="font-medium">{h.nombre}</span> },
+    { encabezado: 'Nombre', celda: (h) => <span className="font-semibold text-foreground">{h.nombre}</span> },
     { encabezado: 'Zona', celda: (h) => h.zona.nombre },
-    { encabezado: 'Latitud', celda: (h) => formatoCoordenada(h.latitud), alineacion: 'derecha' },
-    { encabezado: 'Longitud', celda: (h) => formatoCoordenada(h.longitud), alineacion: 'derecha' },
+    { encabezado: 'Latitud', celda: (h) => <span className="tabular-nums">{formatoCoordenada(h.latitud)}</span>, alineacion: 'derecha' },
+    { encabezado: 'Longitud', celda: (h) => <span className="tabular-nums">{formatoCoordenada(h.longitud)}</span>, alineacion: 'derecha' },
   ]
   if (puedeEscribir) {
     columnas.push({
       encabezado: 'Acciones',
       alineacion: 'derecha',
       celda: (h) => (
-        <div className="flex justify-end gap-3">
-          <button type="button" className="boton-enlace" onClick={() => abrirFormulario(h)}>
-            Editar
-          </button>
-          <button
-            type="button"
-            className="boton-enlace text-red-600"
-            onClick={() => {
-              eliminar.reset()
-              setPorEliminar(h)
-            }}
-          >
-            Eliminar
-          </button>
-        </div>
+        <AccionesFila
+          descripcion={h.nombre}
+          modo="eliminar"
+          alEditar={() => {
+            guardar.reset()
+            setEnEdicion(h)
+          }}
+          alQuitar={() => setPorEliminar(h)}
+        />
       ),
     })
   }
@@ -101,38 +96,28 @@ export function HotelesPage() {
   return (
     <section>
       <Encabezado
-        titulo="Hoteles"
         descripcion="Hoteles de recogida y entrega, con su zona."
         textoNuevo="Nuevo hotel"
-        alNuevo={() => abrirFormulario('nuevo')}
+        alNuevo={() => {
+          guardar.reset()
+          setEnEdicion('nuevo')
+        }}
       />
 
-      <div className="mb-4 space-y-3">
-        <Aviso tipo="exito" mensaje={exito} />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <input
-            type="search"
-            aria-label="Buscar hoteles"
-            placeholder="Buscar por nombre…"
-            value={buscar}
-            onChange={(e) => cambiarFiltro(() => setBuscar(e.target.value))}
-            className={`${claseEntrada(false)} sm:col-span-2`}
-          />
-          <select
-            aria-label="Filtrar por zona"
-            value={zonaId}
-            onChange={(e) => cambiarFiltro(() => setZonaId(e.target.value))}
-            className={claseEntrada(false)}
-          >
-            <option value="">Todas las zonas</option>
-            {zonas.data?.datos.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <BarraFiltros
+        buscar={buscar}
+        alBuscar={(v) => filtrar(() => setBuscar(v))}
+        placeholder="Buscar por nombre…"
+        ariaLabel="Buscar hoteles"
+      >
+        <SelectSimple
+          ariaLabel="Filtrar por zona"
+          valor={zonaId}
+          alCambiar={(v) => filtrar(() => setZonaId(v))}
+          opciones={filtroZona}
+          className="h-9 bg-card sm:w-52"
+        />
+      </BarraFiltros>
 
       <TablaDatos
         columnas={columnas}
@@ -141,13 +126,13 @@ export function HotelesPage() {
         cargando={listado.isLoading}
         error={listado.error?.message}
         mensajeVacio="No hay hoteles con esos filtros."
+        iconoVacio={IconoHotel}
       />
-      {listado.data && (
-        <Paginacion pagina={pagina} limite={LIMITE} total={listado.data.total} alCambiar={setPagina} />
-      )}
+      {listado.data && <Paginacion pagina={pagina} limite={LIMITE} total={listado.data.total} alCambiar={setPagina} />}
 
-      <Modal
+      <DialogoFormulario
         titulo={enEdicion === 'nuevo' ? 'Nuevo hotel' : 'Editar hotel'}
+        descripcion="La zona debe existir en el catálogo de zonas."
         abierto={enEdicion !== null}
         alCerrar={() => setEnEdicion(null)}
       >
@@ -156,19 +141,17 @@ export function HotelesPage() {
           inicial={enEdicion === 'nuevo' ? null : enEdicion}
           zonas={zonas.data?.datos ?? []}
           guardando={guardar.isPending}
-          error={guardar.error?.message ?? null}
           alGuardar={alGuardar}
           alCancelar={() => setEnEdicion(null)}
         />
-      </Modal>
+      </DialogoFormulario>
 
       <Confirmacion
-        titulo="Eliminar hotel"
-        mensaje={`¿Eliminar el hotel ${porEliminar?.nombre ?? ''}? Solo se puede si ningún servicio lo usa.`}
+        titulo="¿Eliminar este hotel?"
+        mensaje={`El hotel ${porEliminar?.nombre ?? ''} se eliminará definitivamente. Solo es posible si ningún servicio lo usa.`}
         textoConfirmar="Eliminar"
         abierto={porEliminar !== null}
         procesando={eliminar.isPending}
-        error={eliminar.error?.message}
         alConfirmar={confirmarEliminar}
         alCancelar={() => setPorEliminar(null)}
       />

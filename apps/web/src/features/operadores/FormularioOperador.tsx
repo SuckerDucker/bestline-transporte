@@ -1,23 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { Aviso } from '../../components/Aviso'
-import { Campo } from '../../components/Campo'
-import { claseEntrada } from '../../components/estilos'
+import { Controller, useForm } from 'react-hook-form'
+import { BotonesFormulario } from '@/components/comunes/BotonesFormulario'
+import { Campo } from '@/components/comunes/Campo'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { Operador } from '../catalogos/tipos'
 import { esquemaOperador, type ValoresOperador } from './esquema'
 
 interface Props {
   inicial: Operador | null
   guardando: boolean
-  error: string | null
   alGuardar: (valores: ValoresOperador) => void
   alCancelar: () => void
 }
 
-export function FormularioOperador({ inicial, guardando, error, alGuardar, alCancelar }: Props) {
+export function FormularioOperador({ inicial, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ValoresOperador>({
     resolver: zodResolver(esquemaOperador),
@@ -32,40 +34,46 @@ export function FormularioOperador({ inicial, guardando, error, alGuardar, alCan
   })
 
   return (
-    <form onSubmit={handleSubmit(alGuardar)} noValidate className="space-y-4">
-      <Aviso tipo="error" mensaje={error} />
-
+    <form onSubmit={handleSubmit(alGuardar)} noValidate className="grid gap-5">
       <Campo etiqueta="Nombre" htmlFor="nombre" error={errors.nombre?.message}>
-        <input id="nombre" className={claseEntrada(!!errors.nombre)} {...register('nombre')} />
+        <Input id="nombre" aria-invalid={!!errors.nombre || undefined} {...register('nombre')} />
       </Campo>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-5 sm:grid-cols-2">
         <Campo etiqueta="Licencia" htmlFor="licencia" error={errors.licencia?.message}>
-          <input id="licencia" className={claseEntrada(!!errors.licencia)} {...register('licencia')} />
+          <Input id="licencia" aria-invalid={!!errors.licencia || undefined} {...register('licencia')} />
         </Campo>
         <Campo etiqueta="Teléfono" htmlFor="telefono" error={errors.telefono?.message}>
-          <input
+          <Input
             id="telefono"
             type="tel"
-            className={claseEntrada(!!errors.telefono)}
+            placeholder="998-000-0000"
+            aria-invalid={!!errors.telefono || undefined}
             {...register('telefono')}
           />
         </Campo>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" className="h-4 w-4 rounded border-slate-300" {...register('disponible')} />
-        Disponible para asignación
-      </label>
+      <Controller
+        control={control}
+        name="disponible"
+        render={({ field }) => (
+          <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+            <Checkbox
+              id="disponible"
+              checked={field.value}
+              onCheckedChange={(v) => field.onChange(v === true)}
+              className="mt-0.5"
+            />
+            <div className="grid gap-1">
+              <Label htmlFor="disponible">Disponible para asignación</Label>
+              <p className="text-xs text-muted-foreground">Si se desmarca, el motor no le asignará servicios.</p>
+            </div>
+          </div>
+        )}
+      />
 
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={alCancelar} className="boton-secundario">
-          Cancelar
-        </button>
-        <button type="submit" disabled={guardando} className="boton-primario">
-          {guardando ? 'Guardando…' : 'Guardar'}
-        </button>
-      </div>
+      <BotonesFormulario guardando={guardando} alCancelar={alCancelar} />
     </form>
   )
 }

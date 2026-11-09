@@ -1,33 +1,40 @@
+import { MapPinned } from 'lucide-react'
 import { useState } from 'react'
-import { usePuedeEscribir } from '../../auth/contexto'
-import { Aviso } from '../../components/Aviso'
-import { claseEntrada } from '../../components/estilos'
-import { Confirmacion } from '../../components/Confirmacion'
-import { Modal } from '../../components/Modal'
-import { Paginacion } from '../../components/Paginacion'
-import { TablaDatos, type Columna } from '../../components/TablaDatos'
+import { toast } from 'sonner'
+import { usePuedeEscribir } from '@/auth/contexto'
+import { Confirmacion } from '@/components/comunes/Confirmacion'
+import { DialogoFormulario } from '@/components/comunes/DialogoFormulario'
+import { Paginacion } from '@/components/comunes/Paginacion'
+import { SelectSimple } from '@/components/comunes/SelectSimple'
+import { TablaDatos, type Columna } from '@/components/comunes/TablaDatos'
+import { TODOS } from '@/lib/opciones'
+import { AccionesFila } from '../catalogos/AccionesFila'
 import { useGuardar, useListado, useQuitar, useRetrasado } from '../catalogos/api'
+import { BarraFiltros } from '../catalogos/BarraFiltros'
 import { formatoCoordenada } from '../catalogos/coordenadas'
 import { Encabezado } from '../catalogos/Encabezado'
-import { Insignia } from '../catalogos/Insignia'
+import { EstadoBadge } from '../catalogos/EstadoBadge'
 import type { Zona } from '../catalogos/tipos'
 import type { ValoresZona } from './esquema'
 import { FormularioZona } from './FormularioZona'
 
 const LIMITE = 10
+const FILTRO_TERMINO = [
+  { valor: TODOS, etiqueta: 'Todas las zonas' },
+  { valor: 'true', etiqueta: 'Solo zonas de término' },
+  { valor: 'false', etiqueta: 'Sin zona de término' },
+]
 
 export function ZonasPage() {
   const puedeEscribir = usePuedeEscribir()
   const [buscar, setBuscar] = useState('')
-  const [termino, setTermino] = useState('')
+  const [termino, setTermino] = useState(TODOS)
   const [pagina, setPagina] = useState(1)
   const [enEdicion, setEnEdicion] = useState<Zona | 'nuevo' | null>(null)
   const [porEliminar, setPorEliminar] = useState<Zona | null>(null)
-  const [exito, setExito] = useState<string | null>(null)
 
-  const buscarRetrasado = useRetrasado(buscar)
   const listado = useListado<Zona>('zonas', {
-    buscar: buscarRetrasado,
+    buscar: useRetrasado(buscar),
     esZonaTermino: termino,
     pagina,
     limite: LIMITE,
@@ -35,14 +42,9 @@ export function ZonasPage() {
   const guardar = useGuardar<Zona>('zonas')
   const eliminar = useQuitar('zonas', 'eliminar')
 
-  const cambiarFiltro = (aplicar: () => void) => {
+  const filtrar = (aplicar: () => void) => {
     aplicar()
     setPagina(1)
-  }
-  const abrirFormulario = (valor: Zona | 'nuevo') => {
-    guardar.reset()
-    setExito(null)
-    setEnEdicion(valor)
   }
   const alGuardar = (valores: ValoresZona) => {
     const id = enEdicion && enEdicion !== 'nuevo' ? enEdicion.id : undefined
@@ -51,29 +53,29 @@ export function ZonasPage() {
       {
         onSuccess: () => {
           setEnEdicion(null)
-          setExito(`Zona ${valores.nombre} ${id ? 'actualizada' : 'dada de alta'}.`)
+          toast.success(`Zona ${valores.nombre} ${id ? 'actualizada' : 'dada de alta'}`)
         },
+        onError: (error) => toast.error('No se pudo guardar la zona', { description: error.message }),
       },
     )
   }
   const confirmarEliminar = () => {
     if (!porEliminar) return
-    // Si la zona está en uso, la API responde 409 y el mensaje se muestra en el diálogo.
+    // Si la zona está en uso, la API responde 409 y su mensaje aparece en el aviso.
     eliminar.mutate(porEliminar.id, {
-      onSuccess: () => {
-        setExito(`Zona ${porEliminar.nombre} eliminada.`)
-        setPorEliminar(null)
-      },
+      onSuccess: () => toast.success(`Zona ${porEliminar.nombre} eliminada`),
+      onError: (error) => toast.error('No se pudo eliminar la zona', { description: error.message }),
+      onSettled: () => setPorEliminar(null),
     })
   }
 
   const columnas: Columna<Zona>[] = [
-    { encabezado: 'Nombre', celda: (z) => <span className="font-medium">{z.nombre}</span> },
-    { encabezado: 'Latitud', celda: (z) => formatoCoordenada(z.latitud), alineacion: 'derecha' },
-    { encabezado: 'Longitud', celda: (z) => formatoCoordenada(z.longitud), alineacion: 'derecha' },
+    { encabezado: 'Nombre', celda: (z) => <span className="font-semibold text-foreground">{z.nombre}</span> },
+    { encabezado: 'Latitud', celda: (z) => <span className="tabular-nums">{formatoCoordenada(z.latitud)}</span>, alineacion: 'derecha' },
+    { encabezado: 'Longitud', celda: (z) => <span className="tabular-nums">{formatoCoordenada(z.longitud)}</span>, alineacion: 'derecha' },
     {
       encabezado: 'Zona de término',
-      celda: (z) => (z.esZonaTermino ? <Insignia texto="Sí" color="azul" /> : <Insignia texto="No" color="gris" />),
+      celda: (z) => (z.esZonaTermino ? <EstadoBadge texto="Zona de término" tono="info" /> : <EstadoBadge texto="No" tono="neutro" />),
     },
   ]
   if (puedeEscribir) {
@@ -81,21 +83,15 @@ export function ZonasPage() {
       encabezado: 'Acciones',
       alineacion: 'derecha',
       celda: (z) => (
-        <div className="flex justify-end gap-3">
-          <button type="button" className="boton-enlace" onClick={() => abrirFormulario(z)}>
-            Editar
-          </button>
-          <button
-            type="button"
-            className="boton-enlace text-red-600"
-            onClick={() => {
-              eliminar.reset()
-              setPorEliminar(z)
-            }}
-          >
-            Eliminar
-          </button>
-        </div>
+        <AccionesFila
+          descripcion={z.nombre}
+          modo="eliminar"
+          alEditar={() => {
+            guardar.reset()
+            setEnEdicion(z)
+          }}
+          alQuitar={() => setPorEliminar(z)}
+        />
       ),
     })
   }
@@ -103,35 +99,28 @@ export function ZonasPage() {
   return (
     <section>
       <Encabezado
-        titulo="Zonas"
         descripcion="Zonas de origen y destino de los servicios."
         textoNuevo="Nueva zona"
-        alNuevo={() => abrirFormulario('nuevo')}
+        alNuevo={() => {
+          guardar.reset()
+          setEnEdicion('nuevo')
+        }}
       />
 
-      <div className="mb-4 space-y-3">
-        <Aviso tipo="exito" mensaje={exito} />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <input
-            type="search"
-            aria-label="Buscar zonas"
-            placeholder="Buscar por nombre…"
-            value={buscar}
-            onChange={(e) => cambiarFiltro(() => setBuscar(e.target.value))}
-            className={`${claseEntrada(false)} sm:col-span-2`}
-          />
-          <select
-            aria-label="Filtrar zonas de término"
-            value={termino}
-            onChange={(e) => cambiarFiltro(() => setTermino(e.target.value))}
-            className={claseEntrada(false)}
-          >
-            <option value="">Todas</option>
-            <option value="true">Solo zonas de término</option>
-            <option value="false">Sin zona de término</option>
-          </select>
-        </div>
-      </div>
+      <BarraFiltros
+        buscar={buscar}
+        alBuscar={(v) => filtrar(() => setBuscar(v))}
+        placeholder="Buscar por nombre…"
+        ariaLabel="Buscar zonas"
+      >
+        <SelectSimple
+          ariaLabel="Filtrar zonas de término"
+          valor={termino}
+          alCambiar={(v) => filtrar(() => setTermino(v))}
+          opciones={FILTRO_TERMINO}
+          className="h-9 bg-card sm:w-52"
+        />
+      </BarraFiltros>
 
       <TablaDatos
         columnas={columnas}
@@ -140,13 +129,13 @@ export function ZonasPage() {
         cargando={listado.isLoading}
         error={listado.error?.message}
         mensajeVacio="No hay zonas con esos filtros."
+        iconoVacio={MapPinned}
       />
-      {listado.data && (
-        <Paginacion pagina={pagina} limite={LIMITE} total={listado.data.total} alCambiar={setPagina} />
-      )}
+      {listado.data && <Paginacion pagina={pagina} limite={LIMITE} total={listado.data.total} alCambiar={setPagina} />}
 
-      <Modal
+      <DialogoFormulario
         titulo={enEdicion === 'nuevo' ? 'Nueva zona' : 'Editar zona'}
+        descripcion="Coordenadas en grados decimales (máximo 6 decimales)."
         abierto={enEdicion !== null}
         alCerrar={() => setEnEdicion(null)}
       >
@@ -154,19 +143,17 @@ export function ZonasPage() {
           key={enEdicion === 'nuevo' ? 'nuevo' : enEdicion?.id}
           inicial={enEdicion === 'nuevo' ? null : enEdicion}
           guardando={guardar.isPending}
-          error={guardar.error?.message ?? null}
           alGuardar={alGuardar}
           alCancelar={() => setEnEdicion(null)}
         />
-      </Modal>
+      </DialogoFormulario>
 
       <Confirmacion
-        titulo="Eliminar zona"
-        mensaje={`¿Eliminar la zona ${porEliminar?.nombre ?? ''}? Solo se puede si ningún hotel, tiempo de traslado ni servicio la usa.`}
+        titulo="¿Eliminar esta zona?"
+        mensaje={`La zona ${porEliminar?.nombre ?? ''} se eliminará definitivamente. Solo es posible si ningún hotel, tiempo de traslado ni servicio la usa.`}
         textoConfirmar="Eliminar"
         abierto={porEliminar !== null}
         procesando={eliminar.isPending}
-        error={eliminar.error?.message}
         alConfirmar={confirmarEliminar}
         alCancelar={() => setPorEliminar(null)}
       />

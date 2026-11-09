@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { Aviso } from '../../components/Aviso'
-import { Campo } from '../../components/Campo'
-import { claseEntrada } from '../../components/estilos'
+import { Controller, useForm } from 'react-hook-form'
+import { BotonesFormulario } from '@/components/comunes/BotonesFormulario'
+import { Campo } from '@/components/comunes/Campo'
+import { SelectSimple } from '@/components/comunes/SelectSimple'
+import { Input } from '@/components/ui/input'
 import type { Hotel, Zona } from '../catalogos/tipos'
 import { esquemaHotel, type ValoresHotel } from './esquema'
 
@@ -10,15 +11,15 @@ interface Props {
   inicial: Hotel | null
   zonas: Zona[]
   guardando: boolean
-  error: string | null
   alGuardar: (valores: ValoresHotel) => void
   alCancelar: () => void
 }
 
-export function FormularioHotel({ inicial, zonas, guardando, error, alGuardar, alCancelar }: Props) {
+export function FormularioHotel({ inicial, zonas, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ValoresHotel>({
     resolver: zodResolver(esquemaHotel),
@@ -31,55 +32,54 @@ export function FormularioHotel({ inicial, zonas, guardando, error, alGuardar, a
         }
       : undefined,
   })
+  const opcionesZona = zonas.map((z) => ({ valor: String(z.id), etiqueta: z.nombre }))
 
   return (
-    <form onSubmit={handleSubmit(alGuardar)} noValidate className="space-y-4">
-      <Aviso tipo="error" mensaje={error} />
-
+    <form onSubmit={handleSubmit(alGuardar)} noValidate className="grid gap-5">
       <Campo etiqueta="Nombre" htmlFor="nombre" error={errors.nombre?.message}>
-        <input id="nombre" className={claseEntrada(!!errors.nombre)} {...register('nombre')} />
+        <Input id="nombre" aria-invalid={!!errors.nombre || undefined} {...register('nombre')} />
       </Campo>
 
       <Campo etiqueta="Zona" htmlFor="zonaId" error={errors.zonaId?.message}>
-        <select id="zonaId" className={claseEntrada(!!errors.zonaId)} {...register('zonaId', { valueAsNumber: true })}>
-          <option value="">Elige…</option>
-          {zonas.map((z) => (
-            <option key={z.id} value={z.id}>
-              {z.nombre}
-            </option>
-          ))}
-        </select>
+        <Controller
+          control={control}
+          name="zonaId"
+          render={({ field }) => (
+            <SelectSimple
+              id="zonaId"
+              // El Select trabaja con texto; el formulario guarda el id como número.
+              valor={field.value ? String(field.value) : ''}
+              alCambiar={(v) => field.onChange(Number(v))}
+              opciones={opcionesZona}
+              placeholder="Elige la zona"
+              invalido={!!errors.zonaId}
+            />
+          )}
+        />
       </Campo>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-5 sm:grid-cols-2">
         <Campo etiqueta="Latitud" htmlFor="latitud" error={errors.latitud?.message}>
-          <input
+          <Input
             id="latitud"
             type="number"
             step="any"
-            className={claseEntrada(!!errors.latitud)}
+            aria-invalid={!!errors.latitud || undefined}
             {...register('latitud', { valueAsNumber: true })}
           />
         </Campo>
         <Campo etiqueta="Longitud" htmlFor="longitud" error={errors.longitud?.message}>
-          <input
+          <Input
             id="longitud"
             type="number"
             step="any"
-            className={claseEntrada(!!errors.longitud)}
+            aria-invalid={!!errors.longitud || undefined}
             {...register('longitud', { valueAsNumber: true })}
           />
         </Campo>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={alCancelar} className="boton-secundario">
-          Cancelar
-        </button>
-        <button type="submit" disabled={guardando} className="boton-primario">
-          {guardando ? 'Guardando…' : 'Guardar'}
-        </button>
-      </div>
+      <BotonesFormulario guardando={guardando} alCancelar={alCancelar} />
     </form>
   )
 }

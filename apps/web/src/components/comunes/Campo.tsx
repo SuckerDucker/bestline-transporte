@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Label } from '@/components/ui/label'
 
 interface Props {
   etiqueta: string
@@ -8,20 +9,18 @@ interface Props {
   children: ReactNode
 }
 
-/** Etiqueta + control + mensaje de error de un campo de formulario. */
+/** Etiqueta + control + mensaje de error (o de ayuda) de un campo de formulario. */
 export function Campo({ etiqueta, htmlFor, error, ayuda, children }: Props) {
   return (
-    <div>
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">
-        {etiqueta}
-      </label>
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={htmlFor}>{etiqueta}</Label>
       {children}
       {error ? (
-        <p role="alert" className="mt-1 text-xs text-red-600">
+        <p role="alert" className="text-xs font-medium text-destructive">
           {error}
         </p>
       ) : (
-        ayuda && <p className="mt-1 text-xs text-slate-500">{ayuda}</p>
+        ayuda && <p className="text-xs text-muted-foreground">{ayuda}</p>
       )}
     </div>
   )

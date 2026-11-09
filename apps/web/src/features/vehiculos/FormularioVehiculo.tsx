@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, useWatch } from 'react-hook-form'
-import { Aviso } from '../../components/Aviso'
-import { Campo } from '../../components/Campo'
-import { claseEntrada } from '../../components/estilos'
+import { Controller, useForm, useWatch } from 'react-hook-form'
+import { BotonesFormulario } from '@/components/comunes/BotonesFormulario'
+import { Campo } from '@/components/comunes/Campo'
+import { SelectSimple } from '@/components/comunes/SelectSimple'
+import { Input } from '@/components/ui/input'
 import {
   CAPACIDAD_MAXIMA,
   ESTADOS_VEHICULO,
@@ -16,12 +17,14 @@ import { esquemaVehiculo, type ValoresVehiculo } from './esquema'
 interface Props {
   inicial: Vehiculo | null
   guardando: boolean
-  error: string | null
   alGuardar: (valores: ValoresVehiculo) => void
   alCancelar: () => void
 }
 
-export function FormularioVehiculo({ inicial, guardando, error, alGuardar, alCancelar }: Props) {
+const OPCIONES_TIPO = TIPOS_VEHICULO.map((t) => ({ valor: t, etiqueta: `${t} (máx. ${CAPACIDAD_MAXIMA[t]})` }))
+const OPCIONES_ESTADO = ESTADOS_VEHICULO.map((e) => ({ valor: e, etiqueta: NOMBRE_ESTADO_VEHICULO[e] }))
+
+export function FormularioVehiculo({ inicial, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
@@ -42,63 +45,70 @@ export function FormularioVehiculo({ inicial, guardando, error, alGuardar, alCan
   const tipo = useWatch({ control, name: 'tipo' })
 
   return (
-    <form onSubmit={handleSubmit(alGuardar)} noValidate className="space-y-4">
-      <Aviso tipo="error" mensaje={error} />
-
+    <form onSubmit={handleSubmit(alGuardar)} noValidate className="grid gap-5">
       <Campo etiqueta="Número económico" htmlFor="numeroEconomico" error={errors.numeroEconomico?.message}>
-        <input id="numeroEconomico" className={claseEntrada(!!errors.numeroEconomico)} {...register('numeroEconomico')} />
+        <Input
+          id="numeroEconomico"
+          placeholder="BL-11"
+          aria-invalid={!!errors.numeroEconomico || undefined}
+          {...register('numeroEconomico')}
+        />
       </Campo>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-5 sm:grid-cols-2">
         <Campo etiqueta="Tipo" htmlFor="tipo" error={errors.tipo?.message}>
-          <select id="tipo" className={claseEntrada(!!errors.tipo)} {...register('tipo')}>
-            <option value="">Elige…</option>
-            {TIPOS_VEHICULO.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="tipo"
+            render={({ field }) => (
+              <SelectSimple
+                id="tipo"
+                valor={field.value ?? ''}
+                alCambiar={field.onChange}
+                opciones={OPCIONES_TIPO}
+                placeholder="Elige el tipo"
+                invalido={!!errors.tipo}
+              />
+            )}
+          />
         </Campo>
 
         <Campo
           etiqueta="Capacidad (pasajeros)"
           htmlFor="capacidad"
           error={errors.capacidad?.message}
-          ayuda={tipo && CAPACIDAD_MAXIMA[tipo] ? `Máximo ${CAPACIDAD_MAXIMA[tipo]} para ${tipo}` : undefined}
+          ayuda={tipo ? `Máximo ${CAPACIDAD_MAXIMA[tipo]} para ${tipo}` : undefined}
         >
-          <input
+          <Input
             id="capacidad"
             type="number"
             min={1}
-            className={claseEntrada(!!errors.capacidad)}
+            aria-invalid={!!errors.capacidad || undefined}
             {...register('capacidad', { valueAsNumber: true })}
           />
         </Campo>
       </div>
 
       <Campo etiqueta="Encierro base" htmlFor="encierroBase" error={errors.encierroBase?.message}>
-        <input id="encierroBase" className={claseEntrada(!!errors.encierroBase)} {...register('encierroBase')} />
+        <Input
+          id="encierroBase"
+          placeholder="Encierro Centro Cancún"
+          aria-invalid={!!errors.encierroBase || undefined}
+          {...register('encierroBase')}
+        />
       </Campo>
 
       <Campo etiqueta="Estado" htmlFor="estado" error={errors.estado?.message}>
-        <select id="estado" className={claseEntrada(!!errors.estado)} {...register('estado')}>
-          {ESTADOS_VEHICULO.map((e) => (
-            <option key={e} value={e}>
-              {NOMBRE_ESTADO_VEHICULO[e]}
-            </option>
-          ))}
-        </select>
+        <Controller
+          control={control}
+          name="estado"
+          render={({ field }) => (
+            <SelectSimple id="estado" valor={field.value} alCambiar={field.onChange} opciones={OPCIONES_ESTADO} />
+          )}
+        />
       </Campo>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={alCancelar} className="boton-secundario">
-          Cancelar
-        </button>
-        <button type="submit" disabled={guardando} className="boton-primario">
-          {guardando ? 'Guardando…' : 'Guardar'}
-        </button>
-      </div>
+      <BotonesFormulario guardando={guardando} alCancelar={alCancelar} />
     </form>
   )
 }

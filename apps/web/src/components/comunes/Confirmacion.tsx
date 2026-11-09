@@ -1,5 +1,15 @@
-import { Aviso } from './Aviso'
-import { Modal } from './Modal'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface Props {
   titulo: string
@@ -7,32 +17,52 @@ interface Props {
   textoConfirmar: string
   abierto: boolean
   procesando: boolean
-  error?: string | null
   alConfirmar: () => void
   alCancelar: () => void
 }
 
-/** Pide confirmación antes de una acción como desactivar o eliminar. */
+/**
+ * Confirmación antes de una acción como desactivar o eliminar (AlertDialog de
+ * shadcn/ui). El diálogo no se cierra solo al confirmar: espera a que la
+ * página termine la petición y lo cierre.
+ */
 export function Confirmacion(props: Props) {
+  // Al cerrar, la página limpia el registro elegido y el mensaje quedaría sin
+  // nombre durante la animación de salida; por eso se conserva el último
+  // mensaje mostrado mientras el diálogo estuvo abierto.
+  const [mensajeVisible, setMensajeVisible] = useState(props.mensaje)
+  if (props.abierto && props.mensaje !== mensajeVisible) {
+    setMensajeVisible(props.mensaje)
+  }
+
   return (
-    <Modal titulo={props.titulo} abierto={props.abierto} alCerrar={props.alCancelar}>
-      <p className="text-sm text-slate-600">{props.mensaje}</p>
-      <div className="mt-4">
-        <Aviso tipo="error" mensaje={props.error} />
-      </div>
-      <div className="mt-6 flex justify-end gap-3">
-        <button type="button" onClick={props.alCancelar} className="boton-secundario">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={props.alConfirmar}
-          disabled={props.procesando}
-          className="boton-peligro"
-        >
-          {props.procesando ? 'Procesando…' : props.textoConfirmar}
-        </button>
-      </div>
-    </Modal>
+    <AlertDialog
+      open={props.abierto}
+      onOpenChange={(abierto) => {
+        if (!abierto && !props.procesando) props.alCancelar()
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{props.titulo}</AlertDialogTitle>
+          <AlertDialogDescription>{mensajeVisible}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={props.procesando}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={props.procesando}
+            onClick={(e) => {
+              // Evita que Radix cierre el diálogo antes de que responda la API.
+              e.preventDefault()
+              props.alConfirmar()
+            }}
+          >
+            {props.procesando && <Loader2 className="animate-spin" />}
+            {props.textoConfirmar}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
