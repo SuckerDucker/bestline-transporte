@@ -62,7 +62,7 @@ export class CrearOperadorDto {
     example: '04:30',
     nullable: true,
     description:
-      'Hora de cita HH:mm (America/Cancun). null = se usa el parámetro hora_cita.turno_1',
+      'Hora de cita HH:mm (America/Cancun), dentro del bloque matutino o vespertino de Parámetros. null = sin cita: no participa en el rol',
   })
   @IsOptional()
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {

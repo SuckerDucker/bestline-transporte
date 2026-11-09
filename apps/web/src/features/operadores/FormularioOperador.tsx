@@ -77,7 +77,7 @@ export function FormularioOperador({ inicial, vehiculos, guardando, alGuardar, a
           etiqueta="Hora de cita"
           htmlFor="horaCita"
           error={errors.horaCita?.message}
-          ayuda="HH:mm. Vacía = hora del turno 1 (Parámetros)."
+          ayuda="HH:mm dentro del bloque matutino o vespertino (Parámetros). Vacía = no participa en el rol."
         >
           <Input
             id="horaCita"

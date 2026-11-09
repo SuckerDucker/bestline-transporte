@@ -8,6 +8,7 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { registrarBitacora } from '../comun/bitacora.js';
 import { traducirErrorPrisma } from '../comun/errores-prisma.js';
 import { type Paginado, rango } from '../comun/paginacion.js';
+import { leerBloque } from '../parametros/reglas.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   ActualizarOperadorDto,
@@ -76,6 +77,7 @@ export class OperadoresService {
     dto: CrearOperadorDto,
     usuarioId: number,
   ): Promise<OperadorRespuesta> {
+    await this.revisarHoraCita(dto.horaCita);
     const numero = await this.revisarVehiculo(dto.vehiculoId);
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -97,6 +99,7 @@ export class OperadoresService {
     usuarioId: number,
   ): Promise<OperadorRespuesta> {
     await this.obtener(id);
+    await this.revisarHoraCita(dto.horaCita);
     const numero = await this.revisarVehiculo(dto.vehiculoId, id);
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -130,6 +133,36 @@ export class OperadoresService {
   }
 
   /**
+   * REGLA CONFIRMADA CON LA EMPRESA: la hora de cita debe caer dentro del
+   * bloque matutino o del vespertino (parámetros hora_cita.bloque_*, con los
+   * extremos incluidos). Sin hora de cita (null) el operador no participa en el rol.
+   */
+  private async revisarHoraCita(
+    hora: string | null | undefined,
+  ): Promise<void> {
+    if (hora === undefined || hora === null) return;
+    const filas = await this.prisma.parametroOperacion.findMany({
+      where: { clave: { in: [...CLAVES_BLOQUE] } },
+    });
+    const bloques = CLAVES_BLOQUE.map((clave) => ({
+      nombre: clave.replace('hora_cita.bloque_', ''),
+      valor: filas.find((f) => f.clave === clave)?.valor ?? '',
+    }));
+    const leidos = bloques.map((b) => leerBloque(b.valor));
+    if (leidos.some((b) => b === null)) {
+      throw new BadRequestException(
+        'Faltan los bloques de hora de cita en Parámetros (hora_cita.bloque_matutino y hora_cita.bloque_vespertino)',
+      );
+    }
+    const dentro = leidos.some((b) => b && b.inicio <= hora && hora <= b.fin);
+    if (!dentro) {
+      throw new BadRequestException(
+        `La hora de cita ${hora} no está en ningún bloque: ${bloques.map((b) => `${b.nombre} ${b.valor}`).join(' o ')}`,
+      );
+    }
+  }
+
+  /**
    * Un vehículo solo puede tener un operador: 400 si el vehículo no existe y
    * 409 si ya lo maneja otro operador. Devuelve su número económico.
    */
@@ -151,6 +184,12 @@ export class OperadoresService {
     return vehiculo.numeroEconomico;
   }
 }
+
+/** Parámetros con los bloques de hora de cita, en el orden en que se muestran. */
+const CLAVES_BLOQUE = [
+  'hora_cita.bloque_matutino',
+  'hora_cita.bloque_vespertino',
+] as const;
 
 const yaTieneOperador = (numero = '') =>
   `El vehículo ${numero} ya tiene un operador asignado`;

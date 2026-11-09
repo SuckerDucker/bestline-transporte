@@ -52,6 +52,8 @@ const EJEMPLO = {
 };
 const ERROR_VEHICULO = 'No existe el vehículo 99';
 const ERROR_HORA = 'horaCita debe tener el formato HH:mm (00:00 a 23:59)';
+const FUERA_DE_BLOQUE =
+  'La hora de cita 06:30 no está en ningún bloque: matutino 04:00-05:00 o vespertino 12:00-13:00';
 const VEHICULO_OCUPADO = 'El vehículo BL-03 ya tiene un operador asignado';
 
 @ApiTags('operadores')
@@ -111,7 +113,12 @@ export class OperadoresController {
     description: 'Operador creado',
     schema: { example: EJEMPLO },
   })
-  @ApiErroresEscritura('nombre no debe estar vacío', ERROR_VEHICULO, ERROR_HORA)
+  @ApiErroresEscritura(
+    'nombre no debe estar vacío',
+    ERROR_VEHICULO,
+    ERROR_HORA,
+    FUERA_DE_BLOQUE,
+  )
   @ApiError409(VEHICULO_OCUPADO)
   crear(
     @Body() dto: CrearOperadorDto,
@@ -151,6 +158,7 @@ export class OperadoresController {
     'telefono solo admite dígitos, espacios, +, - y paréntesis (7 a 20)',
     ERROR_VEHICULO,
     ERROR_HORA,
+    FUERA_DE_BLOQUE,
   )
   @ApiError404('No existe el operador 99')
   @ApiError409(VEHICULO_OCUPADO)

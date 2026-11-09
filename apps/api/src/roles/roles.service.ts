@@ -251,7 +251,6 @@ export class RolesService {
       if (!fila) throw new BadRequestException(`Falta el parámetro ${clave}`);
       return fila.valor;
     };
-    const turno1 = valor('hora_cita.turno_1');
     const zonaPorNombre = new Map(
       zonas.map((z) => [z.nombre.toLowerCase(), z]),
     );
@@ -260,7 +259,12 @@ export class RolesService {
     const unidades: UnidadMotor[] = vehiculos.flatMap((v) => {
       const operador = v.operador;
       if (!operador) return [];
-      const disponible = v.estado === 'DISPONIBLE' && operador.disponible;
+      // Participa si el vehículo está DISPONIBLE y su operador está disponible
+      // y tiene hora de cita (sin hora de cita no participa).
+      const disponible =
+        v.estado === 'DISPONIBLE' &&
+        operador.disponible &&
+        operador.horaCita !== null;
       const encierro = zonaPorNombre.get(v.encierroBase.toLowerCase());
       if (disponible && !encierro) {
         throw new BadRequestException(
@@ -273,7 +277,7 @@ export class RolesService {
         capacidad: v.capacidad,
         operadorId: operador.id,
         disponible,
-        cita: horaAMinutos(operador.horaCita ?? turno1),
+        cita: operador.horaCita ? horaAMinutos(operador.horaCita) : 0,
         encierro: encierro?.id ?? 0,
       };
       return [unidad];

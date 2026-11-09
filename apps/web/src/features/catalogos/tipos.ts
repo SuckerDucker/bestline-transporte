@@ -37,7 +37,7 @@ export interface Operador {
   disponible: boolean
   /** Vehículo que maneja; sin vehículo no participa en el rol. */
   vehiculoId: number | null
-  /** HH:mm; null = se usa el parámetro hora_cita.turno_1. */
+  /** HH:mm dentro de un bloque de Parámetros; null = no participa en el rol. */
   horaCita: string | null
   vehiculo: Pick<Vehiculo, 'id' | 'numeroEconomico' | 'tipo' | 'capacidad' | 'estado'> | null
 }
