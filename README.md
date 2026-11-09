@@ -87,10 +87,25 @@ La URL de la API es `http://localhost:3000/api` por defecto; para cambiarla, cop
 
 Interfaz construida con [shadcn/ui](https://ui.shadcn.com) (componentes en `src/components/ui`, sobre Radix UI y TailwindCSS) e íconos de lucide-react. Para agregar otro componente: `npx shadcn@latest add <componente>`. La versión actual de shadcn/ui asume React 19; con React 18 hay que envolver con `React.forwardRef` los componentes que reciben `ref` (ver los comentarios en `button.tsx`, `input.tsx` y los overlays).
 
-Pantallas: inicio de sesión, inicio con tarjetas de resumen (`GET /api/resumen`) y los catálogos de vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos). En móvil el menú lateral se abre con el botón ☰. El menú depende del rol:
+Pantallas:
 
-| Rol | Ve | Puede modificar catálogos |
+- Inicio de sesión e inicio con tarjetas de resumen (`GET /api/resumen`).
+- **Catálogos:** vehículos, operadores, zonas y hoteles (búsqueda, filtros, paginación, alta y edición en modal, desactivar o eliminar con confirmación y avisos).
+- **Configuración:** parámetros de operación, zonas de término y matriz de tiempos de traslado (editable por celda).
+- **Administración:** usuarios (alta, edición, cambio de contraseña, desactivar y reactivar) y bitácora con filtros.
+
+En móvil el menú lateral se abre con el botón ☰. El menú depende del rol:
+
+| Rol | Ve | Puede modificar |
 |---|---|---|
-| ADMINISTRADOR | Inicio y los 4 catálogos | Sí |
-| COORDINADOR, SUPERVISOR | Inicio y los 4 catálogos | No (solo consulta) |
+| ADMINISTRADOR | Todo | Sí |
+| COORDINADOR, SUPERVISOR | Inicio, Catálogos y Configuración | No (solo consulta) |
 | OPERADOR | Inicio | No |
+
+Pruebas (Vitest + React Testing Library):
+
+```bash
+npm test            # una vez
+npm run test:watch  # se repiten al guardar
+npm run test:cov    # con reporte de cobertura (carpeta coverage/)
+```
