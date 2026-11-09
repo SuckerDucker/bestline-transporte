@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
