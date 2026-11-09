@@ -14,9 +14,11 @@
  * 2) DATOS DE EJEMPLO: todo lo demás (nombres de hoteles, operadores, números
  *    económicos, folios, vuelos, tiempos de traslado, coordenadas aproximadas y
  *    los 60 servicios). No son datos reales de Best Line Travel Agency.
- *    También son de ejemplo: el vehículo de cada operador, sus horas de cita
- *    (04:00 a 05:00), el encierro base de las unidades (zona Centro Cancún,
- *    supuesto por confirmar) y la penalización de carga del motor (15 min).
+ *    También son de ejemplo: el vehículo de cada operador, la hora exacta de
+ *    cita dentro de cada bloque, el encierro base de las unidades (zona
+ *    Centro Cancún, supuesto por confirmar) y la penalización de carga del
+ *    motor (15 min). La composición de la flota (4 Van/Urvan, 5 Sprinter y 1
+ *    Autobús) y los dos bloques de 5 operadores son reglas confirmadas.
  *    Los 8 hoteles de HOTELES_LAYOUT son los del archivo de ejemplo anonimizado
  *    de la empresa (docs/ejemplos), para que su importación encuentre los hoteles.
  *
@@ -293,32 +295,36 @@ const HOTELES_LAYOUT: typeof HOTELES = [
 // SUPUESTO POR CONFIRMAR: el encierro base es el nombre de una zona del catálogo
 // (de ahí sale cada unidad al inicio del día); todas usan Centro Cancún.
 const ENCIERRO_BASE = 'Centro Cancún';
+// REGLA CONFIRMADA CON LA EMPRESA (flota): 4 Van/Urvan (14), 5 Sprinter (20)
+// y 1 Autobús (45). Todas disponibles. (El caso de una unidad en mantenimiento
+// u operador no disponible se prueba en las pruebas unitarias y e2e.)
 const VEHICULOS = [
-  ...Array.from({ length: 5 }, () => ({ tipo: 'Van', capacidad: 14 })),
-  ...Array.from({ length: 3 }, () => ({ tipo: 'Sprinter', capacidad: 20 })),
-  ...Array.from({ length: 2 }, () => ({ tipo: 'Autobús', capacidad: 45 })),
+  ...Array.from({ length: 4 }, () => ({ tipo: 'Van', capacidad: 14 })),
+  ...Array.from({ length: 5 }, () => ({ tipo: 'Sprinter', capacidad: 20 })),
+  ...Array.from({ length: 1 }, () => ({ tipo: 'Autobús', capacidad: 45 })),
 ].map((v, i) => ({
   ...v,
   numeroEconomico: `BL-${String(i + 1).padStart(2, '0')}`,
-  // Una unidad en mantenimiento para que el motor tenga un caso que descartar.
-  estado: i === 9 ? EstadoVehiculo.MANTENIMIENTO : EstadoVehiculo.DISPONIBLE,
+  estado: EstadoVehiculo.DISPONIBLE,
   encierroBase: ENCIERRO_BASE,
 }));
 
 // ───────────── Operadores (genéricos, de ejemplo) ─────────────
 // Cada operador maneja el vehículo de su mismo número (Operador 03 → BL-03).
-// Horas de cita de ejemplo repartidas entre los turnos de 04:00 y 05:00.
+// REGLA CONFIRMADA CON LA EMPRESA: 5 operadores en el bloque matutino
+// (04:00-05:00) y 5 en el vespertino (12:00-13:00). Las horas exactas dentro de
+// cada bloque son de ejemplo.
 const HORAS_CITA = [
   '04:00',
-  '04:00',
-  '04:15',
   '04:15',
   '04:30',
-  '04:30',
-  '04:45',
   '04:45',
   '05:00',
-  '05:00',
+  '12:00',
+  '12:15',
+  '12:30',
+  '12:45',
+  '13:00',
 ];
 const OPERADORES = Array.from({ length: 10 }, (_, i) => {
   const n = String(i + 1).padStart(2, '0');
@@ -326,9 +332,7 @@ const OPERADORES = Array.from({ length: 10 }, (_, i) => {
     nombre: `Operador Ejemplo ${n}`,
     licencia: `LIC-EJEMPLO-${n}`,
     telefono: `998-000-00${n}`,
-    // Un operador no disponible para probar ese caso (su unidad, BL-10, además
-    // está en mantenimiento: esa unidad no participa en el rol).
-    disponible: i !== 9,
+    disponible: true,
     horaCita: HORAS_CITA[i],
     numeroEconomico: `BL-${n}`,
   };
