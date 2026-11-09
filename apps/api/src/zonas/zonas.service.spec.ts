@@ -106,6 +106,45 @@ describe('ZonasService', () => {
     });
   });
 
+  describe('marcarZonaTermino', () => {
+    it('marca la zona y registra el cambio en la bitácora', async () => {
+      prisma.zona.findUnique.mockResolvedValue(zonaBd());
+      prisma.zona.update.mockResolvedValue(zonaBd({ esZonaTermino: true }));
+
+      const zona = await servicio.marcarZonaTermino(4, true, ADMIN);
+
+      expect(zona).toMatchObject({ esZonaTermino: true, latitud: 21.236 });
+      expect(prisma.zona.update).toHaveBeenCalledWith({
+        where: { id: 4 },
+        data: { esZonaTermino: true },
+      });
+      expect(prisma.bitacora.create).toHaveBeenCalledWith(
+        registroBitacora(
+          ADMIN,
+          'ACTUALIZAR: es_zona_termino false → true',
+          'zona',
+          4,
+        ),
+      );
+    });
+
+    it('si ya tenía ese valor no modifica ni registra', async () => {
+      prisma.zona.findUnique.mockResolvedValue(zonaBd());
+
+      await servicio.marcarZonaTermino(4, false, ADMIN);
+
+      expect(prisma.zona.update).not.toHaveBeenCalled();
+      expect(prisma.bitacora.create).not.toHaveBeenCalled();
+    });
+
+    it('responde 404 si la zona no existe', async () => {
+      prisma.zona.findUnique.mockResolvedValue(null);
+      await expect(servicio.marcarZonaTermino(99, true, ADMIN)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
   describe('eliminar', () => {
     const referencias = (
       hoteles: number,

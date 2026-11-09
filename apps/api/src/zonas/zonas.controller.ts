@@ -31,6 +31,7 @@ import {
   ActualizarZonaDto,
   ConsultaZonasDto,
   CrearZonaDto,
+  MarcarZonaTerminoDto,
 } from './dto/zona.dto.js';
 import { ZonasService } from './zonas.service.js';
 
@@ -135,6 +136,34 @@ export class ZonasController {
     @UsuarioActual() usuario: UsuarioAutenticado,
   ) {
     return this.servicio.actualizar(id, dto, usuario.id);
+  }
+
+  @Patch(':id/zona-termino')
+  @Roles(RolUsuario.ADMINISTRADOR)
+  @ApiOperation({
+    summary: 'Marcar o desmarcar una zona de término',
+    description:
+      'Solo ADMINISTRADOR. Indica si una unidad puede terminar su jornada en esta zona (regla del motor). El cambio queda en la bitácora ("ACTUALIZAR: es_zona_termino false → true").',
+  })
+  @ApiBody({
+    type: MarcarZonaTerminoDto,
+    examples: {
+      marcar: { summary: 'Marcar', value: { esZonaTermino: true } },
+      desmarcar: { summary: 'Desmarcar', value: { esZonaTermino: false } },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Zona actualizada',
+    schema: { example: { ...EJEMPLO, esZonaTermino: true } },
+  })
+  @ApiErroresEscritura('esZonaTermino debe ser true o false')
+  @ApiError404('No existe la zona 99')
+  marcarZonaTermino(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MarcarZonaTerminoDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ) {
+    return this.servicio.marcarZonaTermino(id, dto.esZonaTermino, usuario.id);
   }
 
   @Delete(':id')

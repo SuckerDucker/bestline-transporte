@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma, Zona } from '../generated/prisma/client.js';
-import { registrarBitacora } from '../comun/bitacora.js';
+import { cambio, registrarBitacora } from '../comun/bitacora.js';
 import { conCoordenadasNumericas } from '../comun/coordenadas.js';
 import { traducirErrorPrisma } from '../comun/errores-prisma.js';
 import { type Paginado, rango } from '../comun/paginacion.js';
@@ -84,6 +84,35 @@ export class ZonasService {
         duplicado: `Ya existe una zona con el nombre "${dto.nombre}"`,
       });
     }
+  }
+
+  /**
+   * Marca o desmarca una zona de término (donde una unidad puede terminar su
+   * jornada). Si ya tenía ese valor no se modifica ni se registra.
+   */
+  async marcarZonaTermino(
+    id: number,
+    esZonaTermino: boolean,
+    usuarioId: number,
+  ): Promise<ZonaRespuesta> {
+    const actual = await this.obtener(id);
+    if (actual.esZonaTermino === esZonaTermino) return actual;
+    const zona = await this.prisma.$transaction(async (tx) => {
+      const actualizada = await tx.zona.update({
+        where: { id },
+        data: { esZonaTermino },
+      });
+      await registrarBitacora(
+        tx,
+        usuarioId,
+        'ACTUALIZAR',
+        ENTIDAD,
+        id,
+        `es_zona_termino ${cambio(actual.esZonaTermino, esZonaTermino)}`,
+      );
+      return actualizada;
+    });
+    return conCoordenadasNumericas(zona);
   }
 
   /**
