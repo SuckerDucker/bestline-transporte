@@ -14,6 +14,7 @@ const ZonasPage = lazy(() => import('./features/zonas/ZonasPage').then((m) => ({
 const HotelesPage = lazy(() => import('./features/hoteles/HotelesPage').then((m) => ({ default: m.HotelesPage })))
 const ParametrosPage = lazy(() => import('./features/parametros/ParametrosPage').then((m) => ({ default: m.ParametrosPage })))
 const ZonasTerminoPage = lazy(() => import('./features/zonas-termino/ZonasTerminoPage').then((m) => ({ default: m.ZonasTerminoPage })))
+const MatrizPage = lazy(() => import('./features/matriz/MatrizPage').then((m) => ({ default: m.MatrizPage })))
 const UsuariosPage = lazy(() => import('./features/usuarios/UsuariosPage').then((m) => ({ default: m.UsuariosPage })))
 const BitacoraPage = lazy(() => import('./features/bitacora/BitacoraPage').then((m) => ({ default: m.BitacoraPage })))
 
@@ -49,6 +50,7 @@ function App() {
             {/* Configuración: el ADMINISTRADOR edita; COORDINADOR y SUPERVISOR consultan */}
             <Route path="parametros" element={<ParametrosPage />} />
             <Route path="zonas-termino" element={<ZonasTerminoPage />} />
+            <Route path="matriz-tiempos" element={<MatrizPage />} />
           </Route>
           {/* Administración: solo ADMINISTRADOR */}
           <Route
