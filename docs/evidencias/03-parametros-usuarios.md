@@ -28,7 +28,7 @@ Reglas de validación de `PUT /parametros` (mismas en el frontend con Zod):
 
 | Clave | Regla |
 |---|---|
-| `hora_cita.turno_1`, `hora_cita.turno_2` | Formato `HH:mm` de 24 horas (00:00 a 23:59) |
+| `hora_cita.bloque_matutino`, `hora_cita.bloque_vespertino` | Formato `HH:mm-HH:mm` con el inicio antes que el fin (por ejemplo `04:00-05:00`). Hasta el ajuste `fix/turnos-flota` eran `hora_cita.turno_1` y `hora_cita.turno_2` en `HH:mm`; la empresa confirmó los dos bloques y se migraron los datos (ver `05-motor-asignacion.md`) |
 | `jornada_maxima_horas` | Número de 1 a 12 horas, hasta 2 decimales (9.5 = nueve horas y media) |
 | `anticipacion.PRIVADO`, `.COMPARTIDO`, `.GRUPO` | Minutos enteros de 0 a 120 |
 
@@ -87,9 +87,9 @@ En la matriz, cada error lleva `zonaOrigenId` y `zonaDestinoId` en lugar de `cla
 ```ts
 export function validarParametro(clave: string, valor: string): string | null {
   if (clave.startsWith('hora_cita.')) {
-    return /^([01]\d|2[0-3]):[0-5]\d$/.test(valor)
+    return leerBloque(valor)
       ? null
-      : 'debe tener el formato HH:mm (00:00 a 23:59)';
+      : 'debe tener el formato HH:mm-HH:mm con el inicio antes que el fin';
   }
   if (clave === 'jornada_maxima_horas') {
     const horas = Number(valor);
@@ -159,7 +159,7 @@ Para las capturas de Swagger (http://localhost:3000/api/docs), primero obtén el
 
 **API en Swagger**
 
-1. **Parámetros, 400.** En `PUT /api/parametros`, "Try it out", elige el ejemplo "Valores inválidos (400)" y "Execute". Debe verse el código 400 con `errores` para `jornada_maxima_horas` y `hora_cita.turno_1`.
+1. **Parámetros, 400.** En `PUT /api/parametros`, "Try it out", elige el ejemplo "Valores inválidos (400)" y "Execute". Debe verse el código 400 con `errores` para `jornada_maxima_horas` y `hora_cita.bloque_matutino`.
 2. **Parámetros, 403.** Inicia sesión en `POST /api/auth/login` con `coordinador@bestline.local`, pega ese token en Authorize y repite `PUT /api/parametros` con el ejemplo "Cambios válidos". Debe verse el 403 "No tienes permiso para realizar esta acción". Después vuelve a autorizarte con el token del administrador.
 3. **Matriz.** En `GET /api/tiempos-traslado/matriz`, "Execute". Deben verse las 8 zonas, la matriz de 8 × 8 con minutos, `"faltantes": []` y `"completa": true`.
 4. **Matriz, 400 por celda.** En `PUT /api/tiempos-traslado/matriz`, elige el ejemplo "Minutos fuera de rango (400)" y "Execute". Debe verse el 400 con `errores` para Zona Hotelera → Tulum y Aeropuerto CUN → Tulum.
@@ -169,7 +169,7 @@ Para las capturas de Swagger (http://localhost:3000/api/docs), primero obtén el
 **Pantallas (http://localhost:5173, como administrador)**
 
 7. **Usuarios.** Entra a Administración → Usuarios. Debe verse la tabla con los 5 usuarios (el tuyo con "(tú)"), sus Badges de rol y estado. Abre el menú "⋯" del usuario de la captura 5 para que se vean "Editar", "Cambiar contraseña" y "Desactivar".
-8. **Parámetros con error.** Entra a Configuración → Parámetros. En "Jornada máxima" escribe `15` y en "Turno 1" escribe `4:30`; pulsa "Guardar cambios". Deben verse los mensajes en rojo bajo cada campo ("Debe estar entre 1 y 12 horas" y "Usa el formato HH:mm…"). Después escribe `10` y `04:00` y guarda: debe aparecer el aviso verde "Parámetros guardados".
+8. **Parámetros con error.** Entra a Configuración → Parámetros. En "Jornada máxima" escribe `15` y en "Bloque matutino" escribe `05:00-04:00`; pulsa "Guardar cambios". Deben verse los mensajes en rojo bajo cada campo ("Debe estar entre 1 y 12 horas" y "La hora de inicio debe ser antes que la de fin"). Después escribe `10` y `04:00-05:00` y guarda: debe aparecer el aviso verde "Parámetros guardados".
 9. **Bitácora.** Entra a Administración → Bitácora y en "Entidad" elige "Parámetro". Debe verse el registro `ACTUALIZAR` con el detalle `9.5 → 10` y la fecha y hora de Cancún.
 10. **Matriz de tiempos.** Entra a Configuración → Matriz de tiempos. En la celda Aeropuerto CUN → Tulum escribe `500` y en Tulum → Aeropuerto CUN escribe `abc`; pulsa "Guardar cambios". Deben verse las dos celdas en rojo y debajo el recuadro "Celdas con error" con un mensaje por celda. Pulsa "Descartar" al terminar.
 
