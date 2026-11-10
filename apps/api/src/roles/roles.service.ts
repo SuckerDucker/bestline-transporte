@@ -284,7 +284,8 @@ export class RolesService {
     });
 
     // La matriz debe tener todos los tiempos entre las zonas que se usarán:
-    // encierros, orígenes y destinos de los servicios del día.
+    // encierros, orígenes y destinos de los servicios del día. Incluye el
+    // regreso en vacío del destino de cada servicio al encierro (zona de término).
     const matriz = new Map(
       tiempos.map((t) => [`${t.zonaOrigenId}-${t.zonaDestinoId}`, t.minutos]),
     );

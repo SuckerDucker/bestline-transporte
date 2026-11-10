@@ -19,9 +19,11 @@
  *    Centro Cancún, supuesto por confirmar) y la penalización de carga del
  *    motor (15 min). La composición de la flota (4 Van/Urvan, 5 Sprinter y 1
  *    Autobús), los dos bloques de 5 operadores, que el autobús (BL-10) trabaje
- *    en el bloque vespertino y la distribución diaria de los servicios por
- *    franja son reglas confirmadas por la empresa (Lic. Magalis Casanova): los
- *    60 servicios son datos de ejemplo construidos con esos parámetros reales.
+ *    en el bloque vespertino, la distribución diaria de los servicios por
+ *    franja, el primer servicio a partir de las 04:45 y los 2 grupos de más de
+ *    20 pasajeros como máximo (los demás de 2 a 12) son reglas confirmadas por
+ *    la empresa (Lic. Magalis Casanova): los 60 servicios son datos de ejemplo
+ *    construidos con esos parámetros reales.
  *    Los 8 hoteles de HOTELES_LAYOUT son los del archivo de ejemplo anonimizado
  *    de la empresa (docs/ejemplos), para que su importación encuentre los hoteles.
  *
@@ -579,46 +581,59 @@ async function main(): Promise<void> {
   //     Norteamérica y Europa y salidas de la tarde;
   //   - noche (19:00-21:45): 8 a 10;
   //   - los grupos de más de 20 pasajeros llegan a partir de las 13:00.
+  // REGLA CONFIRMADA CON LA EMPRESA (primer servicio del día): el operador
+  // tarda de 30 a 40 min del encierro al primer hotel; los primeros servicios
+  // reales son a partir de las 04:45.
+  // REGLA CONFIRMADA CON LA EMPRESA (grupos): en un día normal hay 1 o 2
+  // grupos de más de 20 pasajeros como máximo (los toma el autobús en la
+  // tarde); el resto de los servicios son de 2 a 12 pasajeros. Aquí, 2 grupos
+  // grandes (llegadas internacionales después de las 13:00).
   // Se usan 16, 34 y 10. La composición total es la misma de antes:
   //   LLEGADA:  10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
   //   SALIDA:   10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
   //   TRASLADO:  6 PRIVADO,  3 COMPARTIDO, 3 GRUPO  (12)
+  // La modalidad GRUPO define la anticipación (30 min); como en el archivo de
+  // la empresa, un servicio GRUPO puede llevar de 2 a 12 pasajeros.
   // Rango de minutos (desde las 00:00 de Cancún) de cada franja; los grupos
-  // de la tarde empiezan a las 13:00.
-  const MANANA = { desde: 240, hasta: 715 }; // 04:00-11:55
+  // grandes empiezan a las 13:00.
+  const MANANA = { desde: 285, hasta: 715 }; // 04:45-11:55
   const TARDE = { desde: 720, hasta: 1135 }; // 12:00-18:55
   const TARDE_GRUPOS = { desde: 780, hasta: 1135 }; // 13:00-18:55
   const NOCHE = { desde: 1140, hasta: 1305 }; // 19:00-21:45
   type Franja = { desde: number; hasta: number };
   const { LLEGADA, SALIDA, TRASLADO } = TipoServicio;
   const { PRIVADO, COMPARTIDO, GRUPO } = ModalidadServicio;
-  const reparto: [Franja, TipoServicio, ModalidadServicio, number][] = [
-    // Mañana (16): sobre todo salidas; sin grupos.
-    [MANANA, SALIDA, PRIVADO, 5],
-    [MANANA, SALIDA, COMPARTIDO, 5],
-    [MANANA, LLEGADA, PRIVADO, 2],
-    [MANANA, LLEGADA, COMPARTIDO, 1],
-    [MANANA, TRASLADO, PRIVADO, 2],
-    [MANANA, TRASLADO, COMPARTIDO, 1],
-    // Mediodía y tarde (34): el pico; los grupos desde las 13:00.
-    [TARDE, LLEGADA, PRIVADO, 6],
-    [TARDE, LLEGADA, COMPARTIDO, 7],
-    [TARDE_GRUPOS, LLEGADA, GRUPO, 3],
-    [TARDE, SALIDA, PRIVADO, 3],
-    [TARDE, SALIDA, COMPARTIDO, 4],
-    [TARDE_GRUPOS, SALIDA, GRUPO, 4],
-    [TARDE, TRASLADO, PRIVADO, 3],
-    [TARDE, TRASLADO, COMPARTIDO, 1],
-    [TARDE_GRUPOS, TRASLADO, GRUPO, 3],
-    // Noche (10).
-    [NOCHE, LLEGADA, PRIVADO, 2],
-    [NOCHE, LLEGADA, COMPARTIDO, 2],
-    [NOCHE, LLEGADA, GRUPO, 1],
-    [NOCHE, SALIDA, PRIVADO, 2],
-    [NOCHE, SALIDA, COMPARTIDO, 1],
-    [NOCHE, TRASLADO, PRIVADO, 1],
-    [NOCHE, TRASLADO, COMPARTIDO, 1],
-  ];
+  /** true: grupo grande (más de 20 pasajeros). */
+  const GRANDE = true;
+  const reparto: [Franja, TipoServicio, ModalidadServicio, number, boolean?][] =
+    [
+      // Mañana (16): sobre todo salidas; sin grupos.
+      [MANANA, SALIDA, PRIVADO, 5],
+      [MANANA, SALIDA, COMPARTIDO, 5],
+      [MANANA, LLEGADA, PRIVADO, 2],
+      [MANANA, LLEGADA, COMPARTIDO, 1],
+      [MANANA, TRASLADO, PRIVADO, 2],
+      [MANANA, TRASLADO, COMPARTIDO, 1],
+      // Mediodía y tarde (34): el pico; los 2 grupos grandes desde las 13:00.
+      [TARDE, LLEGADA, PRIVADO, 6],
+      [TARDE, LLEGADA, COMPARTIDO, 7],
+      [TARDE_GRUPOS, LLEGADA, GRUPO, 2, GRANDE],
+      [TARDE, LLEGADA, GRUPO, 1],
+      [TARDE, SALIDA, PRIVADO, 3],
+      [TARDE, SALIDA, COMPARTIDO, 4],
+      [TARDE, SALIDA, GRUPO, 4],
+      [TARDE, TRASLADO, PRIVADO, 3],
+      [TARDE, TRASLADO, COMPARTIDO, 1],
+      [TARDE, TRASLADO, GRUPO, 3],
+      // Noche (10).
+      [NOCHE, LLEGADA, PRIVADO, 2],
+      [NOCHE, LLEGADA, COMPARTIDO, 2],
+      [NOCHE, LLEGADA, GRUPO, 1],
+      [NOCHE, SALIDA, PRIVADO, 2],
+      [NOCHE, SALIDA, COMPARTIDO, 1],
+      [NOCHE, TRASLADO, PRIVADO, 1],
+      [NOCHE, TRASLADO, COMPARTIDO, 1],
+    ];
   const azar = crearAleatorio(20261110);
   const zonaDeHotel = (h: Hotel) => h.zonaId;
   // Los hoteles de Tulum usan el aeropuerto TQO; los demás, el aeropuerto CUN.
@@ -626,18 +641,18 @@ async function main(): Promise<void> {
     h.zonaId === idZona.TULUM ? idZona.AEROPUERTO_TQO : idZona.AEROPUERTO_CUN;
   const aeropuertos = [idZona.AEROPUERTO_CUN, idZona.AEROPUERTO_TQO];
 
-  // Pasajeros según la modalidad (rangos de ejemplo): PRIVADO y COMPARTIDO
-  // son familias que caben en Van o Sprinter (máximo 12); los grupos (15 a 35)
-  // pueden superar la capacidad de una Sprinter.
-  const pasajerosPorModalidad = (m: ModalidadServicio): number =>
-    m === ModalidadServicio.PRIVADO
-      ? azar(1, 6)
-      : m === ModalidadServicio.COMPARTIDO
-        ? azar(4, 12)
-        : azar(15, 35);
+  // Pasajeros (rangos de ejemplo dentro de la regla de 2 a 12): PRIVADO 2 a
+  // 6, COMPARTIDO 4 a 12 y GRUPO 2 a 12; los 2 grupos grandes, 21 a 35
+  // (solo caben en el autobús).
+  const pasajerosDe = (m: ModalidadServicio, grande: boolean): number =>
+    grande
+      ? azar(21, 35)
+      : m === ModalidadServicio.PRIVADO
+        ? azar(2, 6)
+        : azar(m === ModalidadServicio.COMPARTIDO ? 4 : 2, 12);
 
   let consecutivo = 0;
-  for (const [franja, tipo, modalidad, cantidad] of reparto) {
+  for (const [franja, tipo, modalidad, cantidad, grande = false] of reparto) {
     for (let i = 0; i < cantidad; i++) {
       consecutivo++;
       const mayorista = mayoristas[consecutivo % 2];
@@ -670,7 +685,7 @@ async function main(): Promise<void> {
         );
         zonaDestinoId = otras[azar(0, otras.length - 1)];
       }
-      const pasajeros = pasajerosPorModalidad(modalidad);
+      const pasajeros = pasajerosDe(modalidad, grande);
 
       const folio = `${prefijo}-${String(consecutivo).padStart(4, '0')}`;
       const localizador = `LOC-EJ-${String(consecutivo).padStart(4, '0')}`;
@@ -704,6 +719,34 @@ async function main(): Promise<void> {
   if (grupoTemprano) {
     throw new Error(
       `El servicio ${grupoTemprano.folio} tiene más de 20 pasajeros antes de las 13:00`,
+    );
+  }
+  const delDia = {
+    importacionId: null,
+    fechaHora: { gte: horaCancun(0), lt: horaCancun(24 * 60) },
+  };
+  const [antesDe0445, grandes, fueraDeRango] = await Promise.all([
+    prisma.servicio.count({
+      where: {
+        ...delDia,
+        fechaHora: { gte: horaCancun(0), lt: horaCancun(285) },
+      },
+    }),
+    prisma.servicio.count({ where: { ...delDia, pasajeros: { gt: 20 } } }),
+    prisma.servicio.count({
+      where: {
+        ...delDia,
+        pasajeros: { lte: 20 },
+        NOT: { pasajeros: { gte: 2, lte: 12 } },
+      },
+    }),
+  ]);
+  if (antesDe0445 > 0) {
+    throw new Error(`Hay ${antesDe0445} servicios antes de las 04:45`);
+  }
+  if (grandes !== 2 || fueraDeRango > 0) {
+    throw new Error(
+      `Debe haber 2 grupos de más de 20 pasajeros y los demás de 2 a 12 (hay ${grandes} grupos y ${fueraDeRango} fuera de rango)`,
     );
   }
   const autobus = await prisma.vehiculo.findUnique({

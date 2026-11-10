@@ -207,6 +207,20 @@ describe('RolesService', () => {
       });
     });
 
+    it('400 si falta el tiempo del destino de un servicio al encierro (regreso en vacío)', async () => {
+      prisma.tiempoTraslado.findMany.mockResolvedValue(
+        matrizCompleta().filter(
+          (t) => !(t.zonaOrigenId === ZH && t.zonaDestinoId === CENTRO),
+        ),
+      );
+      await expect(servicio_.generar(FECHA, USUARIO)).rejects.toMatchObject({
+        response: expect.objectContaining({
+          faltantes: ['Zona Hotelera → Centro Cancún'],
+        }),
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
     it('400 si falta un parámetro o el encierro de una unidad no es una zona', async () => {
       prisma.parametroOperacion.findMany.mockResolvedValue(PARAMETROS.slice(1));
       await expect(servicio_.generar(FECHA, USUARIO)).rejects.toThrow(

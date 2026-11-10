@@ -90,9 +90,16 @@ export function verificarRol(
       zona = s.destino;
       libre = liberacion;
     }
-    if (a.servicios.length > 0 && !datos.zonasTermino.has(zona)) {
+    // REGLA CONFIRMADA CON LA EMPRESA (zona de término): fuera de zona de
+    // término solo es válido si la unidad alcanza a regresar en vacío a su
+    // encierro dentro de la jornada.
+    if (
+      a.servicios.length > 0 &&
+      !datos.zonasTermino.has(zona) &&
+      libre + minutos(zona, u.encierro) - u.cita > datos.jornadaMaxima
+    ) {
       violaciones.push(
-        `${u.numeroEconomico}: termina fuera de zona de término (ZONA_TERMINO)`,
+        `${u.numeroEconomico}: termina fuera de zona de término y no alcanza a regresar al encierro (ZONA_TERMINO)`,
       );
     }
   }

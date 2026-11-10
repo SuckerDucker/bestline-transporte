@@ -90,9 +90,27 @@ export function motivoPorMayoria(rechazos: Restriccion[]): Restriccion {
 
 /**
  * GenerarRol(servicios, unidades, parámetros). Devuelve las secuencias de
- * cada unidad y los no cubiertos con su motivo (no guarda nada).
+ * cada unidad y los no cubiertos con su motivo (no guarda nada). Después de
+ * la etapa voraz y la de zona de término, la etapa de reinserción intenta
+ * colocar los no cubiertos en cualquier posición de cualquier unidad.
  */
 export function generarRol(
+  servicios: ServicioMotor[],
+  unidades: UnidadMotor[],
+  p: ParametrosMotor,
+): ResultadoRol {
+  const base = generarRolBase(servicios, unidades, p);
+  return {
+    unidades: base.unidades,
+    noCubiertos: reinsertar(base.unidades, base.noCubiertos, p),
+  };
+}
+
+/**
+ * Etapa voraz y etapa de zona de término (el Código 1 antes de la mejora de
+ * reinserción). Se exporta para comparar la cobertura con y sin reinserción.
+ */
+export function generarRolBase(
   servicios: ServicioMotor[],
   unidades: UnidadMotor[],
   p: ParametrosMotor,
@@ -142,7 +160,8 @@ export function generarRol(
 
 /**
  * PARA CADA u EN unidades
- *   MIENTRAS el último servicio de u termina fuera de zona válida
+ *   MIENTRAS u no cierra bien el día (CierreValido: termina en zona de
+ *   término o alcanza a regresar a su encierro dentro de la jornada)
  *     s ← quitar el último servicio de u
  *     SI s no cabe entre dos servicios de otra unidad → (s, ZONA_TERMINO)
  *
@@ -156,8 +175,7 @@ export function reubicarPorZonaTermino(
   p: ParametrosMotor,
 ): NoCubierto[] {
   const noCubiertos: NoCubierto[] = [];
-  const terminaBien = (u: UnidadEnRol) =>
-    p.zonasTermino.has((u.secuencia.at(-1) as ServicioCalculado).destino);
+  const terminaBien = (u: UnidadEnRol) => cierreValido(u, p);
 
   for (const u of [...unidades].sort(porNumeroEconomico)) {
     while (u.secuencia.length > 0 && !terminaBien(u)) {
@@ -206,6 +224,125 @@ export function mejorHueco(
     }
   }
   return mejor && { unidad: mejor.unidad, indice: mejor.indice };
+}
+
+/**
+ * Zona de término (REGLA CONFIRMADA CON LA EMPRESA): el último servicio de la
+ * unidad termina en una zona de término (Zona Hotelera o Aeropuerto CUN) o, si
+ * termina en otra zona, a la unidad le alcanza la jornada para regresar en
+ * vacío a su encierro:
+ *   liberación del último + tiempo(destino, encierro) − cita <= jornada máxima
+ * Una unidad sin servicios no tiene que cerrar nada.
+ */
+export function cierreValido(u: UnidadEnRol, p: ParametrosMotor): boolean {
+  const ultimo = u.secuencia.at(-1);
+  if (!ultimo || p.zonasTermino.has(ultimo.destino)) return true;
+  const regreso = ultimo.liberacion + p.tiempo(ultimo.destino, u.encierro);
+  return regreso - u.cita <= p.jornadaMaxima;
+}
+
+/**
+ * La secuencia completa cumple todas las reglas: cada servicio pasa
+ * VerificarRestricciones contra los servicios que lo preceden (CAPACIDAD,
+ * EMPALME con el anterior o con el encierro y la cita, JORNADA) y la unidad
+ * cierra bien el día (zona de término).
+ */
+export function secuenciaValida(
+  u: UnidadEnRol,
+  secuencia: ServicioCalculado[],
+  p: ParametrosMotor,
+): boolean {
+  const cumple = secuencia.every(
+    (s, k) =>
+      verificarRestricciones(
+        { ...u, secuencia: secuencia.slice(0, k) },
+        s,
+        p,
+      ) === null,
+  );
+  return cumple && cierreValido({ ...u, secuencia }, p);
+}
+
+/**
+ * Costo incremental de poner s en la posición `indice` de u: espera antes de s
+ * + vacío añadido (anterior → s → siguiente, menos anterior → siguiente) +
+ * penalización por cada servicio que la unidad ya tiene. En la última
+ * posición es el mismo Costo(u, s) de la etapa voraz.
+ */
+export function costoInsercion(
+  u: UnidadEnRol,
+  indice: number,
+  s: ServicioCalculado,
+  p: ParametrosMotor,
+): number {
+  const antes = { ...u, secuencia: u.secuencia.slice(0, indice) };
+  const { zona, libre } = posicion(antes);
+  const siguiente = u.secuencia[indice];
+  const vacio =
+    p.tiempo(zona, s.origen) +
+    (siguiente
+      ? p.tiempo(s.destino, siguiente.origen) - p.tiempo(zona, siguiente.origen)
+      : 0);
+  const espera = s.inicio - (libre + p.tiempo(zona, s.origen));
+  return espera + vacio + p.penalizacionCarga * u.secuencia.length;
+}
+
+/**
+ * Mejor inserción de s en cualquier posición (incluida la final y las
+ * unidades vacías) de cualquier unidad, con secuencia resultante válida.
+ * Menor costo incremental; empate: menor número económico y luego la
+ * posición más temprana. null si no cabe en ninguna.
+ */
+export function mejorInsercion(
+  unidades: UnidadEnRol[],
+  s: ServicioCalculado,
+  p: ParametrosMotor,
+): { unidad: UnidadEnRol; indice: number } | null {
+  let mejor: { unidad: UnidadEnRol; indice: number; c: number } | null = null;
+  for (const u of [...unidades].sort(porNumeroEconomico)) {
+    for (let i = 0; i <= u.secuencia.length; i++) {
+      const nueva = [...u.secuencia.slice(0, i), s, ...u.secuencia.slice(i)];
+      if (!secuenciaValida(u, nueva, p)) continue;
+      const c = costoInsercion(u, i, s, p);
+      // Solo un costo estrictamente menor reemplaza: así gana el primero en
+      // el orden (número económico, posición).
+      if (!mejor || c < mejor.c) mejor = { unidad: u, indice: i, c };
+    }
+  }
+  return mejor && { unidad: mejor.unidad, indice: mejor.indice };
+}
+
+/**
+ * Etapa de reinserción (mejora al Código 1):
+ *   REPETIR
+ *     PARA CADA s EN noCubiertos, por inicio efectivo
+ *       SI cabe en alguna posición de alguna unidad → insertarlo donde cueste menos
+ *   HASTA que en una pasada no se inserte ninguno
+ * Modifica las secuencias y devuelve los que siguen sin cubrir, con su motivo
+ * original. No relaja ninguna regla.
+ */
+export function reinsertar(
+  unidades: UnidadEnRol[],
+  noCubiertos: NoCubierto[],
+  p: ParametrosMotor,
+): NoCubierto[] {
+  let pendientes = [...noCubiertos].sort(
+    (a, b) => a.servicio.inicio - b.servicio.inicio,
+  );
+  let insertoAlguno = true;
+  while (insertoAlguno && pendientes.length > 0) {
+    insertoAlguno = false;
+    const siguen: NoCubierto[] = [];
+    for (const n of pendientes) {
+      const lugar = mejorInsercion(unidades, n.servicio, p);
+      if (lugar) {
+        lugar.unidad.secuencia.splice(lugar.indice, 0, n.servicio);
+        insertoAlguno = true;
+      } else siguen.push(n);
+    }
+    pendientes = siguen;
+  }
+  return pendientes;
 }
 
 /** Matriz de tiempos como función; si falta un par lanza un error. */
