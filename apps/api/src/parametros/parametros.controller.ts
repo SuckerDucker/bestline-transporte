@@ -23,9 +23,10 @@ const EJEMPLO = [
   },
   {
     id: 1,
-    clave: 'hora_cita.turno_1',
-    valor: '04:00',
-    descripcion: 'Hora de cita del turno 1 (HH:mm, America/Cancun)',
+    clave: 'hora_cita.bloque_matutino',
+    valor: '04:00-05:00',
+    descripcion:
+      'Bloque matutino de horas de cita (HH:mm-HH:mm, America/Cancun)',
   },
   {
     id: 3,
@@ -58,7 +59,7 @@ export class ParametrosController {
   @ApiOperation({
     summary: 'Editar parámetros de operación',
     description:
-      'Solo ADMINISTRADOR. Guarda todos en una sola transacción (si uno es inválido no se guarda ninguno). Reglas: hora_cita.* en HH:mm; jornada_maxima_horas entre 1 y 12; anticipacion.* en minutos enteros de 0 a 120. Cada cambio queda en la bitácora con el valor anterior y el nuevo. Devuelve la lista completa.',
+      'Solo ADMINISTRADOR. Guarda todos en una sola transacción (si uno es inválido no se guarda ninguno). Reglas: hora_cita.bloque_matutino y hora_cita.bloque_vespertino en HH:mm-HH:mm con el inicio antes que el fin; jornada_maxima_horas entre 1 y 12; anticipacion.* y motor.penalizacion_carga_min en minutos enteros de 0 a 120. Cada cambio queda en la bitácora con el valor anterior y el nuevo. Devuelve la lista completa.',
   })
   @ApiBody({
     type: ActualizarParametrosDto,
@@ -68,7 +69,7 @@ export class ParametrosController {
         value: {
           parametros: [
             { clave: 'jornada_maxima_horas', valor: '10' },
-            { clave: 'hora_cita.turno_1', valor: '04:30' },
+            { clave: 'hora_cita.bloque_vespertino', valor: '12:00-13:30' },
           ],
         },
       },
@@ -77,13 +78,15 @@ export class ParametrosController {
         value: {
           parametros: [
             { clave: 'jornada_maxima_horas', valor: '15' },
-            { clave: 'hora_cita.turno_1', valor: '4:30' },
+            { clave: 'hora_cita.bloque_matutino', valor: '05:00-04:00' },
           ],
         },
       },
       inexistente: {
         summary: 'Clave inexistente (404)',
-        value: { parametros: [{ clave: 'hora_cita.turno_9', valor: '06:00' }] },
+        value: {
+          parametros: [{ clave: 'hora_cita.bloque_nocturno', valor: '06:00' }],
+        },
       },
     },
   })
@@ -97,7 +100,7 @@ export class ParametrosController {
       example: {
         message: [
           'jornada_maxima_horas debe ser un número de horas entre 1 y 12',
-          'hora_cita.turno_1 debe tener el formato HH:mm (00:00 a 23:59)',
+          'hora_cita.bloque_matutino debe tener el formato HH:mm-HH:mm con el inicio antes que el fin',
         ],
         errores: [
           {
@@ -105,8 +108,9 @@ export class ParametrosController {
             mensaje: 'debe ser un número de horas entre 1 y 12',
           },
           {
-            clave: 'hora_cita.turno_1',
-            mensaje: 'debe tener el formato HH:mm (00:00 a 23:59)',
+            clave: 'hora_cita.bloque_matutino',
+            mensaje:
+              'debe tener el formato HH:mm-HH:mm con el inicio antes que el fin',
           },
         ],
         error: 'Bad Request',
@@ -115,7 +119,7 @@ export class ParametrosController {
     },
   })
   @ApiError403()
-  @ApiError404('No existe el parámetro: hora_cita.turno_9')
+  @ApiError404('No existe el parámetro: hora_cita.bloque_nocturno')
   actualizar(
     @Body() dto: ActualizarParametrosDto,
     @UsuarioActual() usuario: UsuarioAutenticado,

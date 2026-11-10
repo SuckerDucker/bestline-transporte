@@ -21,6 +21,20 @@ describe('Operadores con vehículo y hora de cita (e2e)', () => {
     await limpiarBase(prisma);
     await crearUsuario(prisma, 'admin@prueba.local', RolUsuario.ADMINISTRADOR);
     tokenAdmin = await obtenerToken(app, 'admin@prueba.local');
+    await prisma.parametroOperacion.createMany({
+      data: [
+        {
+          clave: 'hora_cita.bloque_matutino',
+          valor: '04:00-05:00',
+          descripcion: 'Matutino',
+        },
+        {
+          clave: 'hora_cita.bloque_vespertino',
+          valor: '12:00-13:00',
+          descripcion: 'Vespertino',
+        },
+      ],
+    });
     vehiculoId = (
       await prisma.vehiculo.create({
         data: {
@@ -65,6 +79,19 @@ describe('Operadores con vehículo y hora de cita (e2e)', () => {
     expect(respuesta.body).toMatchObject({
       message: 'El vehículo BL-03 ya tiene un operador asignado',
     });
+  });
+
+  it('400: hora de cita fuera de los bloques matutino y vespertino', async () => {
+    const respuesta = await crear({
+      nombre: 'Operador D',
+      horaCita: '08:00',
+    }).expect(400);
+    expect(respuesta.body).toMatchObject({
+      message:
+        'La hora de cita 08:00 no está en ningún bloque: matutino 04:00-05:00 o vespertino 12:00-13:00',
+    });
+    // El extremo del bloque vespertino sí es válido.
+    await crear({ nombre: 'Operador D', horaCita: '13:00' }).expect(201);
   });
 
   it('400: vehículo inexistente u hora de cita mal escrita', async () => {

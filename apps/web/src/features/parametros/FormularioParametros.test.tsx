@@ -9,8 +9,8 @@ const PARAMETROS: Parametro[] = [
   { id: 4, clave: 'anticipacion.COMPARTIDO', valor: '20', descripcion: 'Minutos COMPARTIDO' },
   { id: 5, clave: 'anticipacion.GRUPO', valor: '30', descripcion: 'Minutos GRUPO' },
   { id: 6, clave: 'anticipacion.PRIVADO', valor: '10', descripcion: 'Minutos PRIVADO' },
-  { id: 1, clave: 'hora_cita.turno_1', valor: '04:00', descripcion: 'Hora de cita del turno 1' },
-  { id: 2, clave: 'hora_cita.turno_2', valor: '05:00', descripcion: 'Hora de cita del turno 2' },
+  { id: 1, clave: 'hora_cita.bloque_matutino', valor: '04:00-05:00', descripcion: 'Bloque matutino' },
+  { id: 2, clave: 'hora_cita.bloque_vespertino', valor: '12:00-13:00', descripcion: 'Bloque vespertino' },
   { id: 3, clave: 'jornada_maxima_horas', valor: '9.5', descripcion: 'Jornada máxima' },
   { id: 7, clave: 'motor.penalizacion_carga_min', valor: '15', descripcion: 'Penalización por carga' },
 ]
@@ -22,10 +22,15 @@ describe('esquemaParametros (mismas reglas que la API)', () => {
     expect(esquemaParametros.safeParse(validos).success).toBe(true)
   })
 
-  it('hora de cita en HH:mm de 24 horas', () => {
-    expect(errorEn({ hora_cita: { turno_1: '4:00', turno_2: '05:00' } })).toMatch(/HH:mm/)
-    expect(errorEn({ hora_cita: { turno_1: '24:00', turno_2: '05:00' } })).toMatch(/HH:mm/)
-    expect(errorEn({ hora_cita: { turno_1: '23:59', turno_2: '00:00' } })).toBeUndefined()
+  it('bloques de hora de cita en HH:mm-HH:mm con el inicio antes que el fin', () => {
+    const bloques = (bloque_matutino: string, bloque_vespertino = '12:00-13:00') => ({
+      hora_cita: { bloque_matutino, bloque_vespertino },
+    })
+    expect(errorEn(bloques('04:00'))).toMatch(/HH:mm-HH:mm/)
+    expect(errorEn(bloques('4:00-05:00'))).toMatch(/HH:mm-HH:mm/)
+    expect(errorEn(bloques('05:00-04:00'))).toBe('La hora de inicio debe ser antes que la de fin')
+    expect(errorEn(bloques('04:00-04:00'))).toBe('La hora de inicio debe ser antes que la de fin')
+    expect(errorEn(bloques('00:00-23:59', '12:00-13:30'))).toBeUndefined()
   })
 
   it('jornada máxima entre 1 y 12 horas', () => {
@@ -44,8 +49,8 @@ describe('esquemaParametros (mismas reglas que la API)', () => {
 
   it('aLista arma el cuerpo de PUT /parametros con las claves de la API', () => {
     expect(aLista(validos, PARAMETROS)).toEqual([
-      { clave: 'hora_cita.turno_1', valor: '04:00' },
-      { clave: 'hora_cita.turno_2', valor: '05:00' },
+      { clave: 'hora_cita.bloque_matutino', valor: '04:00-05:00' },
+      { clave: 'hora_cita.bloque_vespertino', valor: '12:00-13:00' },
       { clave: 'jornada_maxima_horas', valor: '9.5' },
       { clave: 'anticipacion.PRIVADO', valor: '10' },
       { clave: 'anticipacion.COMPARTIDO', valor: '20' },
@@ -62,12 +67,12 @@ describe('Formulario de parámetros', () => {
 
     await userEvent.clear(screen.getByLabelText('Jornada máxima'))
     await userEvent.type(screen.getByLabelText('Jornada máxima'), '15')
-    await userEvent.clear(screen.getByLabelText('Turno 1'))
-    await userEvent.type(screen.getByLabelText('Turno 1'), '4:30')
+    await userEvent.clear(screen.getByLabelText('Bloque matutino'))
+    await userEvent.type(screen.getByLabelText('Bloque matutino'), '05:00-04:00')
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(await screen.findByText('Debe estar entre 1 y 12 horas')).toBeInTheDocument()
-    expect(screen.getByText(/Usa el formato HH:mm/)).toBeInTheDocument()
+    expect(screen.getByText('La hora de inicio debe ser antes que la de fin')).toBeInTheDocument()
     expect(screen.getByLabelText('Jornada máxima')).toHaveAttribute('aria-invalid', 'true')
     expect(alGuardar).not.toHaveBeenCalled()
   })
@@ -102,7 +107,7 @@ describe('Formulario de parámetros', () => {
   it('en solo consulta los campos no se pueden editar y no hay botones', () => {
     render(<FormularioParametros parametros={PARAMETROS} soloLectura alGuardar={vi.fn()} />)
 
-    expect(screen.getByLabelText('Turno 1')).toHaveAttribute('readonly')
+    expect(screen.getByLabelText('Bloque matutino')).toHaveAttribute('readonly')
     expect(screen.getByLabelText('Jornada máxima')).toHaveValue('9.5')
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
   })

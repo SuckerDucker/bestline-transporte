@@ -7,8 +7,15 @@ export const MOTIVOS = ['CAPACIDAD', 'EMPALME', 'JORNADA', 'ZONA_TERMINO', 'SIN_
 export type Motivo = (typeof MOTIVOS)[number]
 
 /** Etiqueta, color y explicación de cada motivo de no cubierto (CU-14). */
-export const MOTIVO: Record<Motivo, { etiqueta: string; tono: Tono; explicacion: string }> = {
-  CAPACIDAD: { etiqueta: 'Capacidad', tono: 'aviso', explicacion: 'Más pasajeros que la capacidad de las unidades.' },
+export const MOTIVO: Record<Motivo, { etiqueta: string; tono: Tono; explicacion: string; nota?: string }> = {
+  // REGLA CONFIRMADA CON LA EMPRESA: un grupo que no cabe en ninguna unidad
+  // disponible se reporta para que Monitoreo contrate una unidad externa.
+  CAPACIDAD: {
+    etiqueta: 'Capacidad',
+    tono: 'aviso',
+    explicacion: 'Más pasajeros que la capacidad de las unidades disponibles.',
+    nota: 'Requiere unidad externa (Monitoreo)',
+  },
   EMPALME: { etiqueta: 'Empalme', tono: 'info', explicacion: 'Ninguna unidad llega a tiempo al origen.' },
   JORNADA: { etiqueta: 'Jornada', tono: 'neutro', explicacion: 'Excede la jornada máxima desde la hora de cita.' },
   ZONA_TERMINO: {

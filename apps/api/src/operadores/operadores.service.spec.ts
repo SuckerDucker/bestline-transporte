@@ -29,6 +29,11 @@ describe('OperadoresService', () => {
   beforeEach(() => {
     prisma = crearPrismaSimulado();
     servicio = new OperadoresService(comoPrisma(prisma));
+    // Bloques de hora de cita confirmados por la empresa.
+    prisma.parametroOperacion.findMany.mockResolvedValue([
+      { clave: 'hora_cita.bloque_matutino', valor: '04:00-05:00' },
+      { clave: 'hora_cita.bloque_vespertino', valor: '12:00-13:00' },
+    ]);
   });
 
   it('listar filtra por disponibilidad y búsqueda', async () => {
@@ -205,6 +210,54 @@ describe('OperadoresService', () => {
       await expect(
         servicio.crear({ ...dto, vehiculoId: 3 }, ADMIN),
       ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('hora de cita dentro de los bloques', () => {
+    const dto = {
+      nombre: 'Operador Ejemplo 06',
+      licencia: 'LIC-06',
+      telefono: '998-000-0006',
+    };
+
+    it.each(['04:00', '04:30', '05:00', '12:00', '13:00'])(
+      'acepta %s (los extremos de cada bloque cuentan)',
+      async (horaCita) => {
+        prisma.operador.create.mockResolvedValue(operador({ horaCita }));
+        await expect(
+          servicio.crear({ ...dto, horaCita }, ADMIN),
+        ).resolves.toBeDefined();
+      },
+    );
+
+    it.each(['03:59', '05:01', '08:00', '11:59', '13:01'])(
+      '400 con %s (fuera de los dos bloques)',
+      async (horaCita) => {
+        await expect(
+          servicio.crear({ ...dto, horaCita }, ADMIN),
+        ).rejects.toThrow(
+          new BadRequestException(
+            `La hora de cita ${horaCita} no está en ningún bloque: matutino 04:00-05:00 o vespertino 12:00-13:00`,
+          ),
+        );
+        expect(prisma.operador.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('sin hora de cita (null) no revisa los bloques: el operador no participa en el rol', async () => {
+      prisma.operador.findUnique.mockResolvedValue(operador());
+      prisma.operador.update.mockResolvedValue(operador({ horaCita: null }));
+
+      await servicio.actualizar(3, { horaCita: null }, ADMIN);
+
+      expect(prisma.parametroOperacion.findMany).not.toHaveBeenCalled();
+    });
+
+    it('400 si faltan los bloques en Parámetros', async () => {
+      prisma.parametroOperacion.findMany.mockResolvedValue([]);
+      await expect(
+        servicio.crear({ ...dto, horaCita: '04:00' }, ADMIN),
+      ).rejects.toThrow(/Faltan los bloques de hora de cita/);
     });
   });
 });

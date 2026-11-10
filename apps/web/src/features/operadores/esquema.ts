@@ -14,7 +14,7 @@ export const esquemaOperador = z.object({
   disponible: z.boolean(),
   /** Id del vehículo como texto (lo usa el Select) o SIN_VEHICULO. */
   vehiculo: z.string(),
-  /** Vacía = se usa la hora del turno 1 (parámetro hora_cita.turno_1). */
+  /** Vacía = sin hora de cita: el operador no participa en el rol. La API revisa que caiga en un bloque. */
   horaCita: z
     .string()
     .trim()

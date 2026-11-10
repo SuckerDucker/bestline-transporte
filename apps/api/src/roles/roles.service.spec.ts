@@ -20,7 +20,6 @@ const ZH = 2;
 const CENTRO = 3;
 
 const PARAMETROS = [
-  ['hora_cita.turno_1', '04:00'],
   ['jornada_maxima_horas', '9.5'],
   ['anticipacion.PRIVADO', '10'],
   ['anticipacion.COMPARTIDO', '20'],
@@ -46,7 +45,7 @@ const vehiculo = (n: number, cambios: Record<string, unknown> = {}) => ({
   capacidad: 14,
   estado: 'DISPONIBLE',
   encierroBase: 'centro cancún',
-  operador: { id: 100 + n, disponible: true, horaCita: null },
+  operador: { id: 100 + n, disponible: true, horaCita: '04:00' },
   ...cambios,
 });
 const servicio = (id: number, minutos: number, pasajeros = 4) => ({
@@ -100,7 +99,7 @@ describe('RolesService', () => {
         data: { fecha: new Date('2026-11-10T00:00:00Z'), estado: 'PROPUESTO' },
       });
       // S-1 a las 05:00 de Cancún (minuto 300): inicio 04:50 y liberación 05:30
-      // (+30 min de CUN a ZH), en BL-01 con la hora de cita del turno 1 (04:00).
+      // (+30 min de CUN a ZH), en BL-01, cuyo operador tiene cita a las 04:00.
       expect(prisma.asignacion.createMany).toHaveBeenCalledWith({
         data: [
           {
@@ -211,7 +210,7 @@ describe('RolesService', () => {
     it('400 si falta un parámetro o el encierro de una unidad no es una zona', async () => {
       prisma.parametroOperacion.findMany.mockResolvedValue(PARAMETROS.slice(1));
       await expect(servicio_.generar(FECHA, USUARIO)).rejects.toThrow(
-        'Falta el parámetro hora_cita.turno_1',
+        'Falta el parámetro jornada_maxima_horas',
       );
 
       prisma.parametroOperacion.findMany.mockResolvedValue(PARAMETROS);
@@ -223,12 +222,16 @@ describe('RolesService', () => {
       );
     });
 
-    it('usa la hora de cita del operador si la tiene; un vehículo sin operador no participa', async () => {
+    it('usa la hora de cita del operador; sin hora de cita o sin operador no participa', async () => {
       prisma.vehiculo.findMany.mockResolvedValue([
         vehiculo(1, {
           operador: { id: 101, disponible: true, horaCita: '05:45' },
         }),
-        vehiculo(2, { operador: null }),
+        // Ya no hay respaldo a un turno: sin hora de cita no participa.
+        vehiculo(2, {
+          operador: { id: 102, disponible: true, horaCita: null },
+        }),
+        vehiculo(3, { operador: null }),
       ]);
       // Con cita a las 05:45 + 30 min al aeropuerto no llega al inicio de las 04:50.
       const resultado = await servicio_.generar(FECHA, USUARIO);

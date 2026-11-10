@@ -64,8 +64,8 @@ describe('Motor de asignación: roles (e2e)', () => {
     });
     await prisma.parametroOperacion.createMany({
       data: [
-        ['hora_cita.turno_1', '04:00'],
-        ['hora_cita.turno_2', '05:00'],
+        ['hora_cita.bloque_matutino', '04:00-05:00'],
+        ['hora_cita.bloque_vespertino', '12:00-13:00'],
         ['jornada_maxima_horas', '9.5'],
         ['anticipacion.PRIVADO', '10'],
         ['anticipacion.COMPARTIDO', '20'],
@@ -73,11 +73,13 @@ describe('Motor de asignación: roles (e2e)', () => {
         ['motor.penalizacion_carga_min', '15'],
       ].map(([clave, valor]) => ({ clave, valor, descripcion: clave })),
     });
-    // Tres unidades: dos vans disponibles y una en mantenimiento.
+    // Cuatro unidades: dos vans disponibles, una en mantenimiento y una cuyo
+    // operador no tiene hora de cita (no participa en el rol).
     for (const [n, estado, horaCita] of [
       [1, 'DISPONIBLE', '04:00'],
-      [2, 'DISPONIBLE', null],
+      [2, 'DISPONIBLE', '04:00'],
       [3, 'MANTENIMIENTO', '04:00'],
+      [4, 'DISPONIBLE', null],
     ] as const) {
       const v = await prisma.vehiculo.create({
         data: {
@@ -222,8 +224,8 @@ describe('Motor de asignación: roles (e2e)', () => {
           numeroEconomico: v.numeroEconomico,
           capacidad: v.capacidad,
           operadorId: v.operador!.id,
-          disponible: v.estado === 'DISPONIBLE',
-          // Sin hora de cita propia se usa hora_cita.turno_1 (04:00).
+          disponible:
+            v.estado === 'DISPONIBLE' && v.operador!.horaCita !== null,
           cita: citas[v.operador!.horaCita ?? '04:00'],
           encierro: zona['Centro Cancún'],
         })),

@@ -94,7 +94,7 @@ export function OperadoresPage() {
         o.horaCita ? (
           <span className="tabular-nums">{o.horaCita}</span>
         ) : (
-          <span className="text-muted-foreground">Turno 1</span>
+          <span className="text-muted-foreground">Sin cita (no participa)</span>
         ),
     },
     {

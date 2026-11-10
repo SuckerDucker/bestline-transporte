@@ -40,7 +40,7 @@ describe('aDatosOperador', () => {
       vehiculoId: 9,
       horaCita: '04:30',
     })
-    // Sin unidad y sin hora: null (la API usa hora_cita.turno_1).
+    // Sin unidad y sin hora: null (el operador no participa en el rol).
     expect(aDatosOperador({ ...base, vehiculo: SIN_VEHICULO, horaCita: '' })).toEqual({
       ...base,
       vehiculoId: null,
@@ -56,7 +56,7 @@ describe('Formulario de operador', () => {
     expect(screen.getByLabelText('Hora de cita')).toHaveValue('04:15')
   })
 
-  it('cambia la unidad y deja la hora vacía (turno 1)', async () => {
+  it('cambia la unidad y deja la hora vacía (no participa)', async () => {
     const alGuardar = renderizarFormulario(OPERADOR)
 
     await userEvent.click(screen.getByRole('combobox', { name: 'Unidad' }))
@@ -82,5 +82,7 @@ describe('Formulario de operador', () => {
   it('un alta empieza sin unidad', () => {
     renderizarFormulario(null)
     expect(screen.getByRole('combobox', { name: 'Unidad' })).toHaveTextContent('Sin unidad (no participa en el rol)')
+    // La hora de cita debe caer en un bloque; vacía = no participa.
+    expect(screen.getByText(/dentro del bloque matutino o vespertino/)).toBeInTheDocument()
   })
 })
