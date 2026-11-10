@@ -18,7 +18,10 @@
  *    cita dentro de cada bloque, el encierro base de las unidades (zona
  *    Centro Cancún, supuesto por confirmar) y la penalización de carga del
  *    motor (15 min). La composición de la flota (4 Van/Urvan, 5 Sprinter y 1
- *    Autobús) y los dos bloques de 5 operadores son reglas confirmadas.
+ *    Autobús), los dos bloques de 5 operadores, que el autobús (BL-10) trabaje
+ *    en el bloque vespertino y la distribución diaria de los servicios por
+ *    franja son reglas confirmadas por la empresa (Lic. Magalis Casanova): los
+ *    60 servicios son datos de ejemplo construidos con esos parámetros reales.
  *    Los 8 hoteles de HOTELES_LAYOUT son los del archivo de ejemplo anonimizado
  *    de la empresa (docs/ejemplos), para que su importación encuentre los hoteles.
  *
@@ -567,21 +570,54 @@ async function main(): Promise<void> {
     else await prisma.operador.create({ data: datos });
   }
 
-  // 9) Servicios: 60 servicios del 2026-11-10
-  // Reparto de ejemplo por tipo (sentido) y modalidad:
+  // 9) Servicios: 60 servicios del 2026-11-10.
+  // Datos de ejemplo construidos con los parámetros reales de la empresa
+  // (REGLA CONFIRMADA CON LA EMPRESA, distribución diaria):
+  //   - mañana (04:00-11:59): 15 a 18 servicios, principalmente SALIDAS de
+  //     hotel al aeropuerto con familias (caben en Van o Sprinter);
+  //   - mediodía y tarde (12:00-18:59): 30 a 35, el pico, con llegadas de
+  //     Norteamérica y Europa y salidas de la tarde;
+  //   - noche (19:00-21:45): 8 a 10;
+  //   - los grupos de más de 20 pasajeros llegan a partir de las 13:00.
+  // Se usan 16, 34 y 10. La composición total es la misma de antes:
   //   LLEGADA:  10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
   //   SALIDA:   10 PRIVADO, 10 COMPARTIDO, 4 GRUPO  (24)
   //   TRASLADO:  6 PRIVADO,  3 COMPARTIDO, 3 GRUPO  (12)
-  const reparto: [TipoServicio, ModalidadServicio, number][] = [
-    [TipoServicio.LLEGADA, ModalidadServicio.PRIVADO, 10],
-    [TipoServicio.LLEGADA, ModalidadServicio.COMPARTIDO, 10],
-    [TipoServicio.LLEGADA, ModalidadServicio.GRUPO, 4],
-    [TipoServicio.SALIDA, ModalidadServicio.PRIVADO, 10],
-    [TipoServicio.SALIDA, ModalidadServicio.COMPARTIDO, 10],
-    [TipoServicio.SALIDA, ModalidadServicio.GRUPO, 4],
-    [TipoServicio.TRASLADO, ModalidadServicio.PRIVADO, 6],
-    [TipoServicio.TRASLADO, ModalidadServicio.COMPARTIDO, 3],
-    [TipoServicio.TRASLADO, ModalidadServicio.GRUPO, 3],
+  // Rango de minutos (desde las 00:00 de Cancún) de cada franja; los grupos
+  // de la tarde empiezan a las 13:00.
+  const MANANA = { desde: 240, hasta: 715 }; // 04:00-11:55
+  const TARDE = { desde: 720, hasta: 1135 }; // 12:00-18:55
+  const TARDE_GRUPOS = { desde: 780, hasta: 1135 }; // 13:00-18:55
+  const NOCHE = { desde: 1140, hasta: 1305 }; // 19:00-21:45
+  type Franja = { desde: number; hasta: number };
+  const { LLEGADA, SALIDA, TRASLADO } = TipoServicio;
+  const { PRIVADO, COMPARTIDO, GRUPO } = ModalidadServicio;
+  const reparto: [Franja, TipoServicio, ModalidadServicio, number][] = [
+    // Mañana (16): sobre todo salidas; sin grupos.
+    [MANANA, SALIDA, PRIVADO, 5],
+    [MANANA, SALIDA, COMPARTIDO, 5],
+    [MANANA, LLEGADA, PRIVADO, 2],
+    [MANANA, LLEGADA, COMPARTIDO, 1],
+    [MANANA, TRASLADO, PRIVADO, 2],
+    [MANANA, TRASLADO, COMPARTIDO, 1],
+    // Mediodía y tarde (34): el pico; los grupos desde las 13:00.
+    [TARDE, LLEGADA, PRIVADO, 6],
+    [TARDE, LLEGADA, COMPARTIDO, 7],
+    [TARDE_GRUPOS, LLEGADA, GRUPO, 3],
+    [TARDE, SALIDA, PRIVADO, 3],
+    [TARDE, SALIDA, COMPARTIDO, 4],
+    [TARDE_GRUPOS, SALIDA, GRUPO, 4],
+    [TARDE, TRASLADO, PRIVADO, 3],
+    [TARDE, TRASLADO, COMPARTIDO, 1],
+    [TARDE_GRUPOS, TRASLADO, GRUPO, 3],
+    // Noche (10).
+    [NOCHE, LLEGADA, PRIVADO, 2],
+    [NOCHE, LLEGADA, COMPARTIDO, 2],
+    [NOCHE, LLEGADA, GRUPO, 1],
+    [NOCHE, SALIDA, PRIVADO, 2],
+    [NOCHE, SALIDA, COMPARTIDO, 1],
+    [NOCHE, TRASLADO, PRIVADO, 1],
+    [NOCHE, TRASLADO, COMPARTIDO, 1],
   ];
   const azar = crearAleatorio(20261110);
   const zonaDeHotel = (h: Hotel) => h.zonaId;
@@ -590,8 +626,9 @@ async function main(): Promise<void> {
     h.zonaId === idZona.TULUM ? idZona.AEROPUERTO_TQO : idZona.AEROPUERTO_CUN;
   const aeropuertos = [idZona.AEROPUERTO_CUN, idZona.AEROPUERTO_TQO];
 
-  // Pasajeros según la modalidad (rangos de ejemplo). Los grupos pueden superar
-  // la capacidad de una van, lo que sirve para probar la regla de capacidad.
+  // Pasajeros según la modalidad (rangos de ejemplo): PRIVADO y COMPARTIDO
+  // son familias que caben en Van o Sprinter (máximo 12); los grupos (15 a 35)
+  // pueden superar la capacidad de una Sprinter.
   const pasajerosPorModalidad = (m: ModalidadServicio): number =>
     m === ModalidadServicio.PRIVADO
       ? azar(1, 6)
@@ -600,14 +637,16 @@ async function main(): Promise<void> {
         : azar(15, 35);
 
   let consecutivo = 0;
-  for (const [tipo, modalidad, cantidad] of reparto) {
+  for (const [franja, tipo, modalidad, cantidad] of reparto) {
     for (let i = 0; i < cantidad; i++) {
       consecutivo++;
       const mayorista = mayoristas[consecutivo % 2];
       const prefijo = mayorista.nombre === 'TUI' ? 'TUI' : 'NEX';
       const hotel = hoteles[azar(0, hoteles.length - 1)];
-      // Hora entre 05:30 y 20:00, en múltiplos de 5 minutos.
-      const fechaHora = horaCancun(330 + azar(0, 174) * 5);
+      // Hora dentro de la franja, en múltiplos de 5 minutos.
+      const fechaHora = horaCancun(
+        franja.desde + azar(0, (franja.hasta - franja.desde) / 5) * 5,
+      );
 
       let zonaOrigenId: number;
       let zonaDestinoId: number;
@@ -652,6 +691,30 @@ async function main(): Promise<void> {
         create: { folio, localizador, ...datos },
       });
     }
+  }
+
+  // Comprobaciones de las reglas confirmadas con la empresa.
+  const grupoTemprano = await prisma.servicio.findFirst({
+    where: {
+      importacionId: null,
+      pasajeros: { gt: 20 },
+      fechaHora: { gte: horaCancun(0), lt: horaCancun(13 * 60) },
+    },
+  });
+  if (grupoTemprano) {
+    throw new Error(
+      `El servicio ${grupoTemprano.folio} tiene más de 20 pasajeros antes de las 13:00`,
+    );
+  }
+  const autobus = await prisma.vehiculo.findUnique({
+    where: { numeroEconomico: 'BL-10' },
+    include: { operador: true },
+  });
+  const cita = autobus?.operador?.horaCita ?? '';
+  if (autobus?.tipo !== 'Autobús' || cita < '12:00' || cita > '13:00') {
+    throw new Error(
+      `El autobús BL-10 debe tener operador con cita en el bloque vespertino (tiene "${cita}")`,
+    );
   }
 
   const conteo = {
