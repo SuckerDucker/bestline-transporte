@@ -207,6 +207,46 @@ describe('Verificador independiente', () => {
     expect(noDisponible.join()).toMatch(/no está disponible/);
   });
 
+  it('ZONA_TERMINO: fuera de zona de término es válido si alcanza a regresar al encierro', () => {
+    // Un servicio de la zona 1 (término) a la 3, a las 600; encierro en la 2.
+    const mini: DatosVerificacion = {
+      servicios: [
+        {
+          id: 1,
+          folio: 'T-1',
+          hora: 600,
+          modalidad: 'PRIVADO',
+          pasajeros: 4,
+          origen: 1,
+          destino: 3,
+        },
+      ],
+      unidades: [{ ...unidades[0], cita: 240, encierro: 2, disponible: true }],
+      anticipacion: ANTICIPACION,
+      jornadaMaxima: 570,
+      zonasTermino: new Set([1]),
+      matriz: new Map([
+        ['2-1', 30],
+        ['1-3', 60],
+        ['3-2', 50],
+      ]),
+    };
+    const unico: RolAVerificar = {
+      asignaciones: [
+        { vehiculoId: unidades[0].vehiculoId, servicios: [{ id: 1 }] },
+      ],
+      noCubiertos: [],
+    };
+    // Libera a las 660 en la zona 3 y regresa al encierro a las 710 (470 <= 570).
+    expect(verificarRol(mini, unico)).toEqual([]);
+    // Con 7 h (420 min) el servicio cabe (660 − 240 = 420), pero el regreso no.
+    expect(verificarRol({ ...mini, jornadaMaxima: 420 }, unico)).toEqual([
+      expect.stringMatching(
+        /no alcanza a regresar al encierro \(ZONA_TERMINO\)/,
+      ),
+    ]);
+  });
+
   it('detecta horas guardadas distintas de las calculadas', () => {
     const fila = conServicios();
     fila.servicios[0].liberacion = (fila.servicios[0].liberacion ?? 0) + 1;

@@ -1,5 +1,6 @@
 import {
   calcularHoras,
+  cierreValido,
   costo,
   costoInsercion,
   crearTiempo,
@@ -269,6 +270,9 @@ describe('generarRol', () => {
 });
 
 describe('zona de término', () => {
+  // Jornada corta (5 h) para que una unidad que termina en Tulum no alcance a
+  // regresar a su encierro en Centro (Tulum → Centro tarda 100 min).
+  const pz = parametros({ jornadaMaxima: 300 });
   // BL-02 lleva dos servicios con un hueco entre ellos: libera a las 330 en ZH
   // y el siguiente empieza a las 690 (sale de ZH).
   const conHueco = (siguienteHora: number) =>
@@ -276,13 +280,14 @@ describe('zona de término', () => {
       calculado(10, 300, CUN, ZH),
       calculado(11, siguienteHora, ZH, CUN),
     ]);
-  // BL-01 termina en Tulum (no es zona de término): libera a las 500.
+  // BL-01 termina en Tulum (no es zona de término): libera a las 500 y
+  // regresaría al encierro a las 600 (600 − 240 = 360 > 300).
   const terminaEnTulum = () =>
     enRol(unidad(1), [calculado(1, 400, CUN, TULUM)]);
 
   it('reubica el último servicio en el hueco de otra unidad', () => {
     const unidades = [terminaEnTulum(), conHueco(700)];
-    const noCubiertos = reubicarPorZonaTermino(unidades, p);
+    const noCubiertos = reubicarPorZonaTermino(unidades, pz);
 
     expect(noCubiertos).toEqual([]);
     expect(secuencias(unidades)).toEqual({
@@ -295,7 +300,7 @@ describe('zona de término', () => {
     // El siguiente servicio de BL-02 empieza a las 590: S-1 libera a las 500
     // en Tulum y tarda 100 min a ZH (600 > 590).
     const unidades = [terminaEnTulum(), conHueco(600)];
-    const noCubiertos = reubicarPorZonaTermino(unidades, p);
+    const noCubiertos = reubicarPorZonaTermino(unidades, pz);
 
     expect(noCubiertos.map((n) => [n.servicio.folio, n.motivo])).toEqual([
       ['S-1', 'ZONA_TERMINO'],
@@ -307,12 +312,13 @@ describe('zona de término', () => {
   });
 
   it('quita servicios del final mientras la unidad siga terminando fuera de zona', () => {
-    // BL-01: CUN→Tulum y luego Tulum→Centro; ninguno termina en zona de término.
+    // BL-01: CUN→Tulum y luego Tulum→Centro; ninguno termina en zona de término
+    // y ninguno deja tiempo para regresar al encierro.
     const u = enRol(unidad(1), [
-      calculado(1, 300, CUN, TULUM),
+      calculado(1, 500, CUN, TULUM),
       calculado(2, 700, TULUM, CENTRO),
     ]);
-    const noCubiertos = reubicarPorZonaTermino([u], p);
+    const noCubiertos = reubicarPorZonaTermino([u], pz);
 
     expect(noCubiertos.map((n) => n.servicio.folio)).toEqual(['S-2', 'S-1']);
     expect(u.secuencia).toEqual([]);
@@ -328,8 +334,34 @@ describe('zona de término', () => {
     // ...pero BL-02 todavía termina en Tulum, así que no se usa: S-1 queda no
     // cubierto y después se quita S-11 del final de BL-02.
     const unidades = [terminaEnTulum(), otra];
-    const noCubiertos = reubicarPorZonaTermino(unidades, p);
+    const noCubiertos = reubicarPorZonaTermino(unidades, pz);
     expect(noCubiertos.map((n) => n.servicio.folio)).toEqual(['S-1', 'S-11']);
+  });
+
+  it('fuera de zona de término es válido si la unidad alcanza a regresar a su encierro', () => {
+    // Con la jornada normal (570): S-1 libera a las 500 en Tulum y regresa a
+    // Centro a las 600 (600 − 240 = 360 <= 570), así que BL-01 lo conserva.
+    const u = terminaEnTulum();
+    expect(cierreValido(u, p)).toBe(true);
+    expect(reubicarPorZonaTermino([u], p)).toEqual([]);
+    expect(u.secuencia.map((s) => s.folio)).toEqual(['S-1']);
+  });
+
+  it('el regreso al encierro respeta el límite de la jornada (extremo incluido)', () => {
+    // CUN→Tulum a las 610 libera a las 710; regresa a las 810: 810 − 240 = 570.
+    expect(
+      cierreValido(enRol(unidad(1), [calculado(1, 610, CUN, TULUM)]), p),
+    ).toBe(true);
+    // Un minuto después (811 − 240 = 571) ya no alcanza.
+    expect(
+      cierreValido(enRol(unidad(1), [calculado(1, 611, CUN, TULUM)]), p),
+    ).toBe(false);
+    // En Zona Hotelera o en el aeropuerto no hace falta regresar.
+    expect(
+      cierreValido(enRol(unidad(1), [calculado(1, 780, CUN, ZH)]), p),
+    ).toBe(true);
+    // Una unidad sin servicios no tiene que cerrar nada.
+    expect(cierreValido(enRol(unidad(1)), p)).toBe(true);
   });
 
   it('entre varios huecos elige el de menor costo', () => {
@@ -393,8 +425,9 @@ describe('reinserción', () => {
     // Libera a las 820: 820 − 240 = 580 > 570 (JORNADA).
     const tarde = calculado(1, 790, CUN, ZH);
     expect(mejorInsercion([vacia], tarde, p)).toBeNull();
-    // Terminaría en Tulum, que no es zona de término.
-    const aTulum = calculado(2, 600, CUN, TULUM);
+    // Terminaría en Tulum a las 800 y regresaría al encierro a las 900:
+    // 900 − 240 = 660 > 570 (ZONA_TERMINO).
+    const aTulum = calculado(2, 700, CUN, TULUM);
     expect(mejorInsercion([vacia], aTulum, p)).toBeNull();
     // Los que no caben conservan su motivo original.
     const quedan = reinsertar(
@@ -413,15 +446,17 @@ describe('reinserción', () => {
   });
 
   it('repite pasadas: un servicio cabe solo después de insertar otro', () => {
-    const u = enRol(unidad(1));
-    // S-1 (CUN→Tulum, inicio 290) solo no cierra el día en zona de término;
-    // S-2 (Tulum→CUN, inicio 590) sí. En la primera pasada entra S-2 y en la
-    // segunda S-1 antes que S-2 (libera 400 en Tulum + 10 <= 590).
+    // Unidad con encierro en Tulum (100 min de todo lo demás).
+    const u = enRol(unidad(1, { encierro: TULUM }));
+    // S-1 (CUN→Centro, inicio 690, libera 730) como último servicio no cierra
+    // el día: regresaría a Tulum a las 830 (830 − 240 = 590 > 570). S-2
+    // (Centro→CUN, inicio 740) sí, porque termina en el aeropuerto. En la
+    // primera pasada entra S-2 y en la segunda S-1 antes que S-2 (730 + 10 <= 740).
     const quedan = reinsertar(
       [u],
       [
-        { servicio: calculado(1, 300, CUN, TULUM), motivo: 'ZONA_TERMINO' },
-        { servicio: calculado(2, 600, TULUM, CUN), motivo: 'EMPALME' },
+        { servicio: calculado(1, 700, CUN, CENTRO), motivo: 'ZONA_TERMINO' },
+        { servicio: calculado(2, 750, CENTRO, CUN), motivo: 'EMPALME' },
       ],
       p,
     );
@@ -446,9 +481,10 @@ describe('reinserción', () => {
   });
 
   it('generarRol recupera un servicio que la etapa voraz rechazó por una unidad que luego se vació', () => {
-    // BL-01 toma S-1 (CUN→Tulum) y por eso rechaza S-2 (EMPALME); la etapa de
-    // zona de término quita S-1. La reinserción coloca S-2 en BL-01, ya vacía.
-    const servicios = [servicio(1, 300, CUN, TULUM), servicio(2, 330, CUN, ZH)];
+    // BL-01 toma S-1 (CUN→Tulum, libera 800) y por eso rechaza S-2 (EMPALME);
+    // la etapa de zona de término quita S-1 (regresaría al encierro a las 900:
+    // 900 − 240 > 570). La reinserción coloca S-2 en BL-01, ya vacía.
+    const servicios = [servicio(1, 700, CUN, TULUM), servicio(2, 730, CUN, ZH)];
     const base = generarRolBase(servicios, [unidad(1)], p);
     expect(base.unidades[0].secuencia).toEqual([]);
     expect(folios(base.noCubiertos)).toEqual([

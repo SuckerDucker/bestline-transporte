@@ -160,7 +160,8 @@ export function generarRolBase(
 
 /**
  * PARA CADA u EN unidades
- *   MIENTRAS el último servicio de u termina fuera de zona válida
+ *   MIENTRAS u no cierra bien el día (CierreValido: termina en zona de
+ *   término o alcanza a regresar a su encierro dentro de la jornada)
  *     s ← quitar el último servicio de u
  *     SI s no cabe entre dos servicios de otra unidad → (s, ZONA_TERMINO)
  *
@@ -226,12 +227,18 @@ export function mejorHueco(
 }
 
 /**
- * Zona de término: el último servicio de la unidad termina en una zona de
- * término válida. Una unidad sin servicios no tiene que cerrar nada.
+ * Zona de término (regla confirmada con la empresa): el último servicio de la
+ * unidad termina en una zona de término (Zona Hotelera o Aeropuerto CUN) o, si
+ * termina en otra zona, a la unidad le alcanza la jornada para regresar en
+ * vacío a su encierro:
+ *   liberación del último + tiempo(destino, encierro) − cita <= jornada máxima
+ * Una unidad sin servicios no tiene que cerrar nada.
  */
 export function cierreValido(u: UnidadEnRol, p: ParametrosMotor): boolean {
   const ultimo = u.secuencia.at(-1);
-  return !ultimo || p.zonasTermino.has(ultimo.destino);
+  if (!ultimo || p.zonasTermino.has(ultimo.destino)) return true;
+  const regreso = ultimo.liberacion + p.tiempo(ultimo.destino, u.encierro);
+  return regreso - u.cita <= p.jornadaMaxima;
 }
 
 /**
