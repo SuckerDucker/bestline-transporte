@@ -43,8 +43,8 @@ const INICIO_BLOQUE = [240, 240, 240, 240, 240, 720, 720, 720, 720, 720];
 
 /**
  * Un día de operación al azar con el volumen de la empresa: 60 a 75
- * servicios entre las 05:00 y las 21:00 y 10 unidades (alguna puede no estar
- * disponible). Zonas de término: 1 (aeropuerto) y 2.
+ * servicios repartidos por franja como en la operación real y 10 unidades
+ * (alguna puede no estar disponible). Zonas de término: 1 (aeropuerto) y 2.
  */
 function escenario(semilla: number) {
   const azar = crearAleatorio(semilla);
@@ -65,16 +65,32 @@ function escenario(semilla: number) {
     encierro: 3,
   }));
   const modalidades: Modalidad[] = ['PRIVADO', 'COMPARTIDO', 'GRUPO'];
+  // Distribución confirmada por la empresa (en proporción 16 / 34 / 10 de
+  // cada 60): mañana 04:00-11:55, sobre todo salidas y sin grupos; mediodía y
+  // tarde 12:00-18:55, con los grupos desde las 13:00; noche 19:00-21:45.
   const servicios: ServicioMotor[] = Array.from(
     { length: azar(60, 75) },
     (_, i) => {
-      const modalidad = modalidades[azar(0, 2)];
-      const sentido = azar(1, 3); // 1 llegada, 2 salida, 3 traslado
+      const franja = azar(1, 60); // 1-16 mañana, 17-50 tarde, 51-60 noche
+      const manana = franja <= 16;
+      const noche = franja > 50;
+      // En la mañana no hay grupos; en el resto, cualquier modalidad.
+      const modalidad = modalidades[azar(0, manana ? 1 : 2)];
+      // 1 llegada, 2 salida, 3 traslado; en la mañana, 2 de cada 3 son salidas.
+      const sentido = manana ? [1, 2, 2, 2, 2, 3][azar(0, 5)] : azar(1, 3);
       const zona = azar(2, 8);
+      const desde = manana
+        ? 240
+        : noche
+          ? 1140
+          : modalidad === 'GRUPO'
+            ? 780
+            : 720;
+      const hasta = manana ? 715 : noche ? 1305 : 1135;
       return {
         id: i + 1,
         folio: `E${semilla}-${i + 1}`,
-        hora: 300 + 5 * azar(0, 192), // 05:00 a 21:00
+        hora: desde + 5 * azar(0, (hasta - desde) / 5),
         modalidad,
         pasajeros:
           modalidad === 'PRIVADO'
