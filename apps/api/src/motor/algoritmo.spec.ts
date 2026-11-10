@@ -1,11 +1,16 @@
 import {
   calcularHoras,
   costo,
+  costoInsercion,
   crearTiempo,
   generarRol,
+  generarRolBase,
   mejorHueco,
+  mejorInsercion,
   motivoPorMayoria,
+  reinsertar,
   reubicarPorZonaTermino,
+  secuenciaValida,
   verificarRestricciones,
 } from './algoritmo.js';
 import type {
@@ -343,6 +348,117 @@ describe('zona de término', () => {
       unidad: cerca,
       indice: 1,
     });
+  });
+});
+
+describe('reinserción', () => {
+  // BL-02 con un hueco: S-10 libera a las 330 en ZH y S-11 empieza a las 690 en ZH.
+  const conHueco = () =>
+    enRol(unidad(2), [
+      calculado(10, 300, CUN, ZH),
+      calculado(11, 700, ZH, CUN),
+    ]);
+  const folios = (n: { servicio: ServicioCalculado; motivo: string }[]) =>
+    n.map((x) => [x.servicio.folio, x.motivo]);
+
+  it('inserta en una unidad vacía cuando las demás están ocupadas', () => {
+    // S-2 (inicio 595) se empalma con S-1 de BL-01 en cualquier posición.
+    const ocupada = enRol(unidad(1), [calculado(1, 600, CUN, ZH)]);
+    const vacia = enRol(unidad(2));
+    const quedan = reinsertar(
+      [ocupada, vacia],
+      [{ servicio: calculado(2, 605, CUN, ZH), motivo: 'EMPALME' }],
+      p,
+    );
+    expect(quedan).toEqual([]);
+    expect(secuencias([ocupada, vacia])).toEqual({
+      'BL-01': ['S-1'],
+      'BL-02': ['S-2'],
+    });
+  });
+
+  it('inserta en medio respetando el empalme con el servicio siguiente', () => {
+    const u = conHueco();
+    // S-3 (inicio 440, libera 460 en ZH): llega a S-11 a las 470 <= 690.
+    const s = calculado(3, 450, ZH, ZH);
+    expect(mejorInsercion([u], s, p)).toEqual({ unidad: u, indice: 1 });
+    // Espera 440 − 340 = 100, vacío añadido 10 + 10 − 10 = 10, carga 2 × 15.
+    expect(costoInsercion(u, 1, s, p)).toBe(140);
+    // S-4 (inicio 670, libera 690 en ZH): llegaría a S-11 a las 700 > 690.
+    expect(mejorInsercion([u], calculado(4, 680, ZH, ZH), p)).toBeNull();
+  });
+
+  it('rechaza la inserción que rompería la jornada o la zona de término', () => {
+    const vacia = enRol(unidad(1));
+    // Libera a las 820: 820 − 240 = 580 > 570 (JORNADA).
+    const tarde = calculado(1, 790, CUN, ZH);
+    expect(mejorInsercion([vacia], tarde, p)).toBeNull();
+    // Terminaría en Tulum, que no es zona de término.
+    const aTulum = calculado(2, 600, CUN, TULUM);
+    expect(mejorInsercion([vacia], aTulum, p)).toBeNull();
+    // Los que no caben conservan su motivo original.
+    const quedan = reinsertar(
+      [vacia],
+      [
+        { servicio: tarde, motivo: 'JORNADA' },
+        { servicio: aTulum, motivo: 'ZONA_TERMINO' },
+      ],
+      p,
+    );
+    expect(folios(quedan)).toEqual([
+      ['S-2', 'ZONA_TERMINO'],
+      ['S-1', 'JORNADA'],
+    ]);
+    expect(vacia.secuencia).toEqual([]);
+  });
+
+  it('repite pasadas: un servicio cabe solo después de insertar otro', () => {
+    const u = enRol(unidad(1));
+    // S-1 (CUN→Tulum, inicio 290) solo no cierra el día en zona de término;
+    // S-2 (Tulum→CUN, inicio 590) sí. En la primera pasada entra S-2 y en la
+    // segunda S-1 antes que S-2 (libera 400 en Tulum + 10 <= 590).
+    const quedan = reinsertar(
+      [u],
+      [
+        { servicio: calculado(1, 300, CUN, TULUM), motivo: 'ZONA_TERMINO' },
+        { servicio: calculado(2, 600, TULUM, CUN), motivo: 'EMPALME' },
+      ],
+      p,
+    );
+    expect(quedan).toEqual([]);
+    expect(u.secuencia.map((s) => s.folio)).toEqual(['S-1', 'S-2']);
+  });
+
+  it('desempate reproducible: con el mismo costo gana el menor número económico', () => {
+    const doce = enRol({ ...unidad(12), numeroEconomico: 'BL-12' });
+    const dos = enRol({ ...unidad(2), numeroEconomico: 'BL-2' });
+    const s = calculado(1, 600);
+    expect(mejorInsercion([doce, dos], s, p)?.unidad).toBe(dos);
+    expect(mejorInsercion([dos, doce], s, p)?.unidad).toBe(dos);
+  });
+
+  it('secuenciaValida revisa cada servicio contra los que lo preceden', () => {
+    const u = enRol(unidad(1));
+    const a = calculado(1, 300, CUN, ZH);
+    const b = calculado(2, 700, ZH, CUN);
+    expect(secuenciaValida(u, [a, b], p)).toBe(true);
+    expect(secuenciaValida(u, [b, a], p)).toBe(false);
+  });
+
+  it('generarRol recupera un servicio que la etapa voraz rechazó por una unidad que luego se vació', () => {
+    // BL-01 toma S-1 (CUN→Tulum) y por eso rechaza S-2 (EMPALME); la etapa de
+    // zona de término quita S-1. La reinserción coloca S-2 en BL-01, ya vacía.
+    const servicios = [servicio(1, 300, CUN, TULUM), servicio(2, 330, CUN, ZH)];
+    const base = generarRolBase(servicios, [unidad(1)], p);
+    expect(base.unidades[0].secuencia).toEqual([]);
+    expect(folios(base.noCubiertos)).toEqual([
+      ['S-2', 'EMPALME'],
+      ['S-1', 'ZONA_TERMINO'],
+    ]);
+
+    const final = generarRol(servicios, [unidad(1)], p);
+    expect(secuencias(final.unidades)).toEqual({ 'BL-01': ['S-2'] });
+    expect(folios(final.noCubiertos)).toEqual([['S-1', 'ZONA_TERMINO']]);
   });
 });
 

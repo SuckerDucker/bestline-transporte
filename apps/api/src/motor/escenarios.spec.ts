@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { crearTiempo, generarRol } from './algoritmo.js';
+import { crearTiempo, generarRol, generarRolBase } from './algoritmo.js';
 import type {
   Modalidad,
   Motivo,
@@ -227,7 +227,10 @@ describe('200 escenarios aleatorios (semilla fija)', () => {
     };
     let servicios = 0;
     let asignados = 0;
+    let asignadosSinReinsercion = 0;
     const fallas: string[] = [];
+    const contar = (r: ResultadoRol) =>
+      r.unidades.reduce((n, u) => n + u.secuencia.length, 0);
 
     for (let semilla = 1; semilla <= 200; semilla++) {
       const caso = escenario(semilla);
@@ -239,12 +242,16 @@ describe('200 escenarios aleatorios (semilla fija)', () => {
       const violaciones = verificarRol(caso.datos, aRol(resultado));
       if (violaciones.length)
         fallas.push(`semilla ${semilla}: ${violaciones.join('; ')}`);
+      // Propiedad: la reinserción nunca baja la cobertura.
+      const sinReinsercion = contar(
+        generarRolBase(caso.servicios, caso.unidades, caso.parametros),
+      );
+      if (contar(resultado) < sinReinsercion)
+        fallas.push(`semilla ${semilla}: la reinserción bajó la cobertura`);
 
       servicios += caso.servicios.length;
-      asignados += resultado.unidades.reduce(
-        (n, u) => n + u.secuencia.length,
-        0,
-      );
+      asignados += contar(resultado);
+      asignadosSinReinsercion += sinReinsercion;
       for (const n of resultado.noCubiertos) motivos[n.motivo]++;
     }
 
@@ -257,7 +264,7 @@ describe('200 escenarios aleatorios (semilla fija)', () => {
     expect(motivos.ZONA_TERMINO).toBeGreaterThan(0);
     // Resumen para las evidencias.
     console.info(
-      `200 escenarios: ${servicios} servicios, ${asignados} asignados, no cubiertos ${JSON.stringify(motivos)}`,
+      `200 escenarios: ${servicios} servicios, ${asignadosSinReinsercion} asignados sin reinserción, ${asignados} con reinserción, no cubiertos ${JSON.stringify(motivos)}`,
     );
   });
 });
