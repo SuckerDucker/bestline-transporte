@@ -90,8 +90,9 @@ export function verificarRol(
       zona = s.destino;
       libre = liberacion;
     }
-    // Fuera de zona de término solo es válido si la unidad alcanza a regresar
-    // en vacío a su encierro dentro de la jornada.
+    // REGLA CONFIRMADA CON LA EMPRESA (zona de término): fuera de zona de
+    // término solo es válido si la unidad alcanza a regresar en vacío a su
+    // encierro dentro de la jornada.
     if (
       a.servicios.length > 0 &&
       !datos.zonasTermino.has(zona) &&

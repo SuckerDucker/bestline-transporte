@@ -21,7 +21,7 @@ export const MOTIVO: Record<Motivo, { etiqueta: string; tono: Tono; explicacion:
   ZONA_TERMINO: {
     etiqueta: 'Zona de término',
     tono: 'error',
-    explicacion: 'Dejaría a la unidad terminando fuera de una zona de término.',
+    explicacion: 'Dejaría a la unidad terminando fuera de una zona de término y sin jornada para regresar a su encierro.',
   },
   SIN_UNIDAD: { etiqueta: 'Sin unidad', tono: 'error', explicacion: 'No hay unidades disponibles ese día.' },
 }

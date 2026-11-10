@@ -227,7 +227,7 @@ export function mejorHueco(
 }
 
 /**
- * Zona de término (regla confirmada con la empresa): el último servicio de la
+ * Zona de término (REGLA CONFIRMADA CON LA EMPRESA): el último servicio de la
  * unidad termina en una zona de término (Zona Hotelera o Aeropuerto CUN) o, si
  * termina en otra zona, a la unidad le alcanza la jornada para regresar en
  * vacío a su encierro:
