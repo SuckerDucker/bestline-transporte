@@ -13,6 +13,7 @@ const modelo = () => ({
   create: fn(),
   createMany: fn(),
   update: fn(),
+  updateMany: fn(),
   upsert: fn(),
   delete: fn(),
   deleteMany: fn(),
