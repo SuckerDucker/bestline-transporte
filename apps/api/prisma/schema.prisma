@@ -255,6 +255,7 @@ model RolDiario {
   fecha         DateTime  @unique @db.Date
   estado        EstadoRol
   autorizadoPor Int?      @map("autorizado_por")
+  autorizadoEn  DateTime? @map("autorizado_en") @db.Timestamptz(3)
   generadoEn    DateTime  @default(now()) @map("generado_en") @db.Timestamptz(3)
 
   autorizador  Usuario?             @relation(fields: [autorizadoPor], references: [id])
