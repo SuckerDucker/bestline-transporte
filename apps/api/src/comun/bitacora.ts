@@ -9,6 +9,7 @@ export const ACCIONES_BITACORA = [
   'REACTIVAR',
   'CAMBIAR_PASSWORD',
   'ELIMINAR',
+  'AUTORIZAR',
 ] as const;
 export type AccionBitacora = (typeof ACCIONES_BITACORA)[number];
 
@@ -23,6 +24,7 @@ export const ENTIDADES_BITACORA = [
   'tiempo_traslado',
   'importacion',
   'rol_diario',
+  'asignacion',
 ] as const;
 
 /**
