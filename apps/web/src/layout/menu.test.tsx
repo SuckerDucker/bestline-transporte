@@ -13,6 +13,7 @@ describe('Menú según el rol', () => {
       'Inicio',
       'Importar servicios',
       'Generar rol',
+      'Revisar rol',
       'Servicios',
       'Historial de importaciones',
       'Vehículos',
@@ -47,6 +48,13 @@ describe('Menú según el rol', () => {
     expect(etiquetas('COORDINADOR')).toContain('Generar rol')
     expect(etiquetas('SUPERVISOR')).not.toContain('Generar rol')
     expect(etiquetas('OPERADOR')).not.toContain('Generar rol')
+  })
+
+  it('ADMINISTRADOR, COORDINADOR y SUPERVISOR ven "Revisar rol"; el OPERADOR no', () => {
+    for (const rol of ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as const) expect(etiquetas(rol)).toContain('Revisar rol')
+    expect(etiquetas('OPERADOR')).not.toContain('Revisar rol')
+    // Las subrutas con fecha usan el mismo título.
+    expect(tituloDe('/roles/2026-11-10')).toBe('Revisión del rol')
   })
 
   it('solo ADMINISTRADOR y COORDINADOR ven "Importar servicios"', () => {
