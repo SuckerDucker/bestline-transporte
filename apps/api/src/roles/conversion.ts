@@ -20,3 +20,10 @@ export const aInstante = (inicioDia: Date, minutos: number) =>
 /** Fecha del rol para la columna rol_diario.fecha (tipo DATE). */
 export const fechaDelRol = (fecha: string) =>
   new Date(`${fecha}T00:00:00.000Z`);
+
+/** 270 → "04:30" (minutos desde las 00:00 del día). */
+export function minutosAHora(minutos: number): string {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
