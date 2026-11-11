@@ -252,15 +252,44 @@ export function secuenciaValida(
   secuencia: ServicioCalculado[],
   p: ParametrosMotor,
 ): boolean {
-  const cumple = secuencia.every(
-    (s, k) =>
-      verificarRestricciones(
-        { ...u, secuencia: secuencia.slice(0, k) },
-        s,
-        p,
-      ) === null,
-  );
-  return cumple && cierreValido({ ...u, secuencia }, p);
+  return revisarSecuencia(u, secuencia, p) === null;
+}
+
+/**
+ * Igual que secuenciaValida, pero dice qué regla falla y en qué servicio: el
+ * primero (en orden) que no pasa VerificarRestricciones contra los anteriores
+ * o, si todos pasan y la unidad no cierra bien, ZONA_TERMINO en el último.
+ * Devuelve null si la secuencia es válida. La usa también la revisión manual
+ * del rol (una sola fuente de verdad).
+ */
+export function revisarSecuencia(
+  u: UnidadEnRol,
+  secuencia: ServicioCalculado[],
+  p: ParametrosMotor,
+): { motivo: Restriccion | 'ZONA_TERMINO'; indice: number } | null {
+  for (let k = 0; k < secuencia.length; k++) {
+    const motivo = verificarRestricciones(
+      { ...u, secuencia: secuencia.slice(0, k) },
+      secuencia[k],
+      p,
+    );
+    if (motivo) return { motivo, indice: k };
+  }
+  return cierreValido({ ...u, secuencia }, p)
+    ? null
+    : { motivo: 'ZONA_TERMINO', indice: secuencia.length - 1 };
+}
+
+/**
+ * Posición cronológica de s en una secuencia: antes del primer servicio que
+ * empieza después (por inicio efectivo); con el mismo inicio, va después.
+ */
+export function posicionCronologica(
+  secuencia: ServicioCalculado[],
+  s: ServicioCalculado,
+): number {
+  const i = secuencia.findIndex((x) => x.inicio > s.inicio);
+  return i === -1 ? secuencia.length : i;
 }
 
 /**
