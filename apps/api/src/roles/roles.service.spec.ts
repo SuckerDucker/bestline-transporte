@@ -88,6 +88,8 @@ describe('RolesService', () => {
     prisma.zona.findMany.mockResolvedValue(ZONAS);
     prisma.tiempoTraslado.findMany.mockResolvedValue(matrizCompleta());
     prisma.parametroOperacion.findMany.mockResolvedValue(PARAMETROS);
+    // SELECT … FOR UPDATE de rol_diario: sin fila si no hay rol de la fecha.
+    prisma.$queryRaw.mockResolvedValue([]);
   });
 
   describe('generar', () => {
@@ -153,9 +155,12 @@ describe('RolesService', () => {
         id: 7,
         estado: 'PROPUESTO',
       });
+      prisma.$queryRaw.mockResolvedValue([{ id: 7, estado: 'PROPUESTO' }]);
 
       const resultado = await servicio_.generar(FECHA, USUARIO);
 
+      // La fila del rol se bloquea dentro de la transacción antes de borrar.
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
       expect(prisma.asignacion.deleteMany).toHaveBeenCalledWith({
         where: { rolId: 7 },
       });
@@ -179,6 +184,19 @@ describe('RolesService', () => {
         ConflictException,
       );
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('409 si lo autorizaron mientras se generaba (se ve con la fila bloqueada)', async () => {
+      prisma.rolDiario.findUnique.mockResolvedValue({
+        id: 7,
+        estado: 'PROPUESTO',
+      });
+      prisma.$queryRaw.mockResolvedValue([{ id: 7, estado: 'AUTORIZADO' }]);
+      await expect(servicio_.generar(FECHA, USUARIO)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(prisma.asignacion.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.rolDiario.update).not.toHaveBeenCalled();
     });
 
     it('400 si no hay servicios PENDIENTE', async () => {
@@ -265,24 +283,54 @@ describe('RolesService', () => {
   });
 
   describe('consultas', () => {
-    const asignacion = (vehiculoId: number, numero: string, orden: number) => ({
+    // Minuto del día de Cancún → instante UTC.
+    const a = (minutos: number) => aInstante(INICIO_DIA, minutos);
+    /** Asignación como la devuelve Prisma (servicio CUN → ZH, PRIVADO). */
+    const asignacion = (vehiculoId: number, orden: number, hora: number) => ({
       id: vehiculoId * 10 + orden,
       vehiculoId,
       orden,
-      vehiculo: { id: vehiculoId, numeroEconomico: numero },
-      operador: { id: 100 + vehiculoId, nombre: `Operador ${vehiculoId}` },
+      inicioEfectivo: a(hora - 10),
+      liberacion: a(hora + 30),
+      servicio: servicio(vehiculoId * 10 + orden, hora),
     });
 
-    it('obtener agrupa las asignaciones por unidad y ordena por número económico', async () => {
+    it('obtener agrupa por unidad (incluidas las vacías), ordena por número económico y calcula el vacío previo', async () => {
       prisma.rolDiario.findUnique.mockResolvedValue({
         id: 7,
         estado: 'PROPUESTO',
         asignaciones: [
-          asignacion(10, 'BL-10', 1),
-          asignacion(2, 'BL-2', 1),
-          asignacion(2, 'BL-2', 2),
+          asignacion(2, 1, 300),
+          asignacion(2, 2, 480),
+          asignacion(10, 1, 840),
         ],
-        _count: { noCubiertos: 4 },
+        noCubiertos: [1, 2, 3, 4].map((id) => ({ id, servicioId: 90 + id })),
+      });
+      prisma.vehiculo.findMany.mockResolvedValue([
+        vehiculo(10, {
+          numeroEconomico: 'BL-10',
+          tipo: 'AUTOBUS',
+          capacidad: 45,
+          operador: {
+            id: 110,
+            nombre: 'Op 10',
+            disponible: true,
+            horaCita: '12:00',
+          },
+        }),
+        vehiculo(2, { numeroEconomico: 'BL-02', tipo: 'VAN' }),
+        // Disponible y sin servicios: aparece vacía.
+        vehiculo(3, {
+          numeroEconomico: 'BL-03',
+          tipo: 'SPRINTER',
+          capacidad: 20,
+        }),
+        // En mantenimiento y sin servicios: no participa.
+        vehiculo(4, { numeroEconomico: 'BL-04', estado: 'MANTENIMIENTO' }),
+      ]);
+      prisma.parametroOperacion.findUnique.mockResolvedValue({
+        clave: 'jornada_maxima_horas',
+        valor: '9.5',
       });
 
       const rol = await servicio_.obtener(FECHA);
@@ -299,10 +347,34 @@ describe('RolesService', () => {
           u.asignaciones.length,
         ]),
       ).toEqual([
-        ['BL-2', 2],
+        ['BL-02', 2],
+        ['BL-03', 0],
         ['BL-10', 1],
       ]);
-      expect(rol.unidades[0].asignaciones[0]).not.toHaveProperty('vehiculo');
+      const [bl02, bl03, bl10] = rol.unidades;
+      expect(bl03.vehiculo).toEqual({
+        id: 3,
+        numeroEconomico: 'BL-03',
+        tipo: 'SPRINTER',
+        capacidad: 20,
+      });
+      // Cita 04:00 + 9.5 h = 13:30; el autobús, 12:00 + 9.5 h = 21:30.
+      expect(bl02.cita).toEqual(a(240));
+      expect(bl02.finJornada).toEqual(a(810));
+      expect(bl10.finJornada).toEqual(a(1290));
+      // 1.º: del encierro (Centro) al aeropuerto, 30 min desde la cita (04:00).
+      expect(bl02.asignaciones[0].vacio).toEqual({
+        minutos: 30,
+        desde: a(240),
+        hasta: a(270),
+      });
+      // 2.º: de Zona Hotelera (destino anterior) al aeropuerto, desde la liberación 05:30.
+      expect(bl02.asignaciones[1].vacio).toEqual({
+        minutos: 30,
+        desde: a(330),
+        hasta: a(360),
+      });
+      expect(rol.noCubiertos).toHaveLength(4);
     });
 
     it('404 si no hay rol de la fecha', async () => {

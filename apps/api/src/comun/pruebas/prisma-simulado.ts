@@ -40,6 +40,7 @@ export function crearPrismaSimulado() {
     servicioNoCubierto: modelo(),
     servicio: modelo(),
     $transaction: fn(),
+    $queryRaw: fn(),
   };
   simulado.$transaction.mockImplementation((arg: unknown) =>
     typeof arg === 'function'
