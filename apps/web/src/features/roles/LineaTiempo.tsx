@@ -1,8 +1,19 @@
-import { minutosDelDia } from '@/lib/fechas'
+import { horaCancun, minutosDelDia } from '@/lib/fechas'
 import { cn } from '@/lib/utils'
 import type { AsignacionRol, UnidadRol } from './api'
 import { DatosUnidad } from './DatosUnidad'
 import { COLOR_MODALIDAD, describirServicio } from './formato'
+
+/**
+ * Escala fija: 2.5 px por minuto. Con ella el servicio más corto del día
+ * (unos 25 min del inicio efectivo a la liberación) mide ~60 px y alcanza para
+ * leer el folio y la hora. El día completo no cabe en la pantalla, así que la
+ * línea de tiempo se desplaza dentro de su tarjeta (la página no se desborda)
+ * y la columna de unidades queda fija a la izquierda.
+ */
+const PX_POR_MINUTO = 2.5
+/** Espacio a cada lado para que la primera y la última hora del eje no se corten. */
+const MARGEN = 24
 
 interface Props {
   fecha: string
@@ -15,25 +26,28 @@ interface Props {
 /**
  * Línea de tiempo del rol (escritorio): una fila por unidad y, en ella, cada
  * servicio como una barra del inicio efectivo a la liberación, precedida de su
- * traslado en vacío (tenue). Todo se ubica en minutos del día de Cancún como
- * porcentaje del rango visible; lo que queda fuera de la jornada va sombreado.
+ * traslado en vacío (tenue). Todo se ubica en minutos del día de Cancún;
+ * lo que queda fuera de la jornada va sombreado.
  */
 export function LineaTiempo({ fecha, unidades, editable, alElegir }: Props) {
   const m = (iso: string) => minutosDelDia(iso, fecha)
   const { desde, hasta } = rango(unidades, m)
-  const total = hasta - desde
+  const ancho = (hasta - desde) * PX_POR_MINUTO + 2 * MARGEN
   const pos = (inicio: number, fin: number) => ({
-    left: `${((inicio - desde) / total) * 100}%`,
-    width: `${(Math.max(fin - inicio, 0) / total) * 100}%`,
+    left: MARGEN + (inicio - desde) * PX_POR_MINUTO,
+    width: Math.max(fin - inicio, 0) * PX_POR_MINUTO,
   })
-  const horas = Array.from({ length: total / 60 + 1 }, (_, i) => desde + i * 60)
+  const horas = Array.from({ length: (hasta - desde) / 60 + 1 }, (_, i) => desde + i * 60)
+  const columnas = { gridTemplateColumns: `13rem ${ancho}px` }
+  // Columna de unidades fija al desplazar la línea de tiempo.
+  const fija = 'sticky left-0 z-20 border-r bg-card'
 
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
-      <div className="min-w-[960px]">
+    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm" role="region" aria-label="Línea de tiempo" tabIndex={0}>
+      <div className="w-max">
         {/* Eje de horas */}
-        <div className="grid grid-cols-[13rem_1fr] border-b text-xs text-muted-foreground">
-          <div className="px-4 py-2 font-medium">Unidad</div>
+        <div className="grid border-b text-xs text-muted-foreground" style={columnas}>
+          <div className={cn(fija, 'px-4 py-2 font-medium')}>Unidad</div>
           <div className="relative h-8">
             {horas.map((h) => (
               <span key={h} className="absolute top-2 -translate-x-1/2 tabular-nums" style={{ left: pos(h, h).left }}>
@@ -48,12 +62,8 @@ export function LineaTiempo({ fecha, unidades, editable, alElegir }: Props) {
             const cita = u.cita ? m(u.cita) : desde
             const fin = u.finJornada ? m(u.finJornada) : hasta
             return (
-              <li
-                key={u.vehiculo.id}
-                aria-label={u.vehiculo.numeroEconomico}
-                className="grid grid-cols-[13rem_1fr] border-b last:border-b-0"
-              >
-                <DatosUnidad unidad={u} className="px-4 py-2" />
+              <li key={u.vehiculo.id} aria-label={u.vehiculo.numeroEconomico} className="grid border-b last:border-b-0" style={columnas}>
+                <DatosUnidad unidad={u} className={cn(fija, 'px-4 py-2')} />
                 <div className="relative my-2 h-12">
                   {horas.map((h) => (
                     <span key={h} className="absolute inset-y-0 w-px bg-border" style={{ left: pos(h, h).left }} aria-hidden />
@@ -62,13 +72,18 @@ export function LineaTiempo({ fecha, unidades, editable, alElegir }: Props) {
                   <span className="absolute inset-y-0 bg-muted" style={pos(desde, cita)} aria-hidden />
                   <span className="absolute inset-y-0 bg-muted" style={pos(fin, hasta)} aria-hidden />
                   {u.asignaciones.map((a) => {
-                    const inicio = m(a.inicioEfectivo)
-                    const libera = m(a.liberacion)
                     const etiqueta = describirServicio(a)
                     const clase = cn(
-                      'absolute inset-y-1 overflow-hidden rounded-md px-1 text-left text-[11px] leading-tight font-medium text-white shadow-sm',
+                      'absolute inset-y-1 flex flex-col justify-center overflow-hidden rounded-md px-1.5 text-left text-[11px] leading-tight font-medium whitespace-nowrap text-white shadow-sm',
                       COLOR_MODALIDAD[a.servicio.modalidad] ?? 'bg-slate-600',
                     )
+                    const contenido = (
+                      <>
+                        <span>{a.servicio.folio}</span>
+                        <span className="font-normal tabular-nums opacity-90">{horaCancun(a.servicio.fechaHora)}</span>
+                      </>
+                    )
+                    const estilo = pos(m(a.inicioEfectivo), m(a.liberacion))
                     return (
                       <div key={a.id}>
                         {a.vacio && (
@@ -83,16 +98,16 @@ export function LineaTiempo({ fecha, unidades, editable, alElegir }: Props) {
                           <button
                             type="button"
                             className={cn(clase, 'cursor-pointer focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none')}
-                            style={pos(inicio, libera)}
+                            style={estilo}
                             title={`${etiqueta}. Clic para mover`}
                             aria-label={`Mover ${etiqueta}`}
                             onClick={() => alElegir(a)}
                           >
-                            {a.servicio.folio}
+                            {contenido}
                           </button>
                         ) : (
-                          <span role="img" className={clase} style={pos(inicio, libera)} title={etiqueta} aria-label={etiqueta}>
-                            {a.servicio.folio}
+                          <span role="img" className={clase} style={estilo} title={etiqueta} aria-label={etiqueta}>
+                            {contenido}
                           </span>
                         )}
                       </div>

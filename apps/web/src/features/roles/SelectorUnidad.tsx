@@ -77,7 +77,7 @@ export function SelectorUnidad({ fecha, objetivo, alCerrar }: Props) {
         ) : opciones.error ? (
           <p className="text-sm text-destructive">{opciones.error.message}</p>
         ) : (
-          <ul className="max-h-[60vh] space-y-2 overflow-y-auto" aria-label="Unidades">
+          <ul className="max-h-[calc(100dvh-11rem)] space-y-1.5 overflow-y-auto" aria-label="Unidades">
             {(opciones.data ?? []).map((o) => (
               <li key={o.vehiculoId}>
                 <button
@@ -85,7 +85,7 @@ export function SelectorUnidad({ fecha, objetivo, alCerrar }: Props) {
                   disabled={!o.valido || procesando}
                   onClick={() => elegir(o)}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors',
                     o.valido
                       ? 'hover:border-primary hover:bg-primary/5 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none'
                       : 'cursor-not-allowed bg-muted/40 opacity-80',

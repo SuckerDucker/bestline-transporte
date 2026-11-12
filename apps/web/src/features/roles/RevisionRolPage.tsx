@@ -29,7 +29,7 @@ export function RedirigirRolDeManana() {
 }
 
 /**
- * Revisión del rol (CU-15): línea de tiempo por unidad (lista en celular),
+ * Revisar y ajustar el rol (CU-15) y autorizarlo (CU-16): línea de tiempo por unidad (lista en celular),
  * no cubiertos por motivo, mover un servicio o asignar un no cubierto a una
  * unidad (la API revalida) y autorizar. SUPERVISOR solo consulta y un rol
  * AUTORIZADO ya no se modifica.
@@ -142,7 +142,14 @@ export function RevisionRolPage() {
 
           <div className="space-y-3">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-              <h2 className="text-base font-semibold">Servicios por unidad</h2>
+              <div>
+                <h2 className="text-base font-semibold">Servicios por unidad</h2>
+                {!esMovil && (
+                  <p className="text-xs text-muted-foreground">
+                    Desplaza la línea de tiempo a la derecha para ver la tarde y la noche.
+                  </p>
+                )}
+              </div>
               {!esMovil && <LeyendaLineaTiempo />}
             </div>
             {esMovil ? (
