@@ -58,7 +58,7 @@ const SERVICIO_EJEMPLO = {
   mayorista: { id: 2, nombre: 'Nexus Tours' },
 };
 
-/** Motor de asignación: generación y consulta del rol diario (CU-13, CU-14). */
+/** Motor de asignación: generación y consulta del rol diario (CU-13 y CU-14), revisión (CU-15) y autorización (CU-16). */
 @ApiTags('roles')
 @ApiBearerAuth()
 @ApiError401()
@@ -260,7 +260,7 @@ export class RolesController {
     description: 'Id del servicio (asignado o no cubierto)',
   })
   @ApiOperation({
-    summary: 'Unidades que aceptan un servicio (selector "Mover a…")',
+    summary: 'Unidades que aceptan un servicio, selector "Mover a…" (CU-15)',
     description:
       'ADMINISTRADOR, COORDINADOR y SUPERVISOR. Para cada unidad dice si aceptaría el servicio en su posición cronológica, revalidando con las mismas funciones del motor la secuencia completa de esa unidad y la de la unidad de origen. Si no, da el motivo (EMPALME, CAPACIDAD, JORNADA, ZONA_TERMINO o DISPONIBILIDAD) y el detalle. Primero las válidas.',
   })
@@ -310,7 +310,7 @@ export class RolesController {
   @ApiParam(FECHA)
   @ApiParam({ name: 'id', example: 12, description: 'Id de la asignación' })
   @ApiOperation({
-    summary: 'Mover un servicio a otra unidad',
+    summary: 'Mover un servicio a otra unidad (CU-15)',
     description:
       'ADMINISTRADOR y COORDINADOR. Con la fila del rol bloqueada (SELECT … FOR UPDATE) y los datos recién leídos, inserta el servicio en la posición cronológica de la unidad destino y revalida con las funciones del motor la secuencia COMPLETA del destino y la que le queda al origen (su nuevo último servicio debe cerrar bien el día). Si pasa, guarda en una transacción y lo registra en la bitácora; si no, 400 con motivo y detalle. Con el rol AUTORIZADO responde 409.',
   })
@@ -371,7 +371,7 @@ export class RolesController {
     description: 'Id del servicio no cubierto',
   })
   @ApiOperation({
-    summary: 'Asignar un servicio no cubierto a una unidad',
+    summary: 'Asignar un servicio no cubierto a una unidad (CU-15)',
     description:
       'ADMINISTRADOR y COORDINADOR. Misma revalidación que mover (con la fila del rol bloqueada). Si pasa, en una transacción crea la asignación, lo quita de los no cubiertos y lo registra en la bitácora. Con el rol AUTORIZADO responde 409.',
   })
@@ -434,7 +434,7 @@ export class RolesController {
   @Roles(...ROLES_GENERAR)
   @ApiParam(FECHA)
   @ApiOperation({
-    summary: 'Autorizar el rol',
+    summary: 'Autorizar el rol del día (CU-16)',
     description:
       'ADMINISTRADOR y COORDINADOR. Corre el verificador independiente sobre el rol guardado; si pasa, en una transacción: rol AUTORIZADO con usuario y fecha de autorización, servicios asignados → PROGRAMADO y bitácora. Después, cualquier cambio o regenerar responde 409.',
   })

@@ -70,7 +70,7 @@ const COLUMNAS: Columna<NoCubierto>[] = [
 /**
  * Generar rol (CU-13): ejecuta el motor de asignación para un día y muestra
  * el resumen y los servicios no cubiertos con su motivo (CU-14). La línea de
- * tiempo, los movimientos y la autorización están en Revisar rol (CU-15).
+ * tiempo, los movimientos y la autorización están en Revisar rol (CU-15 y CU-16).
  */
 export function GenerarRolPage() {
   const [fecha, setFecha] = useState(mananaCancun)

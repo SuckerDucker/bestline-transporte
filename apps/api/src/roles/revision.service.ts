@@ -33,8 +33,8 @@ export interface OpcionUnidad {
 }
 
 /**
- * Revisión manual del rol PROPUESTO (CU-15): opciones para mover un servicio,
- * mover, asignar un no cubierto y autorizar. Toda revalidación usa las mismas
+ * Revisar y ajustar el rol PROPUESTO (CU-15): opciones para mover un servicio,
+ * mover y asignar un no cubierto; y autorizar el rol del día (CU-16). Toda revalidación usa las mismas
  * funciones del motor (revalidacion.ts → revisarSecuencia).
  */
 @Injectable()
