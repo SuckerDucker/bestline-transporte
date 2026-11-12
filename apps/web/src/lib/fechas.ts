@@ -13,5 +13,12 @@ export const diaCancun = (iso: string) => DIA.format(new Date(iso))
 export const diaYHoraCancun = (iso: string) => DIA_Y_HORA.format(new Date(iso))
 
 const DIA_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' })
+/**
+ * Minutos desde las 00:00 de Cancún del día `fecha` (AAAA-MM-DD) hasta `iso`.
+ * Cancún es UTC−5 todo el año, así que el día empieza a las 05:00 UTC.
+ */
+export const minutosDelDia = (iso: string, fecha: string) =>
+  Math.round((Date.parse(iso) - Date.parse(`${fecha}T05:00:00.000Z`)) / 60_000)
+
 /** Fecha de mañana en Cancún, AAAA-MM-DD (el rol se genera el día anterior). */
 export const mananaCancun = (ahora = new Date()) => DIA_ISO.format(new Date(ahora.getTime() + 24 * 60 * 60 * 1000))

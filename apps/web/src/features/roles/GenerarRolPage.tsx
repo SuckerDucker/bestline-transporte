@@ -1,6 +1,7 @@
-import { CalendarCheck, CircleAlert, Info, Loader2, Play } from 'lucide-react'
+import { CalendarCheck, CalendarRange, CircleAlert, Info, Loader2, Play } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ErrorApi } from '@/api/cliente'
 import { Campo } from '@/components/comunes/Campo'
@@ -69,7 +70,7 @@ const COLUMNAS: Columna<NoCubierto>[] = [
 /**
  * Generar rol (CU-13): ejecuta el motor de asignación para un día y muestra
  * el resumen y los servicios no cubiertos con su motivo (CU-14). La línea de
- * tiempo por unidad es de la Fase 10.
+ * tiempo, los movimientos y la autorización están en Revisar rol (CU-15 y CU-16).
  */
 export function GenerarRolPage() {
   const [fecha, setFecha] = useState(mananaCancun)
@@ -132,6 +133,14 @@ export function GenerarRolPage() {
             {generar.isPending ? <Loader2 className="animate-spin" /> : <Play />}
             Generar rol
           </Button>
+          {existente && (
+            <Button asChild variant="outline">
+              <Link to={`/roles/${fecha}`}>
+                <CalendarRange />
+                Revisar rol
+              </Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
 

@@ -14,6 +14,10 @@ const DetalleImportacionPage = lazy(() =>
   import('./features/importacion/DetalleImportacionPage').then((m) => ({ default: m.DetalleImportacionPage })),
 )
 const GenerarRolPage = lazy(() => import('./features/roles/GenerarRolPage').then((m) => ({ default: m.GenerarRolPage })))
+const RevisionRolPage = lazy(() => import('./features/roles/RevisionRolPage').then((m) => ({ default: m.RevisionRolPage })))
+const RedirigirRolDeManana = lazy(() =>
+  import('./features/roles/RevisionRolPage').then((m) => ({ default: m.RedirigirRolDeManana })),
+)
 const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
@@ -54,6 +58,9 @@ function App() {
             <Route path="servicios" element={<ServiciosPage />} />
             <Route path="importaciones" element={<HistorialPage />} />
             <Route path="importaciones/:id" element={<DetalleImportacionPage />} />
+            {/* Revisión del rol: SUPERVISOR solo consulta (la página y la API lo revisan) */}
+            <Route path="roles" element={<RedirigirRolDeManana />} />
+            <Route path="roles/:fecha" element={<RevisionRolPage />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="operadores" element={<OperadoresPage />} />
             <Route path="zonas" element={<ZonasPage />} />

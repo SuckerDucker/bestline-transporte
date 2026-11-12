@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -21,6 +30,8 @@ import {
 } from '../comun/swagger.js';
 import type { UsuarioAutenticado } from '../auth/tipos.js';
 import { GenerarRolDto } from './dto/generar-rol.dto.js';
+import { VehiculoDestinoDto } from './dto/vehiculo-destino.dto.js';
+import { RevisionService } from './revision.service.js';
 import { RolesService } from './roles.service.js';
 
 const ROLES_GENERAR = [RolUsuario.ADMINISTRADOR, RolUsuario.COORDINADOR];
@@ -47,14 +58,17 @@ const SERVICIO_EJEMPLO = {
   mayorista: { id: 2, nombre: 'Nexus Tours' },
 };
 
-/** Motor de asignación: generación y consulta del rol diario (CU-13, CU-14). */
+/** Motor de asignación: generación y consulta del rol diario (CU-13 y CU-14), revisión (CU-15) y autorización (CU-16). */
 @ApiTags('roles')
 @ApiBearerAuth()
 @ApiError401()
 @ApiError403()
 @Controller('roles')
 export class RolesController {
-  constructor(private readonly servicio: RolesService) {}
+  constructor(
+    private readonly servicio: RolesService,
+    private readonly revision: RevisionService,
+  ) {}
 
   @Post('generar')
   @Roles(...ROLES_GENERAR)
@@ -130,7 +144,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'Consultar el rol de una fecha',
     description:
-      'ADMINISTRADOR, COORDINADOR y SUPERVISOR. Asignaciones agrupadas por unidad (vehículo y operador), en orden, con su inicio efectivo y liberación.',
+      'ADMINISTRADOR, COORDINADOR y SUPERVISOR. Estado y autorización del rol; cada unidad que participa (también las que no tienen servicios) con tipo, capacidad, operador, hora de cita y fin de jornada; sus asignaciones por inicio efectivo con el traslado en vacío previo (vacio), y los no cubiertos con su motivo.',
   })
   @ApiOkResponse({
     description: 'Rol con sus unidades',
@@ -140,6 +154,8 @@ export class RolesController {
         fecha: '2026-11-10',
         estado: 'PROPUESTO',
         autorizadoPor: null,
+        autorizadoEn: null,
+        autorizador: null,
         generadoEn: '2026-11-09T22:10:00.000Z',
         resumen: {
           servicios: 60,
@@ -160,6 +176,10 @@ export class RolesController {
               nombre: 'Operador Ejemplo 01',
               horaCita: '04:00',
             },
+            disponible: true,
+            encierro: { id: 3, nombre: 'Centro Cancún' },
+            cita: '2026-11-10T09:00:00.000Z',
+            finJornada: '2026-11-10T18:30:00.000Z',
             asignaciones: [
               {
                 id: 1,
@@ -171,8 +191,22 @@ export class RolesController {
                 inicioEfectivo: '2026-11-10T13:05:00.000Z',
                 liberacion: '2026-11-10T13:40:00.000Z',
                 servicio: SERVICIO_EJEMPLO,
+                vacio: {
+                  minutos: 30,
+                  desde: '2026-11-10T09:00:00.000Z',
+                  hasta: '2026-11-10T09:30:00.000Z',
+                },
               },
             ],
+          },
+        ],
+        noCubiertos: [
+          {
+            id: 1,
+            rolId: 1,
+            servicioId: 40,
+            motivo: 'CAPACIDAD',
+            servicio: { ...SERVICIO_EJEMPLO, id: 40, pasajeros: 32 },
           },
         ],
       },
@@ -215,5 +249,232 @@ export class RolesController {
   @ApiError404('No hay rol del 2026-11-10')
   noCubiertos(@Param('fecha', ParseFechaPipe) fecha: string) {
     return this.servicio.noCubiertos(fecha);
+  }
+
+  @Get(':fecha/servicios/:servicioId/opciones')
+  @Roles(...ROLES_CONSULTAR)
+  @ApiParam(FECHA)
+  @ApiParam({
+    name: 'servicioId',
+    example: 31,
+    description: 'Id del servicio (asignado o no cubierto)',
+  })
+  @ApiOperation({
+    summary: 'Unidades que aceptan un servicio, selector "Mover a…" (CU-15)',
+    description:
+      'ADMINISTRADOR, COORDINADOR y SUPERVISOR. Para cada unidad dice si aceptaría el servicio en su posición cronológica, revalidando con las mismas funciones del motor la secuencia completa de esa unidad y la de la unidad de origen. Si no, da el motivo (EMPALME, CAPACIDAD, JORNADA, ZONA_TERMINO o DISPONIBILIDAD) y el detalle. Primero las válidas.',
+  })
+  @ApiOkResponse({
+    description: 'Opciones por unidad',
+    schema: {
+      example: [
+        {
+          vehiculoId: 5,
+          numeroEconomico: 'BL-05',
+          capacidad: 20,
+          actual: false,
+          valido: true,
+          posicion: 3,
+        },
+        {
+          vehiculoId: 3,
+          numeroEconomico: 'BL-03',
+          capacidad: 14,
+          actual: false,
+          valido: false,
+          motivo: 'EMPALME',
+          detalle: 'Empalma con el servicio NEX-0024 de 14:40 en BL-03',
+        },
+        {
+          vehiculoId: 2,
+          numeroEconomico: 'BL-02',
+          capacidad: 14,
+          actual: true,
+          valido: false,
+          detalle: 'Es la unidad actual del servicio',
+        },
+      ],
+    },
+  })
+  @ApiError400('fecha debe tener el formato AAAA-MM-DD')
+  @ApiError404('El servicio 999 no es del rol del 2026-11-10')
+  opciones(
+    @Param('fecha', ParseFechaPipe) fecha: string,
+    @Param('servicioId', ParseIntPipe) servicioId: number,
+  ) {
+    return this.revision.opciones(fecha, servicioId);
+  }
+
+  @Patch(':fecha/asignaciones/:id')
+  @Roles(...ROLES_GENERAR)
+  @ApiParam(FECHA)
+  @ApiParam({ name: 'id', example: 12, description: 'Id de la asignación' })
+  @ApiOperation({
+    summary: 'Mover un servicio a otra unidad (CU-15)',
+    description:
+      'ADMINISTRADOR y COORDINADOR. Con la fila del rol bloqueada (SELECT … FOR UPDATE) y los datos recién leídos, inserta el servicio en la posición cronológica de la unidad destino y revalida con las funciones del motor la secuencia COMPLETA del destino y la que le queda al origen (su nuevo último servicio debe cerrar bien el día). Si pasa, guarda en una transacción y lo registra en la bitácora; si no, 400 con motivo y detalle. Con el rol AUTORIZADO responde 409.',
+  })
+  @ApiBody({
+    type: VehiculoDestinoDto,
+    examples: { mover: { summary: 'Mover a BL-05', value: { vehiculoId: 5 } } },
+  })
+  @ApiOkResponse({
+    description: 'Servicio movido',
+    schema: {
+      example: {
+        asignacion: {
+          id: 12,
+          rolId: 1,
+          servicioId: 35,
+          vehiculoId: 5,
+          operadorId: 5,
+          orden: 3,
+        },
+        de: 'BL-10',
+        a: 'BL-05',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'La revalidación no pasa (motivo ∈ EMPALME, CAPACIDAD, JORNADA, ZONA_TERMINO, DISPONIBILIDAD) o el servicio ya está en esa unidad',
+    schema: {
+      example: {
+        message: 'Empalma con el servicio NEX-0024 de 14:40 en BL-03',
+        motivo: 'EMPALME',
+        detalle: 'Empalma con el servicio NEX-0024 de 14:40 en BL-03',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiError404('La asignación 999 no es del rol del 2026-11-10')
+  @ApiError409(
+    'El rol del 2026-11-10 ya está AUTORIZADO; no se puede modificar',
+  )
+  mover(
+    @Param('fecha', ParseFechaPipe) fecha: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: VehiculoDestinoDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ) {
+    return this.revision.mover(fecha, id, dto.vehiculoId, usuario.id);
+  }
+
+  @Post(':fecha/no-cubiertos/:servicioId/asignar')
+  @HttpCode(200)
+  @Roles(...ROLES_GENERAR)
+  @ApiParam(FECHA)
+  @ApiParam({
+    name: 'servicioId',
+    example: 31,
+    description: 'Id del servicio no cubierto',
+  })
+  @ApiOperation({
+    summary: 'Asignar un servicio no cubierto a una unidad (CU-15)',
+    description:
+      'ADMINISTRADOR y COORDINADOR. Misma revalidación que mover (con la fila del rol bloqueada). Si pasa, en una transacción crea la asignación, lo quita de los no cubiertos y lo registra en la bitácora. Con el rol AUTORIZADO responde 409.',
+  })
+  @ApiBody({
+    type: VehiculoDestinoDto,
+    examples: {
+      asignar: { summary: 'Asignar a BL-10', value: { vehiculoId: 10 } },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Servicio asignado',
+    schema: {
+      example: {
+        asignacion: {
+          id: 61,
+          rolId: 1,
+          servicioId: 31,
+          vehiculoId: 10,
+          operadorId: 10,
+          orden: 2,
+        },
+        a: 'BL-10',
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'La revalidación no pasa',
+    schema: {
+      example: {
+        message: 'NEX-0031 lleva 30 pasajeros y BL-05 tiene capacidad para 20',
+        motivo: 'CAPACIDAD',
+        detalle: 'NEX-0031 lleva 30 pasajeros y BL-05 tiene capacidad para 20',
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiError404(
+    'El servicio 999 no está en los no cubiertos del rol del 2026-11-10',
+  )
+  @ApiError409(
+    'El rol del 2026-11-10 ya está AUTORIZADO; no se puede modificar',
+  )
+  asignar(
+    @Param('fecha', ParseFechaPipe) fecha: string,
+    @Param('servicioId', ParseIntPipe) servicioId: number,
+    @Body() dto: VehiculoDestinoDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ) {
+    return this.revision.asignarNoCubierto(
+      fecha,
+      servicioId,
+      dto.vehiculoId,
+      usuario.id,
+    );
+  }
+
+  @Post(':fecha/autorizar')
+  @HttpCode(200)
+  @Roles(...ROLES_GENERAR)
+  @ApiParam(FECHA)
+  @ApiOperation({
+    summary: 'Autorizar el rol del día (CU-16)',
+    description:
+      'ADMINISTRADOR y COORDINADOR. Corre el verificador independiente sobre el rol guardado; si pasa, en una transacción: rol AUTORIZADO con usuario y fecha de autorización, servicios asignados → PROGRAMADO y bitácora. Después, cualquier cambio o regenerar responde 409.',
+  })
+  @ApiOkResponse({
+    description: 'Rol autorizado',
+    schema: {
+      example: {
+        rol: {
+          id: 1,
+          fecha: '2026-11-10',
+          estado: 'AUTORIZADO',
+          autorizadoPor: 2,
+          autorizadoEn: '2026-11-10T18:30:00.000Z',
+          generadoEn: '2026-11-10T17:10:00.000Z',
+        },
+        programados: 41,
+        noCubiertos: 19,
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description:
+      'El rol no pasa el verificador independiente (no debería pasar)',
+    schema: {
+      example: {
+        message: 'El rol no pasa el verificador independiente; no se autorizó',
+        violaciones: ['BL-03 / NEX-0024: EMPALME'],
+        error: 'Bad Request',
+        statusCode: 400,
+      },
+    },
+  })
+  @ApiError404('No hay rol del 2026-11-10')
+  @ApiError409(
+    'El rol del 2026-11-10 ya está AUTORIZADO; no se puede modificar',
+  )
+  autorizar(
+    @Param('fecha', ParseFechaPipe) fecha: string,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ) {
+    return this.revision.autorizar(fecha, usuario.id);
   }
 }

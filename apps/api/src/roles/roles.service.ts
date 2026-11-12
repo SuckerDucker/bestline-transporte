@@ -9,20 +9,12 @@ import type { Prisma } from '../generated/prisma/client.js';
 import { registrarBitacora } from '../comun/bitacora.js';
 import { traducirErrorPrisma } from '../comun/errores-prisma.js';
 import { rangoDelDia } from '../comun/fechas.js';
-import { crearTiempo, generarRol } from '../motor/algoritmo.js';
-import type {
-  Modalidad,
-  Motivo,
-  ParametrosMotor,
-  UnidadMotor,
-} from '../motor/tipos.js';
+import { generarRol } from '../motor/algoritmo.js';
+import type { Motivo } from '../motor/tipos.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  aInstante,
-  aMinutos,
-  fechaDelRol,
-  horaAMinutos,
-} from './conversion.js';
+import { bloquearRol } from './bloqueo-rol.js';
+import { aInstante, fechaDelRol, horaAMinutos } from './conversion.js';
+import { aServicioMotor, cargarDatosMotor } from './datos-motor.js';
 
 const ENTIDAD = 'rol_diario';
 const MOTIVOS: Motivo[] = [
@@ -33,12 +25,13 @@ const MOTIVOS: Motivo[] = [
   'SIN_UNIDAD',
 ];
 const NOMBRE = { select: { id: true, nombre: true } } as const;
-const SERVICIO_CON_RUTA = {
+export const SERVICIO_CON_RUTA = {
   zonaOrigen: NOMBRE,
   zonaDestino: NOMBRE,
   hotel: NOMBRE,
   mayorista: NOMBRE,
 } satisfies Prisma.ServicioInclude;
+const MINUTO = 60_000;
 
 @Injectable()
 export class RolesService {
@@ -48,18 +41,16 @@ export class RolesService {
    * Genera el rol de una fecha con los servicios PENDIENTE de ese día y lo
    * guarda en una sola transacción (rol_diario, asignacion, servicio_no_cubierto
    * y bitácora). Si ya hay un rol PROPUESTO de esa fecha lo reemplaza; si está
-   * AUTORIZADO responde 409. Los servicios siguen en PENDIENTE.
+   * AUTORIZADO responde 409 (se revisa otra vez dentro de la transacción, con
+   * la fila bloqueada, por si alguien lo autorizó mientras tanto). Los
+   * servicios siguen en PENDIENTE.
    */
   async generar(fecha: string, usuarioId: number) {
     const comienzo = performance.now();
     const existente = await this.prisma.rolDiario.findUnique({
       where: { fecha: fechaDelRol(fecha) },
     });
-    if (existente?.estado === 'AUTORIZADO') {
-      throw new ConflictException(
-        `El rol del ${fecha} ya está AUTORIZADO; no se puede volver a generar`,
-      );
-    }
+    if (existente?.estado === 'AUTORIZADO') throw rolAutorizado(fecha);
     const { inicio: inicioDia, fin } = rangoDelDia(fecha);
     const servicios = await this.prisma.servicio.findMany({
       where: { estado: 'PENDIENTE', fechaHora: { gte: inicioDia, lt: fin } },
@@ -69,17 +60,12 @@ export class RolesService {
       throw new BadRequestException(`No hay servicios PENDIENTE el ${fecha}`);
     }
 
-    const { unidades, parametros } = await this.cargarDatos(servicios);
+    const { unidades, parametros } = await cargarDatosMotor(
+      this.prisma,
+      servicios,
+    );
     const resultado = generarRol(
-      servicios.map((s) => ({
-        id: s.id,
-        folio: s.folio,
-        hora: aMinutos(inicioDia, s.fechaHora),
-        modalidad: s.modalidad as Modalidad,
-        pasajeros: s.pasajeros,
-        origen: s.zonaOrigenId,
-        destino: s.zonaDestinoId,
-      })),
+      servicios.map((s) => aServicioMotor(inicioDia, s)),
       unidades,
       parametros,
     );
@@ -118,6 +104,9 @@ export class RolesService {
     try {
       const rol = await this.prisma.$transaction(async (tx) => {
         let guardado;
+        // Con la fila bloqueada nadie puede autorizar el rol a medio reemplazo.
+        const bloqueado = existente ? await bloquearRol(tx, fecha) : null;
+        if (bloqueado?.estado === 'AUTORIZADO') throw rolAutorizado(fecha);
         if (existente) {
           // Se reemplaza el rol PROPUESTO anterior dentro de la misma transacción.
           await tx.asignacion.deleteMany({ where: { rolId: existente.id } });
@@ -151,6 +140,7 @@ export class RolesService {
       });
       return { rol: { ...rol, fecha }, reemplazado: !!existente, resumen };
     } catch (error) {
+      if (error instanceof ConflictException) throw error;
       // Dos generaciones simultáneas de la misma fecha (fecha es única).
       traducirErrorPrisma(error, {
         duplicado: `Se está generando otro rol del ${fecha}; inténtalo de nuevo`,
@@ -158,41 +148,119 @@ export class RolesService {
     }
   }
 
-  /** Rol de una fecha con sus asignaciones agrupadas por unidad. */
+  /**
+   * Rol de una fecha para la pantalla de revisión: estado y autorización,
+   * cada unidad que participa (también las que no tienen servicios) con su
+   * operador, hora de cita y fin de jornada, sus asignaciones por inicio
+   * efectivo con el traslado en vacío previo, y los no cubiertos con motivo.
+   */
   async obtener(fecha: string) {
     const rol = await this.prisma.rolDiario.findUnique({
       where: { fecha: fechaDelRol(fecha) },
       include: {
+        autorizador: NOMBRE,
         asignaciones: {
-          orderBy: [{ vehiculoId: 'asc' }, { orden: 'asc' }],
-          include: {
-            servicio: { include: SERVICIO_CON_RUTA },
-            vehiculo: {
-              select: {
-                id: true,
-                numeroEconomico: true,
-                tipo: true,
-                capacidad: true,
-              },
-            },
-            operador: { select: { id: true, nombre: true, horaCita: true } },
-          },
+          orderBy: [{ inicioEfectivo: 'asc' }, { orden: 'asc' }],
+          include: { servicio: { include: SERVICIO_CON_RUTA } },
         },
-        _count: { select: { noCubiertos: true } },
+        noCubiertos: {
+          include: { servicio: { include: SERVICIO_CON_RUTA } },
+          orderBy: [{ servicio: { fechaHora: 'asc' } }, { id: 'asc' }],
+        },
       },
     });
     if (!rol) throw new NotFoundException(`No hay rol del ${fecha}`);
 
-    const porUnidad = new Map<number, (typeof rol.asignaciones)[number][]>();
-    for (const a of rol.asignaciones) {
-      porUnidad.set(a.vehiculoId, [...(porUnidad.get(a.vehiculoId) ?? []), a]);
-    }
-    const unidades = [...porUnidad.values()]
-      .map((lista) => ({
-        vehiculo: lista[0].vehiculo,
-        operador: lista[0].operador,
-        asignaciones: lista.map(({ vehiculo: _v, operador: _o, ...a }) => a),
-      }))
+    const [vehiculos, zonas, tiempos, jornada] = await Promise.all([
+      this.prisma.vehiculo.findMany({
+        where: {
+          OR: [
+            { operador: { isNot: null } },
+            { id: { in: rol.asignaciones.map((a) => a.vehiculoId) } },
+          ],
+        },
+        include: {
+          operador: {
+            select: {
+              id: true,
+              nombre: true,
+              horaCita: true,
+              disponible: true,
+            },
+          },
+        },
+      }),
+      this.prisma.zona.findMany({ select: { id: true, nombre: true } }),
+      this.prisma.tiempoTraslado.findMany(),
+      this.prisma.parametroOperacion.findUnique({
+        where: { clave: 'jornada_maxima_horas' },
+      }),
+    ]);
+    const { inicio: inicioDia } = rangoDelDia(fecha);
+    const jornadaMin = Number(jornada?.valor ?? 0) * 60;
+    const minutos = new Map(
+      tiempos.map((t) => [`${t.zonaOrigenId}-${t.zonaDestinoId}`, t.minutos]),
+    );
+    const zonaPorNombre = new Map(
+      zonas.map((z) => [z.nombre.toLowerCase(), z]),
+    );
+
+    const unidades = vehiculos
+      .map((v) => {
+        const encierro = zonaPorNombre.get(v.encierroBase.toLowerCase());
+        const cita = v.operador?.horaCita
+          ? horaAMinutos(v.operador.horaCita)
+          : null;
+        // Traslado en vacío antes de cada servicio: desde el encierro a la
+        // hora de cita o desde el destino y la liberación del anterior.
+        let zona = encierro?.id;
+        let libre = cita === null ? null : aInstante(inicioDia, cita);
+        const asignaciones = rol.asignaciones
+          .filter((a) => a.vehiculoId === v.id)
+          .map((a) => {
+            const t =
+              zona === undefined
+                ? undefined
+                : minutos.get(`${zona}-${a.servicio.zonaOrigenId}`);
+            const vacio =
+              libre && t !== undefined
+                ? {
+                    minutos: t,
+                    desde: libre,
+                    hasta: new Date(libre.getTime() + t * MINUTO),
+                  }
+                : null;
+            zona = a.servicio.zonaDestinoId;
+            libre = a.liberacion;
+            return { ...a, vacio };
+          });
+        return {
+          vehiculo: {
+            id: v.id,
+            numeroEconomico: v.numeroEconomico,
+            tipo: v.tipo,
+            capacidad: v.capacidad,
+          },
+          operador: v.operador
+            ? {
+                id: v.operador.id,
+                nombre: v.operador.nombre,
+                horaCita: v.operador.horaCita,
+              }
+            : null,
+          disponible:
+            v.estado === 'DISPONIBLE' &&
+            !!v.operador?.disponible &&
+            cita !== null,
+          encierro: encierro ?? null,
+          cita: cita === null ? null : aInstante(inicioDia, cita),
+          finJornada:
+            cita === null ? null : aInstante(inicioDia, cita + jornadaMin),
+          asignaciones,
+        };
+      })
+      // Solo las unidades que participan (disponibles) o que tienen servicios.
+      .filter((u) => u.disponible || u.asignaciones.length > 0)
       .sort((a, b) =>
         a.vehiculo.numeroEconomico.localeCompare(
           b.vehiculo.numeroEconomico,
@@ -200,17 +268,20 @@ export class RolesService {
           { numeric: true },
         ),
       );
-    const { asignaciones, _count, ...datos } = rol;
+
+    const { asignaciones, noCubiertos, ...datos } = rol;
     return {
       ...datos,
       fecha,
       resumen: {
-        servicios: asignaciones.length + _count.noCubiertos,
+        servicios: asignaciones.length + noCubiertos.length,
         asignados: asignaciones.length,
-        noCubiertos: _count.noCubiertos,
-        unidadesUsadas: unidades.length,
+        noCubiertos: noCubiertos.length,
+        unidadesUsadas: unidades.filter((u) => u.asignaciones.length > 0)
+          .length,
       },
       unidades,
+      noCubiertos,
     };
   }
 
@@ -227,103 +298,9 @@ export class RolesService {
       orderBy: [{ servicio: { fechaHora: 'asc' } }, { id: 'asc' }],
     });
   }
-
-  /**
-   * Unidades (vehículo con su operador) y parámetros del motor. Responde 400 si
-   * falta un parámetro, si el encierro de una unidad no es una zona o si la
-   * matriz no tiene algún tiempo que el motor necesita.
-   */
-  private async cargarDatos(
-    servicios: { zonaOrigenId: number; zonaDestinoId: number }[],
-  ): Promise<{ unidades: UnidadMotor[]; parametros: ParametrosMotor }> {
-    const [vehiculos, zonas, tiempos, filas] = await Promise.all([
-      // Un vehículo sin operador no participa.
-      this.prisma.vehiculo.findMany({
-        where: { operador: { isNot: null } },
-        include: { operador: true },
-      }),
-      this.prisma.zona.findMany(),
-      this.prisma.tiempoTraslado.findMany(),
-      this.prisma.parametroOperacion.findMany(),
-    ]);
-    const valor = (clave: string) => {
-      const fila = filas.find((p) => p.clave === clave);
-      if (!fila) throw new BadRequestException(`Falta el parámetro ${clave}`);
-      return fila.valor;
-    };
-    const zonaPorNombre = new Map(
-      zonas.map((z) => [z.nombre.toLowerCase(), z]),
-    );
-    const nombreZona = new Map(zonas.map((z) => [z.id, z.nombre]));
-
-    const unidades: UnidadMotor[] = vehiculos.flatMap((v) => {
-      const operador = v.operador;
-      if (!operador) return [];
-      // Participa si el vehículo está DISPONIBLE y su operador está disponible
-      // y tiene hora de cita (sin hora de cita no participa).
-      const disponible =
-        v.estado === 'DISPONIBLE' &&
-        operador.disponible &&
-        operador.horaCita !== null;
-      const encierro = zonaPorNombre.get(v.encierroBase.toLowerCase());
-      if (disponible && !encierro) {
-        throw new BadRequestException(
-          `El encierro base de ${v.numeroEconomico} ("${v.encierroBase}") no es una zona del catálogo`,
-        );
-      }
-      const unidad: UnidadMotor = {
-        vehiculoId: v.id,
-        numeroEconomico: v.numeroEconomico,
-        capacidad: v.capacidad,
-        operadorId: operador.id,
-        disponible,
-        cita: operador.horaCita ? horaAMinutos(operador.horaCita) : 0,
-        encierro: encierro?.id ?? 0,
-      };
-      return [unidad];
-    });
-
-    // La matriz debe tener todos los tiempos entre las zonas que se usarán:
-    // encierros, orígenes y destinos de los servicios del día. Incluye el
-    // regreso en vacío del destino de cada servicio al encierro (zona de término).
-    const matriz = new Map(
-      tiempos.map((t) => [`${t.zonaOrigenId}-${t.zonaDestinoId}`, t.minutos]),
-    );
-    const usadas = [
-      ...new Set([
-        ...unidades.filter((u) => u.disponible).map((u) => u.encierro),
-        ...servicios.flatMap((s) => [s.zonaOrigenId, s.zonaDestinoId]),
-      ]),
-    ];
-    const faltantes = usadas.flatMap((o) =>
-      usadas
-        .filter((d) => !matriz.has(`${o}-${d}`))
-        .map((d) => `${nombreZona.get(o)} → ${nombreZona.get(d)}`),
-    );
-    if (faltantes.length) {
-      throw new BadRequestException({
-        message: `La matriz de tiempos está incompleta: faltan ${faltantes.length} combinaciones`,
-        faltantes,
-        error: 'Bad Request',
-        statusCode: 400,
-      });
-    }
-
-    return {
-      unidades,
-      parametros: {
-        anticipacion: {
-          PRIVADO: Number(valor('anticipacion.PRIVADO')),
-          COMPARTIDO: Number(valor('anticipacion.COMPARTIDO')),
-          GRUPO: Number(valor('anticipacion.GRUPO')),
-        },
-        jornadaMaxima: Number(valor('jornada_maxima_horas')) * 60,
-        penalizacionCarga: Number(valor('motor.penalizacion_carga_min')),
-        zonasTermino: new Set(
-          zonas.filter((z) => z.esZonaTermino).map((z) => z.id),
-        ),
-        tiempo: crearTiempo(matriz),
-      },
-    };
-  }
 }
+
+const rolAutorizado = (fecha: string) =>
+  new ConflictException(
+    `El rol del ${fecha} ya está AUTORIZADO; no se puede volver a generar`,
+  );

@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bus,
   CalendarCog,
+  CalendarRange,
   ClipboardList,
   FileUp,
   Flag,
@@ -67,6 +68,14 @@ export const MENU: readonly OpcionMenu[] = [
     icono: CalendarCog,
     grupo: 'Operación',
     roles: ROLES_IMPORTAR,
+  },
+  {
+    ruta: '/roles',
+    etiqueta: 'Revisar rol',
+    titulo: 'Revisión del rol',
+    icono: CalendarRange,
+    grupo: 'Operación',
+    roles: ROLES_CATALOGOS,
   },
   { ruta: '/servicios', etiqueta: 'Servicios', titulo: 'Servicios', icono: ClipboardList, grupo: 'Operación', roles: ROLES_CATALOGOS },
   {

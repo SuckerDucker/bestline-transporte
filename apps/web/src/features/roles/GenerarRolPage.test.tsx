@@ -69,6 +69,12 @@ const tarjeta = (etiqueta: string) =>
   within(screen.getByLabelText('Resumen del rol')).getByText(etiqueta).parentElement as HTMLElement
 
 describe('Pantalla Generar rol', () => {
+  it('con rol existente ofrece "Revisar rol" con la fecha elegida', async () => {
+    renderizarPagina(ROL)
+    await elegirFecha()
+    expect(await screen.findByRole('link', { name: 'Revisar rol' })).toHaveAttribute('href', '/roles/2026-11-10')
+  })
+
   it('sin rol previo: genera, muestra el resumen y los no cubiertos con su motivo', async () => {
     const { peticiones } = renderizarPagina(null)
     await elegirFecha()
