@@ -24,14 +24,14 @@ const SERVICIO = {
   modalidad: 'PRIVADO',
   pasajeros: 4,
   origen: 'Aeropuerto CUN',
-  destino: 'Hotel Ejemplo ZH 1',
+  destino: 'Hyatt Ziva Cancun',
 };
 
 const EJEMPLO = {
   fecha: '2026-11-10',
   estadoRol: 'PROPUESTO',
   vehiculo: { id: 3, numeroEconomico: 'BL-03', tipo: 'Van', capacidad: 14 },
-  operador: { id: 3, nombre: 'Operador Ejemplo 03', horaCita: '04:30' },
+  operador: { id: 3, nombre: 'Luis García', horaCita: '04:30' },
   servicios: 1,
   paradas: [
     {
@@ -59,7 +59,7 @@ const EJEMPLO = {
     {
       orden: 3,
       tipo: 'DESTINO',
-      nombre: 'Hotel Ejemplo ZH 1',
+      nombre: 'Hyatt Ziva Cancun',
       zona: 'Zona Hotelera',
       latitud: 21.1335,
       longitud: -86.7465,

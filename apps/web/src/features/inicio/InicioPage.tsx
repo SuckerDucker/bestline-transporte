@@ -81,7 +81,7 @@ function tarjetas(r: Resumen, conEnlaces: boolean): Tarjeta[] {
       descripcion: `de ${r.servicios.total} servicios del ${fechaCorta(r.servicios.fecha)}`,
       icono: CalendarClock,
       color: 'bg-amber-50 text-amber-700',
-      // Aún no existe la pantalla de servicios (llega con la importación).
+      enlace: enlace('/servicios', 'Ver servicios'),
     },
   ]
 }
@@ -144,8 +144,9 @@ function TarjetaResumen({ titulo, valor, descripcion, icono: Icono, color, enlac
         <p className="text-4xl font-semibold tracking-tight tabular-nums">{valor}</p>
         <p className="text-sm text-muted-foreground">{descripcion}</p>
       </CardContent>
-      <div className="border-t px-5 py-3">
-        {enlace ? (
+      {/* Sin enlace (rol OPERADOR, que no ve esas pantallas) no se muestra el pie. */}
+      {enlace && (
+        <div className="border-t px-5 py-3">
           <Link
             to={enlace.ruta}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
@@ -153,10 +154,8 @@ function TarjetaResumen({ titulo, valor, descripcion, icono: Icono, color, enlac
             {enlace.texto}
             <ArrowRight className="size-4" />
           </Link>
-        ) : (
-          <span className="text-sm text-muted-foreground">Pantalla de servicios: próxima fase</span>
-        )}
-      </div>
+        </div>
+      )}
     </Card>
   )
 }

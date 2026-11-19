@@ -11,7 +11,7 @@ const VEHICULOS = [
 ]
 const OPERADOR: Operador = {
   id: 1,
-  nombre: 'Operador Ejemplo 01',
+  nombre: 'José Hernández',
   licencia: 'LIC-01',
   telefono: '998-000-0001',
   disponible: true,

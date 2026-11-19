@@ -38,7 +38,7 @@ const VEHICULO = {
   capacidad: 14,
   encierroBase: 'Centro Cancún',
 };
-const OPERADOR = { id: 3, nombre: 'Operador Ejemplo 03', horaCita: '12:00' };
+const OPERADOR = { id: 3, nombre: 'Luis García', horaCita: '12:00' };
 
 const TRAZADO: Trazado = {
   geometria: { type: 'LineString', coordinates: [] },
@@ -154,7 +154,7 @@ function fila(
       zonaDestino: CENTRO,
       hotel: {
         id: 1,
-        nombre: 'Hotel Ejemplo Centro 1',
+        nombre: 'Hotel Plaza Caribe',
         zonaId: 3,
         latitud: d(21.1605),
         longitud: d(-86.8475),

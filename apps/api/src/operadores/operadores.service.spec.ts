@@ -15,7 +15,7 @@ import { OperadoresService } from './operadores.service.js';
 const ADMIN = 1;
 const operador = (cambios = {}) => ({
   id: 3,
-  nombre: 'Operador Ejemplo 03',
+  nombre: 'Luis García',
   licencia: 'LIC-03',
   telefono: '998-000-0003',
   disponible: true,
@@ -67,7 +67,7 @@ describe('OperadoresService', () => {
 
   it('crear guarda el operador y registra CREAR en la bitácora', async () => {
     const dto = {
-      nombre: 'Operador Ejemplo 03',
+      nombre: 'Luis García',
       licencia: 'LIC-03',
       telefono: '998-000-0003',
     };
@@ -140,7 +140,7 @@ describe('OperadoresService', () => {
 
   describe('vehículo del operador', () => {
     const dto = {
-      nombre: 'Operador Ejemplo 03',
+      nombre: 'Luis García',
       licencia: 'LIC-03',
       telefono: '998-000-0003',
     };
@@ -215,7 +215,7 @@ describe('OperadoresService', () => {
 
   describe('hora de cita dentro de los bloques', () => {
     const dto = {
-      nombre: 'Operador Ejemplo 06',
+      nombre: 'Ricardo Díaz',
       licencia: 'LIC-06',
       telefono: '998-000-0006',
     };

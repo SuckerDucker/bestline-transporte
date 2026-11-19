@@ -36,8 +36,8 @@ import { OperadoresService } from './operadores.service.js';
 
 const EJEMPLO = {
   id: 11,
-  nombre: 'Operador Ejemplo 11',
-  licencia: 'LIC-EJEMPLO-11',
+  nombre: 'Daniel Torres',
+  licencia: 'LIC-QROO-11',
   telefono: '998-000-0011',
   disponible: true,
   vehiculoId: 3,
@@ -100,8 +100,8 @@ export class OperadoresController {
       operador: {
         summary: 'Operador nuevo',
         value: {
-          nombre: 'Operador Ejemplo 11',
-          licencia: 'LIC-EJEMPLO-11',
+          nombre: 'Daniel Torres',
+          licencia: 'LIC-QROO-11',
           telefono: '998-000-0011',
           vehiculoId: 3,
           horaCita: '04:15',

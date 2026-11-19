@@ -109,7 +109,7 @@ describe('Rutas sugeridas (e2e)', () => {
     });
     const hotel = await prisma.hotel.create({
       data: {
-        nombre: 'Hotel Ejemplo ZH 1',
+        nombre: 'Hyatt Ziva Cancun',
         zonaId: zona['Zona Hotelera'],
         latitud: 21.1335,
         longitud: -86.7465,
@@ -215,7 +215,7 @@ describe('Rutas sugeridas (e2e)', () => {
 
     expect(ruta.paradas.map((p) => [p.orden, p.tipo, p.nombre])).toEqual([
       [1, 'ENCIERRO_SALIDA', 'Centro Cancún'],
-      [2, 'ORIGEN', 'Hotel Ejemplo ZH 1'],
+      [2, 'ORIGEN', 'Hyatt Ziva Cancun'],
       [3, 'DESTINO', 'Aeropuerto CUN'],
       [4, 'ORIGEN', 'Aeropuerto CUN'],
       [5, 'DESTINO', 'Centro Cancún'],

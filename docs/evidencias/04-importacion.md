@@ -190,7 +190,7 @@ Para Swagger (http://localhost:3000/api/docs) inicia sesión en `POST /api/auth/
 5. **Importación confirmada.**
    - Pulsa "Confirmar importación"; en el diálogo debe decir que se guardarán 58 servicios y se rechazarán 7.
    - Confírmalo. Debe abrirse el detalle con el aviso verde "Importación guardada: 58 servicios", la tarjeta con "58 guardadas · 7 rechazadas" y la tabla de servicios en estado Pendiente.
-6. **Historial.** Pulsa "Volver al historial". Debe verse la fila de `Layout_Servicios_Nexus.xlsx` con Nexus Tours, Coordinador Ejemplo, 58 servicios y 7 rechazadas.
+6. **Historial.** Pulsa "Volver al historial". Debe verse la fila de `Layout_Servicios_Nexus.xlsx` con Nexus Tours, Laura Méndez, 58 servicios y 7 rechazadas.
 7. **Servicios con filtros.** Entra a Operación → Servicios. En Fecha elige el 05/11/2026, en Tipo "Llegada" y en Zona "Costa Mujeres". Deben verse 5 servicios (NX-15039, NX-15011, NX-15015, NX-15026 y NX-15046) ordenados por hora.
 
 **Revalidación al confirmar (Swagger)**

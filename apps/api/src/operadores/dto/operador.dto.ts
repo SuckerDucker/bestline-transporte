@@ -18,14 +18,14 @@ import {
 } from '../../comun/paginacion.js';
 
 export class CrearOperadorDto {
-  @ApiProperty({ example: 'Operador Ejemplo 11', maxLength: 150 })
+  @ApiProperty({ example: 'Daniel Torres', maxLength: 150 })
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'nombre no debe estar vacío' })
   @MaxLength(150)
   nombre: string;
 
-  @ApiProperty({ example: 'LIC-EJEMPLO-11', maxLength: 30 })
+  @ApiProperty({ example: 'LIC-QROO-11', maxLength: 30 })
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'licencia no debe estar vacía' })

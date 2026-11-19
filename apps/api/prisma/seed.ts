@@ -11,9 +11,11 @@
  *    - jornada máxima: 9.5 horas;
  *    - zonas de término: solo Zona Hotelera y Aeropuerto CUN.
  *
- * 2) DATOS DE EJEMPLO: todo lo demás (nombres de hoteles, operadores, números
- *    económicos, folios, vuelos, tiempos de traslado, coordenadas aproximadas y
+ * 2) DATOS DE EJEMPLO: todo lo demás (nombres de operadores y usuarios, que
+ *    son inventados; números económicos, folios, vuelos, tiempos de traslado y
  *    los 60 servicios). No son datos reales de Best Line Travel Agency.
+ *    Los hoteles son hoteles reales de cada zona, con coordenadas aproximadas
+ *    tomadas de OpenStreetMap; solo sirven de referencia en el mapa.
  *    También son de ejemplo: el vehículo de cada operador, la hora exacta de
  *    cita dentro de cada bloque, el encierro base de las unidades (zona
  *    Centro Cancún, supuesto por confirmar) y la penalización de carga del
@@ -182,7 +184,7 @@ function minutosTraslado(origen: number, destino: number): number {
   return origen < destino ? base : base + RECARGO_SENTIDO_INVERSO;
 }
 
-// ───────────── Hoteles (nombres genéricos, de ejemplo) ─────────────
+// ───────────── Hoteles (reales, de cada zona; coordenadas de OpenStreetMap) ─────────────
 const HOTELES: {
   nombre: string;
   zona: ClaveZona;
@@ -190,107 +192,110 @@ const HOTELES: {
   longitud: number;
 }[] = [
   {
-    nombre: 'Hotel Ejemplo ZH 1',
+    nombre: 'Hyatt Ziva Cancun',
     zona: 'ZONA_HOTELERA',
-    latitud: 21.1335,
-    longitud: -86.7465,
+    latitud: 21.1359,
+    longitud: -86.7415,
   },
   {
-    nombre: 'Hotel Ejemplo ZH 2',
+    nombre: 'Kempinski Hotel Cancun',
     zona: 'ZONA_HOTELERA',
-    latitud: 21.0905,
-    longitud: -86.7725,
+    latitud: 21.0932,
+    longitud: -86.7682,
   },
   {
-    nombre: 'Hotel Ejemplo Centro 1',
+    nombre: 'Hotel Plaza Caribe',
     zona: 'CENTRO_CANCUN',
-    latitud: 21.1605,
-    longitud: -86.8475,
+    latitud: 21.1647,
+    longitud: -86.827,
   },
   {
-    nombre: 'Hotel Ejemplo Costa Mujeres 1',
+    nombre: 'Dreams Playa Mujeres',
     zona: 'COSTA_MUJERES',
-    latitud: 21.2405,
-    longitud: -86.8025,
+    latitud: 21.2619,
+    longitud: -86.8149,
   },
   {
-    nombre: 'Hotel Ejemplo Puerto Morelos 1',
+    nombre: 'Excellence Riviera Cancun',
     zona: 'PUERTO_MORELOS',
-    latitud: 20.8505,
-    longitud: -86.8735,
+    latitud: 20.8755,
+    longitud: -86.8664,
   },
   {
-    nombre: 'Hotel Ejemplo Playa 1',
+    nombre: 'Grand Hyatt Playa del Carmen',
     zona: 'PLAYA_DEL_CARMEN',
-    latitud: 20.6335,
-    longitud: -87.0705,
+    latitud: 20.6305,
+    longitud: -87.0671,
   },
   {
-    nombre: 'Hotel Ejemplo Playa 2',
+    nombre: 'Paradisus Playa del Carmen',
     zona: 'PLAYA_DEL_CARMEN',
-    latitud: 20.6205,
-    longitud: -87.0785,
+    latitud: 20.6472,
+    longitud: -87.0567,
   },
   {
-    nombre: 'Hotel Ejemplo Tulum 1',
+    nombre: 'Azulik Tulum',
     zona: 'TULUM',
-    latitud: 20.2075,
-    longitud: -87.4605,
+    latitud: 20.179,
+    longitud: -87.4454,
   },
 ];
 
 // Hoteles que aparecen en el archivo de ejemplo docs/ejemplos/Layout_Servicios_Nexus.xlsx,
-// con la zona que indica el archivo y coordenadas aproximadas dentro de esa zona.
+// con la zona que indica el archivo y las coordenadas aproximadas del hotel.
+// Grand Velas Riviera Maya (en Playa del Carmen) y Moon Palace Sunrise (al sur
+// del aeropuerto) quedan fuera de la zona que les da el archivo; se respeta la
+// zona del archivo porque es la que usa la matriz de tiempos.
 // Se agregan para que la importación del ejemplo encuentre sus hoteles; no se
 // usan para generar los 60 servicios de ejemplo (así esos datos no cambian).
 const HOTELES_LAYOUT: typeof HOTELES = [
   {
     nombre: 'Planet Hollywood Cancun',
     zona: 'COSTA_MUJERES',
-    latitud: 21.2376,
-    longitud: -86.806,
+    latitud: 21.2902,
+    longitud: -86.8183,
   },
   {
     nombre: 'TRS Coral Hotel',
     zona: 'COSTA_MUJERES',
-    latitud: 21.243,
-    longitud: -86.8015,
+    latitud: 21.2656,
+    longitud: -86.8161,
   },
   {
     nombre: 'Grand Velas Riviera Maya',
     zona: 'PUERTO_MORELOS',
-    latitud: 20.8455,
-    longitud: -86.8765,
+    latitud: 20.6739,
+    longitud: -87.024,
   },
   {
     nombre: 'Hotel Xcaret Arte',
     zona: 'PLAYA_DEL_CARMEN',
-    latitud: 20.581,
-    longitud: -87.119,
+    latitud: 20.5895,
+    longitud: -87.1101,
   },
   {
     nombre: 'Barceló Maya Palace',
     zona: 'PLAYA_DEL_CARMEN',
-    latitud: 20.6105,
-    longitud: -87.0905,
+    latitud: 20.4907,
+    longitud: -87.2381,
   },
   {
     nombre: 'Iberostar Selection Cancun',
     zona: 'ZONA_HOTELERA',
-    latitud: 21.071,
-    longitud: -86.779,
+    latitud: 21.0675,
+    longitud: -86.7784,
   },
   {
     nombre: 'Hard Rock Hotel Cancun',
     zona: 'ZONA_HOTELERA',
-    latitud: 21.056,
-    longitud: -86.782,
+    latitud: 21.0894,
+    longitud: -86.7699,
   },
   {
     nombre: 'Moon Palace Sunrise',
     zona: 'ZONA_HOTELERA',
-    latitud: 21.0845,
-    longitud: -86.775,
+    latitud: 20.9883,
+    longitud: -86.8285,
   },
 ];
 
@@ -314,7 +319,7 @@ const VEHICULOS = [
   encierroBase: ENCIERRO_BASE,
 }));
 
-// ───────────── Operadores (genéricos, de ejemplo) ─────────────
+// ───────────── Operadores (nombres inventados) ─────────────
 // Cada operador maneja el vehículo de su mismo número (Operador 03 → BL-03).
 // REGLA CONFIRMADA CON LA EMPRESA: 5 operadores en el bloque matutino
 // (04:00-05:00) y 5 en el vespertino (12:00-13:00). Las horas exactas dentro de
@@ -331,11 +336,23 @@ const HORAS_CITA = [
   '12:45',
   '13:00',
 ];
-const OPERADORES = Array.from({ length: 10 }, (_, i) => {
+const NOMBRES_OPERADORES = [
+  'José Hernández',
+  'Carlos Martínez',
+  'Luis García',
+  'Roberto Sánchez',
+  'Fernando López',
+  'Ricardo Díaz',
+  'Alejandro Cruz',
+  'Manuel Flores',
+  'Javier Morales',
+  'Héctor Ramos',
+];
+const OPERADORES = NOMBRES_OPERADORES.map((nombre, i) => {
   const n = String(i + 1).padStart(2, '0');
   return {
-    nombre: `Operador Ejemplo ${n}`,
-    licencia: `LIC-EJEMPLO-${n}`,
+    nombre,
+    licencia: `LIC-QROO-${n}`,
     telefono: `998-000-00${n}`,
     disponible: true,
     horaCita: HORAS_CITA[i],
@@ -400,17 +417,18 @@ async function main(): Promise<void> {
   const hashEjemplo = await bcrypt.hash(passwordEjemplo, 10);
   const usuariosEjemplo = [
     {
-      nombre: 'Coordinador Ejemplo',
+      nombre: 'Laura Méndez',
       email: 'coordinador@bestline.local',
       rol: RolUsuario.COORDINADOR,
     },
     {
-      nombre: 'Supervisor Ejemplo',
+      nombre: 'Jorge Ramírez',
       email: 'supervisor@bestline.local',
       rol: RolUsuario.SUPERVISOR,
     },
     {
-      nombre: 'Operador Ejemplo',
+      // Mismo nombre que el operador 01 del catálogo.
+      nombre: 'José Hernández',
       email: 'operador@bestline.local',
       rol: RolUsuario.OPERADOR,
     },
@@ -524,7 +542,7 @@ async function main(): Promise<void> {
       ? prisma.hotel.update({ where: { id: existente.id }, data: datos })
       : prisma.hotel.create({ data: datos });
   };
-  // Solo los hoteles genéricos se usan para generar los servicios de ejemplo.
+  // Solo los 8 hoteles de HOTELES se usan para generar los servicios de ejemplo.
   const hoteles: Hotel[] = [];
   for (const hotel of HOTELES) hoteles.push(await guardarHotel(hotel));
   for (const hotel of HOTELES_LAYOUT) await guardarHotel(hotel);

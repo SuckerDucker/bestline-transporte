@@ -17,7 +17,7 @@ import { CoordenadasDto } from '../../comun/coordenadas.js';
 import { ConsultaPaginadaDto, recortar } from '../../comun/paginacion.js';
 
 class DatosHotelDto {
-  @ApiProperty({ example: 'Hotel Ejemplo ZH 3', maxLength: 150 })
+  @ApiProperty({ example: 'Riu Palace Peninsula', maxLength: 150 })
   @Transform(recortar)
   @IsString()
   @IsNotEmpty({ message: 'nombre no debe estar vacío' })

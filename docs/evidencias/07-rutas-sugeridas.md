@@ -81,12 +81,12 @@ La respuesta trae `vehiculo`, `operador`, `servicios`, `paradas[]` (`orden`, `ti
 |---|---|
 | `AbortSignal.timeout` usa temporizadores internos de Node que los temporizadores simulados de Jest no controlan, así que no se podía probar el límite de 5 s | `AbortController` + `setTimeout`, con `clearTimeout` al terminar; la prueba avanza el reloj simulado 5 s |
 | En la e2e, un provider agregado al módulo raíz no reemplaza al de `RutasModule` | `crearApp` recibe una función para personalizar el módulo de prueba; la suite usa `overrideProvider(OsrmCliente)` |
-| Revisión visual: en BL-08 y BL-09, el encierro (Centro Cancún) y el Hotel Ejemplo Centro 1, a ~450 m, se encimaban; en BL-03, la etiqueta ancha de CUN tocaba la del Hotel ZH 2 | Agrupación por cercanía en pantalla (cajas de 56 × 30 px) al zoom del encuadre. Se volvió a medir: 0 marcadores encimados en las 10 unidades, en 1440 y en 390 px |
+| Revisión visual: en BL-08 y BL-09, el encierro (Centro Cancún) y el Hotel Plaza Caribe, a ~450 m, se encimaban; en BL-03, la etiqueta ancha de CUN tocaba la del Hotel ZH 2 | Agrupación por cercanía en pantalla (cajas de 56 × 30 px) al zoom del encuadre. Se volvió a medir: 0 marcadores encimados en las 10 unidades, en 1440 y en 390 px |
 | Al comparar BL-10 con BL-09, los marcadores naranjas tapaban a los azules en CUN, el encierro y Puerto Morelos | Desplazamiento adaptativo de la unidad comparada y la principal siempre encima; 0 encimados |
 | El CSS de Leaflet pone 17 px de margen a cada `<p>` del popup, y el popup de CUN tapaba medio mapa | Márgenes quitados en el popup y alto máximo de 280 px con desplazamiento |
 | El enlace *Ver ruta* apretaba la columna fija de la línea de tiempo y partía "BL-01" y "Van · 14 pax" en dos renglones | El enlace pasó al renglón de la jornada |
 | Al agregar Leaflet, el archivo de librerías del build pasó a 690 kB; al separarlo, el grupo `mapa` arrastró React y todas las pantallas lo cargaban | `includeDependenciesRecursively: false` en `advancedChunks`: `mapa` solo tiene Leaflet y solo lo pide `RutasPage` |
-| El nombre accesible del botón de cada parada juntaba los textos ("Recoge· S-1Hotel…") | `aria-label` claro: "1. Recoge S-1, Hotel Ejemplo ZH 1, Llega 05:50 · Sale 06:00" |
+| El nombre accesible del botón de cada parada juntaba los textos ("Recoge· S-1Hotel…") | `aria-label` claro: "1. Recoge S-1, Hyatt Ziva Cancun, Llega 05:50 · Sale 06:00" |
 
 ## Resultado de las pruebas
 
@@ -127,7 +127,7 @@ No se modificó la base de desarrollo: la pantalla y el endpoint solo leen.
 
 ## Capturas (máximo 8, en este orden)
 
-**Unidad a usar: BL-10** (Autobús, 45 pax, id 10), con 5 servicios en el rol del 10/11. Su ruta tiene 12 paradas, recorre Zona Hotelera, CUN, Puerto Morelos y Costa Mujeres, y termina en Centro Cancún, que no es zona de término, así que muestra el regreso al encierro. Con el OSRM público mide **168.6 km** y **3 h 07 min** de manejo, de 13:15 a 20:30. La distancia puede variar unas décimas si el servidor actualiza su mapa.
+**Unidad a usar: BL-10** (Autobús, 45 pax, id 10), con 5 servicios en el rol del 10/11. Su ruta tiene 12 paradas, recorre Zona Hotelera, CUN, Puerto Morelos y Costa Mujeres, y termina en Centro Cancún, que no es zona de término, así que muestra el regreso al encierro. Con el OSRM público mide **169.3 km** y **3 h 03 min** de manejo, de 13:15 a 20:30. La distancia puede variar unas décimas si el servidor actualiza su mapa.
 
 Antes de empezar:
 - la API (`npm run start:dev` en `apps/api`) y la web (`npm run dev` en `apps/web`) deben estar corriendo, y el equipo debe tener internet (teselas y OSRM);
@@ -137,13 +137,13 @@ Inicia sesión como COORDINADOR (`coordinador@bestline.local`).
 
 1. **Revisar rol con *Ver ruta*.** Abre `http://localhost:5173/roles/2026-11-10`. Cada unidad de la columna izquierda muestra **Ver ruta** junto a su jornada.
 2. **Ruta de BL-10.** Desplaza la línea de tiempo hasta la fila de **BL-10** y presiona **Ver ruta**, que abre `http://localhost:5173/rutas/2026-11-10?unidad=10`. Deben verse:
-   - totales: BL-10, 168.6 km, 3 h 07 min, 5 · 13:15 a 20:30;
+   - totales: BL-10, 169.3 km, 3 h 03 min, 5 · 13:15 a 20:30;
    - el trazado azul por carretera;
    - el encierro con icono de casa ("⌂ 10"), los marcadores numerados ("1·4", "2·3·5·7", "6", "8·9");
    - la lista de paradas, de "Sale del encierro" a "Regresa al encierro";
    - la atribución "© OpenStreetMap contributors".
 3. **Popup de un marcador agrupado.** Clic en el marcador **2·3·5·7** (Aeropuerto CUN). El popup lista las cuatro paradas con su folio, hora, origen → destino y pasajeros.
-4. **Centrar desde la lista.** Clic en la parada **1 · Recoge · NEX-0035** de la lista. El mapa se acerca al Hotel Ejemplo ZH 2, en la Zona Hotelera, y abre su popup (1 y 4). El trazado sigue el bulevar.
+4. **Centrar desde la lista.** Clic en la parada **1 · Recoge · NEX-0035** de la lista. El mapa se acerca al Kempinski Hotel Cancun, en la Zona Hotelera, y abre su popup (1 y 4). El trazado sigue el bulevar.
 5. **Comparar.** En **Comparar con** elige **BL-09 · Sprinter · 5 servicios**. Deben verse:
    - la ruta de BL-09 en naranja, con sus marcadores debajo de los azules, sin encimarse;
    - el texto "Comparando con BL-09: 158.5 km · 3 h 00 min de manejo · 5 servicios".
