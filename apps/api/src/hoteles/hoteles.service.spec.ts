@@ -15,7 +15,7 @@ import { HotelesService } from './hoteles.service.js';
 const ADMIN = 1;
 const hotelBd = (cambios = {}) => ({
   id: 6,
-  nombre: 'Hotel Ejemplo Playa 1',
+  nombre: 'Grand Hyatt Playa del Carmen',
   zonaId: 6,
   latitud: '20.633500',
   longitud: '-87.070500',
@@ -23,7 +23,7 @@ const hotelBd = (cambios = {}) => ({
   ...cambios,
 });
 const dto = {
-  nombre: 'Hotel Ejemplo Playa 1',
+  nombre: 'Grand Hyatt Playa del Carmen',
   zonaId: 6,
   latitud: 20.6335,
   longitud: -87.0705,
@@ -86,10 +86,10 @@ describe('HotelesService', () => {
     it('guarda los cambios y registra ACTUALIZAR (sin revisar zona si no cambia)', async () => {
       prisma.hotel.findUnique.mockResolvedValue(hotelBd());
       prisma.hotel.update.mockResolvedValue(
-        hotelBd({ nombre: 'Hotel Ejemplo Playa 1B' }),
+        hotelBd({ nombre: 'Paradisus Playa del Carmen' }),
       );
 
-      await servicio.actualizar(6, { nombre: 'Hotel Ejemplo Playa 1B' }, ADMIN);
+      await servicio.actualizar(6, { nombre: 'Paradisus Playa del Carmen' }, ADMIN);
 
       expect(prisma.zona.count).not.toHaveBeenCalled();
       expect(prisma.bitacora.create).toHaveBeenCalledWith(
@@ -115,7 +115,7 @@ describe('HotelesService', () => {
 
       await expect(servicio.eliminar(6, ADMIN)).rejects.toThrow(
         new ConflictException(
-          'No se puede eliminar el hotel "Hotel Ejemplo Playa 1": está referenciado por 5 servicio(s)',
+          'No se puede eliminar el hotel "Grand Hyatt Playa del Carmen": está referenciado por 5 servicio(s)',
         ),
       );
       expect(prisma.hotel.delete).not.toHaveBeenCalled();

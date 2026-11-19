@@ -13,7 +13,7 @@ import { UsuariosPage } from './UsuariosPage'
 const USUARIOS: UsuarioAdmin[] = [
   // id 1 = el usuario de la sesión de prueba (usuarioDePrueba)
   { id: 1, nombre: 'Administrador', email: 'admin@bestline.local', rol: 'ADMINISTRADOR', activo: true },
-  { id: 5, nombre: 'Supervisor Ejemplo', email: 'supervisor@bestline.local', rol: 'SUPERVISOR', activo: false },
+  { id: 5, nombre: 'Jorge Ramírez', email: 'supervisor@bestline.local', rol: 'SUPERVISOR', activo: false },
 ]
 
 /** La pantalla dentro de la misma ruta protegida que usa App.tsx. */
@@ -82,7 +82,7 @@ describe('Pantalla de usuarios', () => {
     await userEvent.keyboard('{Escape}')
 
     // Un usuario inactivo ofrece "Reactivar".
-    await userEvent.click(screen.getByRole('button', { name: 'Acciones de Supervisor Ejemplo' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones de Jorge Ramírez' }))
     menu = await screen.findByRole('menu')
     expect(within(menu).getByRole('menuitem', { name: 'Reactivar' })).not.toHaveAttribute('data-disabled')
   })

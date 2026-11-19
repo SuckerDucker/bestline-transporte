@@ -39,7 +39,7 @@ const PLAYA: ZonaRuta = {
 };
 const HOTEL_ZH = {
   id: 10,
-  nombre: 'Hotel Ejemplo ZH 1',
+  nombre: 'Hyatt Ziva Cancun',
   zonaId: ZH.id,
   latitud: 21.1335,
   longitud: -86.7465,
@@ -97,10 +97,10 @@ describe('armarParadas', () => {
 
     expect(paradas.map((p) => [p.orden, p.tipo, p.nombre])).toEqual([
       [1, 'ENCIERRO_SALIDA', 'Centro Cancún'],
-      [2, 'ORIGEN', 'Hotel Ejemplo ZH 1'],
+      [2, 'ORIGEN', 'Hyatt Ziva Cancun'],
       [3, 'DESTINO', 'Aeropuerto CUN'],
       [4, 'ORIGEN', 'Aeropuerto CUN'],
-      [5, 'DESTINO', 'Hotel Ejemplo ZH 1'],
+      [5, 'DESTINO', 'Hyatt Ziva Cancun'],
     ]);
     // Origen: llega en el inicio efectivo (05:50) y sale a la hora del servicio.
     expect(paradas[1]).toMatchObject({
@@ -114,7 +114,7 @@ describe('armarParadas', () => {
     expect(paradas[2].servicio).toMatchObject({
       folio: 'S-1',
       pasajeros: 4,
-      origen: 'Hotel Ejemplo ZH 1',
+      origen: 'Hyatt Ziva Cancun',
       destino: 'Aeropuerto CUN',
     });
     // Termina en Zona Hotelera (zona de término): no hay regreso.

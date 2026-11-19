@@ -36,7 +36,7 @@ import { HotelesService } from './hoteles.service.js';
 
 const EJEMPLO = {
   id: 9,
-  nombre: 'Hotel Ejemplo ZH 3',
+  nombre: 'Riu Palace Peninsula',
   zonaId: 2,
   latitud: 21.1201,
   longitud: -86.7531,
@@ -88,7 +88,7 @@ export class HotelesController {
       hotel: {
         summary: 'Hotel nuevo en Zona Hotelera',
         value: {
-          nombre: 'Hotel Ejemplo ZH 3',
+          nombre: 'Riu Palace Peninsula',
           zonaId: 2,
           latitud: 21.1201,
           longitud: -86.7531,
@@ -119,7 +119,7 @@ export class HotelesController {
     examples: {
       nombre: {
         summary: 'Cambiar nombre',
-        value: { nombre: 'Hotel Ejemplo ZH 3B' },
+        value: { nombre: 'Riu Palace Peninsula Cancun' },
       },
     },
   })
@@ -151,7 +151,7 @@ export class HotelesController {
   @ApiErroresEscritura('Validation failed (numeric string is expected)')
   @ApiError404('No existe el hotel 99')
   @ApiError409(
-    'No se puede eliminar el hotel "Hotel Ejemplo ZH 1": está referenciado por 7 servicio(s)',
+    'No se puede eliminar el hotel "Hyatt Ziva Cancun": está referenciado por 7 servicio(s)',
   )
   eliminar(
     @Param('id', ParseIntPipe) id: number,

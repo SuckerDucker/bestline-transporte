@@ -54,7 +54,7 @@ const SERVICIO_EJEMPLO = {
   estado: 'PENDIENTE',
   zonaOrigen: { id: 1, nombre: 'Aeropuerto CUN' },
   zonaDestino: { id: 2, nombre: 'Zona Hotelera' },
-  hotel: { id: 1, nombre: 'Hotel Ejemplo ZH 1' },
+  hotel: { id: 1, nombre: 'Hyatt Ziva Cancun' },
   mayorista: { id: 2, nombre: 'Nexus Tours' },
 };
 
@@ -173,7 +173,7 @@ export class RolesController {
             },
             operador: {
               id: 1,
-              nombre: 'Operador Ejemplo 01',
+              nombre: 'José Hernández',
               horaCita: '04:00',
             },
             disponible: true,

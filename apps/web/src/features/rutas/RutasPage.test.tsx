@@ -68,7 +68,7 @@ const servicio = (folio: string, origen: string, destino: string) => ({
   origen,
   destino,
 })
-const S1 = servicio('S-1', 'Hotel Ejemplo ZH 1', 'Aeropuerto CUN')
+const S1 = servicio('S-1', 'Hyatt Ziva Cancun', 'Aeropuerto CUN')
 const S2 = servicio('S-2', 'Aeropuerto CUN', 'Centro Cancún')
 
 function ruta(vehiculoId: number, trazado: 'carretera' | 'aproximado' = 'carretera'): Ruta {
@@ -80,11 +80,11 @@ function ruta(vehiculoId: number, trazado: 'carretera' | 'aproximado' = 'carrete
     servicios: 2,
     paradas: [
       { orden: 1, tipo: 'ENCIERRO_SALIDA', nombre: 'Centro Cancún', zona: 'Centro Cancún', ...CENTRO, llegada: null, salida: h('10:20'), horaCita: h('09:00') },
-      { orden: 2, tipo: 'ORIGEN', nombre: 'Hotel Ejemplo ZH 1', zona: 'Zona Hotelera', ...HOTEL, llegada: h('10:50'), salida: h('11:00'), servicio: S1 },
+      { orden: 2, tipo: 'ORIGEN', nombre: 'Hyatt Ziva Cancun', zona: 'Zona Hotelera', ...HOTEL, llegada: h('10:50'), salida: h('11:00'), servicio: S1 },
       { orden: 3, tipo: 'DESTINO', nombre: 'Aeropuerto CUN', zona: 'Aeropuerto CUN', ...CUN, llegada: h('11:30'), salida: h('11:30'), servicio: S1 },
       // Recoge en el mismo punto donde dejó: un solo marcador "2·3".
       { orden: 4, tipo: 'ORIGEN', nombre: 'Aeropuerto CUN', zona: 'Aeropuerto CUN', ...CUN, llegada: h('12:50'), salida: h('13:00'), servicio: S2 },
-      { orden: 5, tipo: 'DESTINO', nombre: 'Hotel Ejemplo Centro 1', zona: 'Centro Cancún', latitud: 21.1605, longitud: -86.8475, llegada: h('13:30'), salida: h('13:30'), servicio: S2 },
+      { orden: 5, tipo: 'DESTINO', nombre: 'Hotel Plaza Caribe', zona: 'Centro Cancún', latitud: 21.1605, longitud: -86.8475, llegada: h('13:30'), salida: h('13:30'), servicio: S2 },
       { orden: 6, tipo: 'ENCIERRO_REGRESO', nombre: 'Centro Cancún', zona: 'Centro Cancún', ...CENTRO, llegada: h('13:40'), salida: null },
     ],
     geometria: { type: 'LineString', coordinates: [[CENTRO.longitud, CENTRO.latitud], [CUN.longitud, CUN.latitud]] },
@@ -134,7 +134,7 @@ describe('Rutas sugeridas', () => {
     expect(paradas[0]).toHaveTextContent('Sale del encierro')
     expect(paradas[0]).toHaveTextContent('Sale 05:20 · cita 04:00')
     expect(paradas[1]).toHaveTextContent('1Recoge · S-1')
-    expect(paradas[1]).toHaveTextContent('Hotel Ejemplo ZH 1 (Zona Hotelera)')
+    expect(paradas[1]).toHaveTextContent('Hyatt Ziva Cancun (Zona Hotelera)')
     expect(paradas[1]).toHaveTextContent('Llega 05:50 · Sale 06:00 · 4 pax')
     expect(paradas[2]).toHaveTextContent('2Deja · S-1')
     expect(paradas[2]).toHaveTextContent('Llega 06:30')
@@ -172,9 +172,9 @@ describe('Rutas sugeridas', () => {
   it('al elegir una parada de la lista el mapa la centra', async () => {
     abrir()
     const lista = await screen.findByRole('list', { name: 'Paradas de la ruta' })
-    await userEvent.click(within(lista).getByRole('button', { name: '1. Recoge S-1, Hotel Ejemplo ZH 1, Llega 05:50 · Sale 06:00' }))
+    await userEvent.click(within(lista).getByRole('button', { name: '1. Recoge S-1, Hyatt Ziva Cancun, Llega 05:50 · Sale 06:00' }))
     expect(mapa.setView).toHaveBeenLastCalledWith([HOTEL.latitud, HOTEL.longitud], 14)
-    expect(popups.at(-1)).toBe('BL-01: Hotel Ejemplo ZH 1')
+    expect(popups.at(-1)).toBe('BL-01: Hyatt Ziva Cancun')
   })
 
   it('avisa cuando el trazado es aproximado y muestra la duración como "—"', async () => {
