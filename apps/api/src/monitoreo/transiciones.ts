@@ -33,6 +33,12 @@ export const ESTADOS_DESTINO: EstadoServicio[] = [
 export type ResultadoTransicion =
   { valida: true } | { valida: false; codigo: 400 | 403; mensaje: string };
 
+const rechazo = (codigo: 400 | 403, mensaje: string): ResultadoTransicion => ({
+  valida: false,
+  codigo,
+  mensaje,
+});
+
 /**
  * Revisa si un usuario con cierto rol puede pasar un servicio de "desde" a
  * "hacia". Primero el permiso del rol (403) y después la tabla (400).
@@ -43,18 +49,13 @@ export function validarTransicion(
   rol: RolUsuario,
 ): ResultadoTransicion {
   if (rol === 'OPERADOR' && !ESTADOS_OPERADOR.includes(hacia)) {
-    return {
-      valida: false,
-      codigo: 403,
-      mensaje: `El operador no puede marcar un servicio como ${hacia}`,
-    };
+    return rechazo(
+      403,
+      `El operador no puede marcar un servicio como ${hacia}`,
+    );
   }
   if (!(TRANSICIONES[desde] ?? []).includes(hacia)) {
-    return {
-      valida: false,
-      codigo: 400,
-      mensaje: `No se puede pasar de ${desde} a ${hacia}`,
-    };
+    return rechazo(400, `No se puede pasar de ${desde} a ${hacia}`);
   }
   return { valida: true };
 }
