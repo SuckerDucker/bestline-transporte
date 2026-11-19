@@ -23,7 +23,7 @@ export function RedirigirRutasDeManana() {
 }
 
 /**
- * Rutas sugeridas (CU-17): recorrido de una unidad en el rol del día sobre el
+ * Rutas sugeridas: recorrido de una unidad en el rol del día sobre el
  * mapa (Leaflet + OpenStreetMap). El trazado por carretera lo pide la API a
  * OSRM; las horas son las del rol. Se puede comparar con otra unidad.
  * La unidad elegida va en la URL (?unidad=3&comparar=5) para poder compartirla

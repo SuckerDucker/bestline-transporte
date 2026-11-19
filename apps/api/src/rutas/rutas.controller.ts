@@ -81,7 +81,7 @@ const EJEMPLO = {
   trazado: 'carretera',
 };
 
-/** Rutas sugeridas por unidad sobre el mapa (CU-17). */
+/** Rutas sugeridas por unidad sobre el mapa. */
 @ApiTags('rutas')
 @ApiBearerAuth()
 @ApiError401()

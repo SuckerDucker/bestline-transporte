@@ -1,4 +1,4 @@
-// Armado de la ruta sugerida de una unidad (CU-17): lista ordenada de paradas
+// Armado de la ruta sugerida de una unidad: lista ordenada de paradas
 // a partir de las asignaciones del rol. Es una función pura (sin base de datos
 // ni OSRM) para poder probarla sola. Las horas salen del rol, no de OSRM.
 
@@ -97,79 +97,82 @@ function lugar(a: AsignacionRuta, lado: 'origen' | 'destino') {
 }
 
 /**
- * Paradas en orden: salida del encierro, origen y destino de cada servicio y,
- * si el último destino no es zona de término, regreso al encierro.
- * - Salida del encierro = la mayor entre la hora de cita y (inicio efectivo del
- *   primer servicio − traslado encierro → primer origen).
- * - Origen: llega en el inicio efectivo y sale a la hora del servicio.
- * - Destino: llega y queda libre en la liberación.
- * - Regreso: liberación del último + traslado destino → encierro.
+ * Hora en que la unidad sale del encierro: la mayor entre la hora de cita y
+ * lo justo para llegar al primer origen en su inicio efectivo. Si falta en la
+ * matriz el traslado encierro → primer origen, sale a la hora de cita.
  */
-export function armarParadas({
-  encierro,
-  cita,
-  asignaciones,
-  tiempo,
-}: DatosRuta): Parada[] {
-  const primera = asignaciones[0];
-  const ultima = asignaciones[asignaciones.length - 1];
-  const paradas: Omit<Parada, 'orden'>[] = [];
+export function salidaDelEncierro(
+  cita: Date,
+  inicioPrimero: Date,
+  traslado: number | undefined,
+): Date {
+  if (traslado === undefined) return cita;
+  const justoATiempo = mas(inicioPrimero, -traslado);
+  return justoATiempo > cita ? justoATiempo : cita;
+}
 
-  const aPrimerOrigen = tiempo(encierro.id, primera.servicio.zonaOrigen.id);
-  const salidaReal =
-    aPrimerOrigen === undefined
-      ? cita
-      : mas(primera.inicioEfectivo, -aPrimerOrigen);
-  const enc = {
-    nombre: encierro.nombre,
-    zona: encierro.nombre,
-    latitud: encierro.latitud,
-    longitud: encierro.longitud,
+/**
+ * Origen y destino de un servicio. Origen: llega en el inicio efectivo y sale
+ * a la hora del servicio. Destino: llega y queda libre en la liberación.
+ */
+function paradasDelServicio(a: AsignacionRuta): Omit<Parada, 'orden'>[] {
+  const s = a.servicio;
+  const [origen, destino] = [lugar(a, 'origen'), lugar(a, 'destino')];
+  const servicio = {
+    id: s.id,
+    folio: s.folio,
+    tipo: s.tipo,
+    modalidad: s.modalidad,
+    pasajeros: s.pasajeros,
+    origen: origen.nombre,
+    destino: destino.nombre,
   };
-  paradas.push({
-    ...enc,
-    tipo: 'ENCIERRO_SALIDA',
-    llegada: null,
-    salida: salidaReal > cita ? salidaReal : cita,
-    horaCita: cita,
-  });
-
-  for (const a of asignaciones) {
-    const s = a.servicio;
-    const servicio = {
-      id: s.id,
-      folio: s.folio,
-      tipo: s.tipo,
-      modalidad: s.modalidad,
-      pasajeros: s.pasajeros,
-      origen: lugar(a, 'origen').nombre,
-      destino: lugar(a, 'destino').nombre,
-    };
-    paradas.push({
-      ...lugar(a, 'origen'),
+  return [
+    {
+      ...origen,
       tipo: 'ORIGEN',
       llegada: a.inicioEfectivo,
       salida: s.fechaHora,
       servicio,
-    });
-    paradas.push({
-      ...lugar(a, 'destino'),
+    },
+    {
+      ...destino,
       tipo: 'DESTINO',
       llegada: a.liberacion,
       salida: a.liberacion,
       servicio,
-    });
-  }
+    },
+  ];
+}
 
+/** El encierro como parada: nombre y coordenadas de su zona. */
+const puntoEncierro = (e: ZonaRuta) => ({
+  nombre: e.nombre,
+  zona: e.nombre,
+  latitud: e.latitud,
+  longitud: e.longitud,
+});
+
+/**
+ * Paradas en orden: salida del encierro, origen y destino de cada servicio y,
+ * si el último destino no es zona de término, regreso al encierro (liberación
+ * del último + traslado destino → encierro). Las horas son las del rol.
+ */
+export function armarParadas(datos: DatosRuta): Parada[] {
+  const { encierro: e, cita, asignaciones, tiempo } = datos;
+  const [primera, ultima] = [asignaciones[0], asignaciones.at(-1)!];
+  const enc = puntoEncierro(e);
+  const traslado = tiempo(e.id, primera.servicio.zonaOrigen.id);
+  const salida = salidaDelEncierro(cita, primera.inicioEfectivo, traslado);
+  const paradas: Omit<Parada, 'orden'>[] = [
+    { ...enc, tipo: 'ENCIERRO_SALIDA', llegada: null, salida, horaCita: cita },
+    ...asignaciones.flatMap(paradasDelServicio),
+  ];
   if (!ultima.servicio.zonaDestino.esZonaTermino) {
-    const regreso = tiempo(ultima.servicio.zonaDestino.id, encierro.id);
-    paradas.push({
-      ...enc,
-      tipo: 'ENCIERRO_REGRESO',
-      llegada: regreso === undefined ? null : mas(ultima.liberacion, regreso),
-      salida: null,
-    });
+    const regreso = tiempo(ultima.servicio.zonaDestino.id, e.id);
+    const llegada =
+      regreso === undefined ? null : mas(ultima.liberacion, regreso);
+    paradas.push({ ...enc, tipo: 'ENCIERRO_REGRESO', llegada, salida: null });
   }
-
   return paradas.map((p, i) => ({ ...p, orden: i + 1 }));
 }

@@ -29,7 +29,7 @@ export function DatosUnidad({ unidad, className, fecha }: Props) {
           {!unidad.disponible && <span className="ml-1 font-medium text-amber-800">· No disponible</span>}
         </span>
         {fecha && unidad.asignaciones.length > 0 && (
-          // Rutas sugeridas de esta unidad (CU-17).
+          // Rutas sugeridas de esta unidad.
           <Link
             to={`/rutas/${fecha}?unidad=${vehiculo.id}`}
             className="ml-auto inline-flex shrink-0 items-center gap-1 font-medium text-sky-700 hover:underline"

@@ -16,7 +16,7 @@ const ZONA = {
   },
 } as const;
 
-/** Rutas sugeridas: el recorrido de una unidad en el rol del día (CU-17). */
+/** Rutas sugeridas: el recorrido de una unidad en el rol del día. */
 @Injectable()
 export class RutasService {
   constructor(
