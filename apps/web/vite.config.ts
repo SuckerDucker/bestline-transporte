@@ -24,7 +24,7 @@ export default defineConfig({
           includeDependenciesRecursively: false,
           groups: [
             // Leaflet solo lo usa Rutas sugeridas: va aparte y se descarga al abrir esa pantalla.
-            { name: 'mapa', test: /node_modules[\/](leaflet|react-leaflet|@react-leaflet)[\/]/, priority: 10 },
+            { name: 'mapa', test: /node_modules[\\/](leaflet|react-leaflet|@react-leaflet)[\\/]/, priority: 10 },
             { name: 'librerias', test: /node_modules/ },
           ],
         },
