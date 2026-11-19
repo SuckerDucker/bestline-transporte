@@ -230,6 +230,14 @@ describe('Pantalla Revisar rol', () => {
     expect(screen.queryByRole('button', { name: /^Mover/ })).not.toBeInTheDocument()
   })
 
+  it('cada unidad con servicios tiene "Ver ruta" hacia Rutas sugeridas; la vacía no', async () => {
+    renderizarPagina({ usuario: 'SUPERVISOR' })
+    const linea = await screen.findByRole('list', { name: 'Línea de tiempo por unidad' })
+    expect(within(linea).getByRole('link', { name: 'Ver ruta de BL-01' })).toHaveAttribute('href', `/rutas/${FECHA}?unidad=1`)
+    expect(within(linea).getByRole('link', { name: 'Ver ruta de BL-02' })).toBeInTheDocument()
+    expect(within(linea).queryByRole('link', { name: 'Ver ruta de BL-03' })).not.toBeInTheDocument()
+  })
+
   it('sin rol del día ofrece ir a Generar rol', async () => {
     renderizarPagina({ rol: null })
     expect(await screen.findByText('Todavía no se ha generado el rol de este día.')).toBeInTheDocument()

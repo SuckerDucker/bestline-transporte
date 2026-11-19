@@ -153,7 +153,7 @@ export function RevisionRolPage() {
               {!esMovil && <LeyendaLineaTiempo />}
             </div>
             {esMovil ? (
-              <ListaUnidades unidades={datos.unidades} editable={editable} alElegir={elegirAsignacion} />
+              <ListaUnidades fecha={fecha} unidades={datos.unidades} editable={editable} alElegir={elegirAsignacion} />
             ) : (
               <LineaTiempo fecha={fecha} unidades={datos.unidades} editable={editable} alElegir={elegirAsignacion} />
             )}

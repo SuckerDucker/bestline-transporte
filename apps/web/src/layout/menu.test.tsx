@@ -14,6 +14,7 @@ describe('Menú según el rol', () => {
       'Importar servicios',
       'Generar rol',
       'Revisar rol',
+      'Rutas sugeridas',
       'Servicios',
       'Historial de importaciones',
       'Vehículos',
@@ -55,6 +56,12 @@ describe('Menú según el rol', () => {
     expect(etiquetas('OPERADOR')).not.toContain('Revisar rol')
     // Las subrutas con fecha usan el mismo título.
     expect(tituloDe('/roles/2026-11-10')).toBe('Revisión del rol')
+  })
+
+  it('ADMINISTRADOR, COORDINADOR y SUPERVISOR ven "Rutas sugeridas"; el OPERADOR no', () => {
+    for (const rol of ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as const) expect(etiquetas(rol)).toContain('Rutas sugeridas')
+    expect(etiquetas('OPERADOR')).not.toContain('Rutas sugeridas')
+    expect(tituloDe('/rutas/2026-11-10')).toBe('Rutas sugeridas')
   })
 
   it('solo ADMINISTRADOR y COORDINADOR ven "Importar servicios"', () => {
