@@ -212,38 +212,7 @@ export class RevisionService {
     return this.prisma.$transaction(async (tx) => {
       const rol = await bloquearRolPropuesto(tx, fecha);
       const e = await leerEstado(tx, rol.id, fecha);
-      const { parametros } = e.datos;
-      const porUnidad = new Map<
-        number,
-        { id: number; inicio: number; liberacion: number }[]
-      >();
-      for (const a of e.asignaciones) {
-        porUnidad.set(a.vehiculoId, [
-          ...(porUnidad.get(a.vehiculoId) ?? []),
-          {
-            id: a.servicioId,
-            inicio: aMinutos(e.inicioDia, a.inicioEfectivo),
-            liberacion: aMinutos(e.inicioDia, a.liberacion),
-          },
-        ]);
-      }
-      const violaciones = verificarRol(
-        {
-          servicios: [...e.calculados.values()],
-          unidades: e.datos.unidades,
-          anticipacion: parametros.anticipacion,
-          jornadaMaxima: parametros.jornadaMaxima,
-          zonasTermino: parametros.zonasTermino,
-          matriz: e.datos.matriz,
-        },
-        {
-          asignaciones: [...porUnidad].map(([vehiculoId, servicios]) => ({
-            vehiculoId,
-            servicios,
-          })),
-          noCubiertos: e.noCubiertos.map((n) => n.servicioId),
-        },
-      );
+      const violaciones = violacionesDe(e);
       if (violaciones.length) {
         throw new BadRequestException({
           message:
@@ -284,6 +253,58 @@ export class RevisionService {
 }
 
 type Estado = Awaited<ReturnType<typeof leerEstado>>;
+
+/**
+ * Corre el verificador independiente sobre el rol guardado: secuencia de cada
+ * unidad con las horas guardadas, no cubiertos y datos actuales del motor.
+ */
+function violacionesDe(e: Estado): string[] {
+  const { parametros } = e.datos;
+  const porUnidad = new Map<
+    number,
+    { id: number; inicio: number; liberacion: number }[]
+  >();
+  for (const a of e.asignaciones) {
+    porUnidad.set(a.vehiculoId, [
+      ...(porUnidad.get(a.vehiculoId) ?? []),
+      {
+        id: a.servicioId,
+        inicio: aMinutos(e.inicioDia, a.inicioEfectivo),
+        liberacion: aMinutos(e.inicioDia, a.liberacion),
+      },
+    ]);
+  }
+  return verificarRol(
+    {
+      servicios: [...e.calculados.values()],
+      unidades: e.datos.unidades,
+      anticipacion: parametros.anticipacion,
+      jornadaMaxima: parametros.jornadaMaxima,
+      zonasTermino: parametros.zonasTermino,
+      matriz: e.datos.matriz,
+    },
+    {
+      asignaciones: [...porUnidad].map(([vehiculoId, servicios]) => ({
+        vehiculoId,
+        servicios,
+      })),
+      noCubiertos: e.noCubiertos.map((n) => n.servicioId),
+    },
+  );
+}
+
+/**
+ * Violaciones del verificador sobre un rol ya guardado (lo usan la
+ * autorización y los indicadores, que cuentan los empalmes de los roles
+ * autorizados).
+ */
+export async function verificarRolGuardado(
+  prisma: ClientePrisma,
+  rolId: number,
+  fecha: string,
+): Promise<string[]> {
+  return violacionesDe(await leerEstado(prisma, rolId, fecha));
+}
 
 /**
  * Estado actual del rol leído de la base: asignaciones (por unidad y orden),
