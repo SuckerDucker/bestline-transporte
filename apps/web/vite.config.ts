@@ -19,7 +19,14 @@ export default defineConfig({
         // Las librerías (React, Radix, TanStack…) van en un archivo aparte:
         // cambian poco y el navegador las guarda en caché entre versiones.
         advancedChunks: {
-          groups: [{ name: 'librerias', test: /node_modules/ }],
+          // Cada grupo toma solo los módulos que coinciden (sin arrastrar React
+          // u otras dependencias compartidas al archivo del mapa).
+          includeDependenciesRecursively: false,
+          groups: [
+            // Leaflet solo lo usa Rutas sugeridas: va aparte y se descarga al abrir esa pantalla.
+            { name: 'mapa', test: /node_modules[\/](leaflet|react-leaflet|@react-leaflet)[\/]/, priority: 10 },
+            { name: 'librerias', test: /node_modules/ },
+          ],
         },
       },
     },

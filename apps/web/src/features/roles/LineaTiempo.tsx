@@ -63,7 +63,7 @@ export function LineaTiempo({ fecha, unidades, editable, alElegir }: Props) {
             const fin = u.finJornada ? m(u.finJornada) : hasta
             return (
               <li key={u.vehiculo.id} aria-label={u.vehiculo.numeroEconomico} className="grid border-b last:border-b-0" style={columnas}>
-                <DatosUnidad unidad={u} className={cn(fija, 'px-4 py-2')} />
+                <DatosUnidad unidad={u} fecha={fecha} className={cn(fija, 'px-4 py-2')} />
                 <div className="relative my-2 h-12">
                   {horas.map((h) => (
                     <span key={h} className="absolute inset-y-0 w-px bg-border" style={{ left: pos(h, h).left }} aria-hidden />

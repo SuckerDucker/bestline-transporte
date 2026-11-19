@@ -18,6 +18,10 @@ const RevisionRolPage = lazy(() => import('./features/roles/RevisionRolPage').th
 const RedirigirRolDeManana = lazy(() =>
   import('./features/roles/RevisionRolPage').then((m) => ({ default: m.RedirigirRolDeManana })),
 )
+const RutasPage = lazy(() => import('./features/rutas/RutasPage').then((m) => ({ default: m.RutasPage })))
+const RedirigirRutasDeManana = lazy(() =>
+  import('./features/rutas/RutasPage').then((m) => ({ default: m.RedirigirRutasDeManana })),
+)
 const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
@@ -61,6 +65,9 @@ function App() {
             {/* Revisión del rol: SUPERVISOR solo consulta (la página y la API lo revisan) */}
             <Route path="roles" element={<RedirigirRolDeManana />} />
             <Route path="roles/:fecha" element={<RevisionRolPage />} />
+            {/* Rutas sugeridas sobre el mapa (solo consulta) */}
+            <Route path="rutas" element={<RedirigirRutasDeManana />} />
+            <Route path="rutas/:fecha" element={<RutasPage />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="operadores" element={<OperadoresPage />} />
             <Route path="zonas" element={<ZonasPage />} />

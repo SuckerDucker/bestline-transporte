@@ -8,18 +8,19 @@ import { DatosUnidad } from './DatosUnidad'
 import { COLOR_MODALIDAD } from './formato'
 
 interface Props {
+  fecha: string
   unidades: UnidadRol[]
   editable: boolean
   alElegir: (asignacion: AsignacionRol) => void
 }
 
 /** El rol en celular (< md): una tarjeta por unidad con sus servicios en orden. */
-export function ListaUnidades({ unidades, editable, alElegir }: Props) {
+export function ListaUnidades({ fecha, unidades, editable, alElegir }: Props) {
   return (
     <ul className="space-y-3" aria-label="Unidades del rol">
       {unidades.map((u) => (
         <li key={u.vehiculo.id} aria-label={u.vehiculo.numeroEconomico} className="rounded-xl border bg-card p-4 shadow-sm">
-          <DatosUnidad unidad={u} />
+          <DatosUnidad unidad={u} fecha={fecha} />
           {u.asignaciones.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">Sin servicios asignados.</p>
           ) : (
