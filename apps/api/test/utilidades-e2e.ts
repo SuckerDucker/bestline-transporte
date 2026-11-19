@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import bcrypt from 'bcrypt';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
@@ -10,14 +10,20 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 
 export const PASSWORD_PRUEBA = 'Clave-de-prueba-1';
 
-/** Levanta la API completa con la misma configuración que main.ts. */
-export async function crearApp(): Promise<{
+/**
+ * Levanta la API completa con la misma configuración que main.ts. Con
+ * "personalizar" se reemplazan piezas (p. ej. el cliente de OSRM por uno
+ * con fetch simulado) antes de compilar.
+ */
+export async function crearApp(
+  personalizar: (b: TestingModuleBuilder) => TestingModuleBuilder = (b) => b,
+): Promise<{
   app: INestApplication<App>;
   prisma: PrismaService;
 }> {
-  const modulo = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+  const modulo = await personalizar(
+    Test.createTestingModule({ imports: [AppModule] }),
+  ).compile();
   const app = modulo.createNestApplication<INestApplication<App>>();
   configurarApp(app);
   await app.init();
