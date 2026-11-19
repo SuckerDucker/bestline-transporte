@@ -30,7 +30,7 @@ Se creó desde cero la base del sistema en un monorepo con dos aplicaciones: una
 |---|---|---|
 | usuario | 1 | ADMINISTRADOR; correo y contraseña tomados de `.env`, hash bcrypt (`$2b$10$…`, 60 caracteres) |
 | zona | 8 | Aeropuerto CUN, Zona Hotelera, Centro Cancún, Costa Mujeres, Puerto Morelos, Playa del Carmen, Tulum, Aeropuerto TQO; zona de término solo en los dos aeropuertos y Zona Hotelera |
-| hotel | 8 | Nombres genéricos ("Hotel Ejemplo …") |
+| hotel | 8 | Hoteles reales de cada zona (antes genéricos, "Hotel Ejemplo …"; se renombraron con `apps/api/prisma/actualizaciones/2026-11-19-nombres-catalogos.sql`) |
 | tiempo_traslado | 64 | Matriz 8 × 8 distinta por sentido (por ejemplo, Aeropuerto CUN → Tulum = 100 min y Tulum → Aeropuerto CUN = 105 min) |
 | parametro_operacion | 26 | `hora_cita` = 05:00, `jornada_maxima_horas` = 9.5 y 24 anticipaciones (3 tipos × 8 zonas; LLEGADA = 0 min, SALIDA y TRASLADO = 15 min) |
 | mayorista | 2 | TUI, Nexus Tours |

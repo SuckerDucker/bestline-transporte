@@ -156,7 +156,7 @@ Las capturas 1 a 7 no autorizan nada y se pueden repetir. **La captura 8 autoriz
 7. **SUPERVISOR en celular (solo consulta).** Cierra sesión, entra como `supervisor@bestline.local` y abre `http://localhost:5173/roles/2026-11-10` con las DevTools en modo dispositivo de **390 px**. Deben verse el aviso "Solo consulta…", la lista por unidad con el vacío previo de cada servicio, y ningún botón de **Mover**, **Asignar a…** ni **Autorizar rol**.
 8. **⚠ AUTORIZA EL ROL. Después de esta captura ya no se puede regenerar el 10/11 sin el comando de limpieza.** Vuelve a entrar como COORDINADOR en `http://localhost:5173/roles/2026-11-10` y presiona **Autorizar rol**. El diálogo avisa "Quedan 19 servicios sin cubrir". Confirma con **Autorizar**. Deben verse:
    - el aviso "Rol autorizado" (41 servicios PROGRAMADO, 19 sin cubrir);
-   - el badge *Autorizado* con "Por Coordinador Ejemplo el …";
+   - el badge *Autorizado* con "Por Laura Méndez el …";
    - el aviso "El rol ya está AUTORIZADO: solo se puede consultar";
    - ningún botón de mover, asignar ni autorizar.
 
