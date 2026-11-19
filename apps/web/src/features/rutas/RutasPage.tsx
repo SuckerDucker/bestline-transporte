@@ -163,9 +163,11 @@ function Totales({ ruta, comparada }: { ruta: Ruta; comparada?: Ruta }) {
       {comparada && (
         <p className="col-span-2 flex items-center gap-2 text-sm md:col-span-4">
           <span className="size-3 rounded-full" style={{ background: COLOR_RUTA.comparada }} aria-hidden />
-          Comparando con <span className="font-semibold">{comparada.vehiculo.numeroEconomico}</span>:{' '}
-          {formatoDistancia(comparada.distanciaKm)} · {formatoDuracion(comparada.duracionMin)} de manejo ·{' '}
-          {comparada.servicios} servicios
+          <span>
+            Comparando con <span className="font-semibold">{comparada.vehiculo.numeroEconomico}</span>:{' '}
+            {formatoDistancia(comparada.distanciaKm)} · {formatoDuracion(comparada.duracionMin)} de manejo ·{' '}
+            {comparada.servicios} servicios
+          </span>
         </p>
       )}
     </div>

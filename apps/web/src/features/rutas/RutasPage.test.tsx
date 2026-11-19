@@ -10,11 +10,24 @@ import { RutasPage } from './RutasPage'
 
 // jsdom no dibuja mapas: Leaflet y react-leaflet se reemplazan por elementos
 // simples para revisar qué se le pasa al mapa (trazado, marcadores y popups).
-const mapa = vi.hoisted(() => ({ fitBounds: vi.fn(), setView: vi.fn(), getZoom: () => 10 }))
+// project: 20 000 px por grado, así el hotel a ~450 m del encierro (80 px en x) no se junta.
+const mapa = vi.hoisted(() => ({
+  fitBounds: vi.fn(),
+  setView: vi.fn(),
+  getZoom: () => 10,
+  getBoundsZoom: () => 10,
+  project: ([lat, lon]: [number, number]) => ({
+    x: lon * 20_000,
+    y: lat * 20_000,
+    distanceTo(o: { x: number; y: number }) {
+      return Math.hypot(this.x - o.x, this.y - o.y)
+    },
+  }),
+}))
 // Popup abierto por cada marcador (el ref del Marker simulado expone openPopup).
 const popups = vi.hoisted(() => [] as string[])
 vi.mock('leaflet', () => ({
-  default: { divIcon: (o: unknown) => o, latLngBounds: (puntos: unknown) => puntos },
+  default: { divIcon: (o: unknown) => o, latLngBounds: (puntos: unknown) => puntos, point: (x: number, y: number) => ({ x, y }) },
 }))
 vi.mock('react-leaflet', async () => {
   const { forwardRef, useImperativeHandle } = await import('react')

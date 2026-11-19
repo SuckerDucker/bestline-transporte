@@ -24,28 +24,31 @@ export interface GrupoParadas {
   etiqueta: string
 }
 
+type Punto = Pick<Parada, 'latitud' | 'longitud'>
+const mismoPunto = (a: Punto, b: Punto) => a.latitud === b.latitud && a.longitud === b.longitud
+
 /**
- * Junta las paradas con las mismas coordenadas (por ejemplo, dejar pasajeros
- * en CUN y recoger otros ahí mismo, o salir y regresar al encierro) para que
- * sus números no se encimen: un marcador con "2·3" y un popup con las dos.
+ * Junta las paradas que quedan en el mismo lugar del mapa (por ejemplo, dejar
+ * pasajeros en CUN y recoger otros ahí mismo, o salir y regresar al encierro)
+ * para que sus números no se encimen: un marcador con "2·3" y un popup con las
+ * dos. "cerca" decide si una parada va con el primer punto de un grupo; el
+ * mapa la mide en píxeles de pantalla.
  */
-export function agruparParadas(paradas: ParadaNumerada[]): GrupoParadas[] {
-  const grupos = new Map<string, GrupoParadas>()
+export function agruparParadas(
+  paradas: ParadaNumerada[],
+  cerca: (a: Punto, b: Punto) => boolean = mismoPunto,
+): GrupoParadas[] {
+  const grupos: GrupoParadas[] = []
   for (const p of paradas) {
-    const clave = `${p.latitud},${p.longitud}`
-    const grupo = grupos.get(clave) ?? {
-      clave,
-      latitud: p.latitud,
-      longitud: p.longitud,
-      paradas: [],
-      encierro: false,
-      etiqueta: '',
+    let grupo = grupos.find((g) => cerca(g, p))
+    if (!grupo) {
+      grupo = { clave: `${p.latitud},${p.longitud}`, latitud: p.latitud, longitud: p.longitud, paradas: [], encierro: false, etiqueta: '' }
+      grupos.push(grupo)
     }
     grupo.paradas.push(p)
     grupo.encierro ||= esEncierro(p)
-    grupos.set(clave, grupo)
   }
-  return [...grupos.values()].map((g) => ({
+  return grupos.map((g) => ({
     ...g,
     etiqueta: g.paradas
       .map((p) => p.numero)
