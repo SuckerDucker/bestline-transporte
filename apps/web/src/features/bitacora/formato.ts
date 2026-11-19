@@ -10,6 +10,7 @@ export const ACCIONES = [
   { valor: 'CAMBIAR_PASSWORD', etiqueta: 'Cambiar contraseña' },
   { valor: 'ELIMINAR', etiqueta: 'Eliminar' },
   { valor: 'AUTORIZAR', etiqueta: 'Autorizar' },
+  { valor: 'CAMBIAR_ESTADO', etiqueta: 'Cambiar estado' },
 ]
 
 export const ENTIDADES = [
@@ -23,6 +24,8 @@ export const ENTIDADES = [
   { valor: 'importacion', etiqueta: 'Importación' },
   { valor: 'rol_diario', etiqueta: 'Rol diario' },
   { valor: 'asignacion', etiqueta: 'Asignación' },
+  { valor: 'servicio', etiqueta: 'Servicio' },
+  { valor: 'incidencia', etiqueta: 'Incidencia' },
 ]
 
 /** "ACTUALIZAR: 9.5 → 10" → { accion: "ACTUALIZAR", detalle: "9.5 → 10" }. */
