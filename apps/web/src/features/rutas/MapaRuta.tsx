@@ -78,12 +78,15 @@ export function MapaRuta({ ruta, comparada, enfoque }: Props) {
   const [marcadores] = useState<Marcadores>(() => new Map())
   const rutas = [ruta, comparada].filter((r) => r !== undefined)
 
+  // "isolate" crea un contexto de apilamiento propio: los z-index de Leaflet
+  // (capas 400, controles 1000) quedan dentro del mapa y no tapan los
+  // desplegables (z-50) de la página.
   return (
     <MapContainer
       center={CENTRO_INICIAL}
       zoom={10}
       scrollWheelZoom
-      className="h-[360px] w-full rounded-xl border shadow-sm md:h-[620px]"
+      className="isolate h-[360px] w-full rounded-xl border shadow-sm md:h-[620px]"
     >
       <TileLayer attribution={ATRIBUCION} url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Capas rutas={rutas} marcadores={marcadores} />
