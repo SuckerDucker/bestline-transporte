@@ -1,8 +1,10 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Activity,
   Bus,
   CalendarCog,
   CalendarRange,
+  ClipboardCheck,
   ClipboardList,
   FileUp,
   Flag,
@@ -46,6 +48,9 @@ export const ROLES_CATALOGOS: readonly Rol[] = ['ADMINISTRADOR', 'COORDINADOR', 
 /** Importar archivos de los mayoristas y generar el rol (igual que en la API). */
 export const ROLES_IMPORTAR: readonly Rol[] = ['ADMINISTRADOR', 'COORDINADOR']
 
+/** Mi rol: sus servicios del día, solo para el OPERADOR (chofer). */
+export const ROLES_OPERADOR: readonly Rol[] = ['OPERADOR']
+
 /** Usuarios y bitácora: solo el ADMINISTRADOR (igual que en la API). */
 export const ROLES_ADMINISTRACION: readonly Rol[] = ['ADMINISTRADOR']
 
@@ -54,6 +59,7 @@ const TODOS_LOS_ROLES: readonly Rol[] = ['ADMINISTRADOR', 'COORDINADOR', 'SUPERV
 /** Menú lateral: solo las pantallas que existen; cada una visible para sus roles. */
 export const MENU: readonly OpcionMenu[] = [
   { ruta: '/', etiqueta: 'Inicio', titulo: 'Inicio', icono: LayoutDashboard, roles: TODOS_LOS_ROLES },
+  { ruta: '/mi-rol', etiqueta: 'Mi rol', titulo: 'Mi rol del día', icono: ClipboardCheck, roles: ROLES_OPERADOR },
   {
     ruta: '/importar',
     etiqueta: 'Importar servicios',
@@ -83,6 +89,14 @@ export const MENU: readonly OpcionMenu[] = [
     etiqueta: 'Rutas sugeridas',
     titulo: 'Rutas sugeridas',
     icono: Route,
+    grupo: 'Operación',
+    roles: ROLES_CATALOGOS,
+  },
+  {
+    ruta: '/monitoreo',
+    etiqueta: 'Monitoreo',
+    titulo: 'Monitoreo del día',
+    icono: Activity,
     grupo: 'Operación',
     roles: ROLES_CATALOGOS,
   },

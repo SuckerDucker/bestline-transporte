@@ -15,6 +15,7 @@ describe('Menú según el rol', () => {
       'Generar rol',
       'Revisar rol',
       'Rutas sugeridas',
+      'Monitoreo',
       'Servicios',
       'Historial de importaciones',
       'Vehículos',
@@ -64,6 +65,16 @@ describe('Menú según el rol', () => {
     expect(tituloDe('/rutas/2026-11-10')).toBe('Rutas sugeridas')
   })
 
+  it('"Monitoreo" para ADMINISTRADOR, COORDINADOR y SUPERVISOR; "Mi rol" solo para el OPERADOR', () => {
+    for (const rol of ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as const) {
+      expect(etiquetas(rol)).toContain('Monitoreo')
+      expect(etiquetas(rol)).not.toContain('Mi rol')
+    }
+    expect(etiquetas('OPERADOR')).not.toContain('Monitoreo')
+    expect(tituloDe('/monitoreo/2026-11-10')).toBe('Monitoreo del día')
+    expect(tituloDe('/mi-rol/2026-11-10')).toBe('Mi rol del día')
+  })
+
   it('solo ADMINISTRADOR y COORDINADOR ven "Importar servicios"', () => {
     expect(etiquetas('ADMINISTRADOR')).toContain('Importar servicios')
     expect(etiquetas('COORDINADOR')).toContain('Importar servicios')
@@ -71,8 +82,8 @@ describe('Menú según el rol', () => {
     expect(etiquetas('OPERADOR')).not.toContain('Importar servicios')
   })
 
-  it('el OPERADOR solo ve Inicio', () => {
-    expect(etiquetas('OPERADOR')).toEqual(['Inicio'])
+  it('el OPERADOR solo ve Inicio y Mi rol', () => {
+    expect(etiquetas('OPERADOR')).toEqual(['Inicio', 'Mi rol'])
   })
 
   it('el título de la pantalla sale de la ruta', () => {
@@ -101,10 +112,10 @@ describe('Navegacion (menú lateral)', () => {
     expect(screen.getByRole('link', { name: 'Matriz de tiempos' })).toBeInTheDocument()
   })
 
-  it('al OPERADOR solo le muestra Inicio, sin grupos', () => {
+  it('al OPERADOR solo le muestra Inicio y Mi rol, sin grupos', () => {
     renderizar(<Navegacion rol="OPERADOR" />)
 
-    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['Inicio'])
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['Inicio', 'Mi rol'])
     expect(screen.queryByText('Catálogos')).not.toBeInTheDocument()
   })
 

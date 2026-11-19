@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export type Tono = 'exito' | 'aviso' | 'neutro' | 'info' | 'error'
+export type Tono = 'exito' | 'aviso' | 'neutro' | 'info' | 'error' | 'violeta'
 
 // Colores suaves con un punto de color, legibles en filas alternadas.
 const TONOS: Record<Tono, { fondo: string; punto: string }> = {
@@ -10,6 +10,7 @@ const TONOS: Record<Tono, { fondo: string; punto: string }> = {
   neutro: { fondo: 'bg-slate-100 text-slate-600 border-slate-200', punto: 'bg-slate-400' },
   info: { fondo: 'bg-sky-50 text-sky-700 border-sky-200', punto: 'bg-sky-500' },
   error: { fondo: 'bg-red-50 text-red-700 border-red-200', punto: 'bg-red-500' },
+  violeta: { fondo: 'bg-violet-50 text-violet-700 border-violet-200', punto: 'bg-violet-500' },
 }
 
 /** Badge de estado (Disponible, Mantenimiento, Baja, Zona de término…). */

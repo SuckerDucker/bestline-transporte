@@ -156,6 +156,7 @@ const COLOR_TONO = {
   info: 'text-sky-700',
   error: 'text-red-700',
   neutro: 'text-foreground',
+  violeta: 'text-violet-700',
 } as const
 
 function Contador({
