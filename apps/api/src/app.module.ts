@@ -10,6 +10,8 @@ import { ParametrosModule } from './parametros/parametros.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResumenModule } from './resumen/resumen.module.js';
 import { RolesModule } from './roles/roles.module.js';
+import { ExportacionModule } from './exportacion/exportacion.module.js';
+import { IndicadoresModule } from './indicadores/indicadores.module.js';
 import { MonitoreoModule } from './monitoreo/monitoreo.module.js';
 import { RutasModule } from './rutas/rutas.module.js';
 import { ServiciosModule } from './servicios/servicios.module.js';
@@ -42,6 +44,8 @@ import { ZonasModule } from './zonas/zonas.module.js';
     RolesModule,
     RutasModule,
     MonitoreoModule,
+    IndicadoresModule,
+    ExportacionModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],
