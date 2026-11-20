@@ -16,6 +16,7 @@ describe('Menú según el rol', () => {
       'Revisar rol',
       'Rutas sugeridas',
       'Monitoreo',
+      'Indicadores',
       'Servicios',
       'Historial de importaciones',
       'Vehículos',
