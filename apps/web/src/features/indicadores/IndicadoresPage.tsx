@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { hoyCancun } from '@/lib/fechas'
 import { cn } from '@/lib/utils'
+import { useEsMovil } from '@/lib/useEsMovil'
 import { Aviso } from '../monitoreo/Aviso'
 import { type Indicadores, useIndicadores } from './api'
 import { datosGraficas, diaCorto, entero, porcentaje, restarDias } from './formato'
@@ -77,6 +78,7 @@ function Contenido({ datos }: { datos: Indicadores }) {
   const { resumen } = datos
   const g = datosGraficas(datos)
   const sinEmpalmes = resumen.empalmes === 0
+  const esMovil = useEsMovil()
   return (
     <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores clave">
@@ -120,7 +122,7 @@ function Contenido({ datos }: { datos: Indicadores }) {
           datos={g.noCubiertosPorMotivo}
           formato={entero}
         >
-          <GraficaBarras datos={g.noCubiertosPorMotivo} formato={entero} />
+          <GraficaBarras datos={g.noCubiertosPorMotivo} formato={entero} horizontal anchoEtiquetas={110} />
         </TarjetaGrafica>
         <TarjetaGrafica
           titulo="Ocupación por unidad"
@@ -129,7 +131,14 @@ function Contenido({ datos }: { datos: Indicadores }) {
           datos={g.ocupacionPorUnidad}
           formato={porcentaje}
         >
-          <GraficaBarras datos={g.ocupacionPorUnidad} formato={porcentaje} maximo={100} />
+          {/* En celular, 10 unidades no caben como columnas: barras horizontales. */}
+          <GraficaBarras
+            datos={g.ocupacionPorUnidad}
+            formato={porcentaje}
+            maximo={100}
+            horizontal={esMovil}
+            anchoEtiquetas={52}
+          />
         </TarjetaGrafica>
         <TarjetaGrafica
           titulo="Incidencias por tipo"

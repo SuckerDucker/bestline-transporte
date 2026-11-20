@@ -18,6 +18,8 @@ const TINTA = '#64748b'
 const REJILLA = '#e2e8f0'
 const EJE = { fontSize: 12, fill: TINTA }
 const ALTO = 240
+/** El valor del tooltip va en color de texto, no en el de la serie. */
+const TEXTO_TOOLTIP = { color: '#0f172a' }
 
 export interface Punto {
   etiqueta: string
@@ -76,15 +78,20 @@ export function GraficaBarras({
   formato,
   horizontal = false,
   maximo,
+  anchoEtiquetas = 150,
 }: {
   datos: Punto[]
   formato: (v: number) => string
   horizontal?: boolean
   maximo?: number
+  /** Ancho del eje de etiquetas cuando las barras son horizontales. */
+  anchoEtiquetas?: number
 }) {
   const dominio: [number, number | 'auto'] = [0, maximo ?? 'auto']
+  // Horizontal: al menos 28 px por barra para que se lea cada etiqueta.
+  const alto = horizontal ? Math.max(ALTO, datos.length * 28 + 32) : ALTO
   return (
-    <ResponsiveContainer width="100%" height={ALTO}>
+    <ResponsiveContainer width="100%" height={alto}>
       <BarChart
         data={datos}
         layout={horizontal ? 'vertical' : 'horizontal'}
@@ -95,7 +102,7 @@ export function GraficaBarras({
         {horizontal ? (
           <>
             <XAxis type="number" domain={dominio} tick={EJE} tickFormatter={formato} allowDecimals={false} />
-            <YAxis type="category" dataKey="etiqueta" tick={EJE} width={150} />
+            <YAxis type="category" dataKey="etiqueta" tick={EJE} width={anchoEtiquetas} interval={0} />
           </>
         ) : (
           <>
@@ -107,6 +114,7 @@ export function GraficaBarras({
           cursor={{ fill: 'rgba(148,163,184,.15)' }}
           formatter={(v) => [formato(Number(v)), '']}
           separator=""
+          itemStyle={TEXTO_TOOLTIP}
         />
         <Bar
           dataKey="valor"
@@ -128,7 +136,7 @@ export function GraficaLinea({ datos, formato }: { datos: Punto[]; formato: (v: 
         <CartesianGrid stroke={REJILLA} vertical={false} />
         <XAxis dataKey="etiqueta" tick={EJE} />
         <YAxis domain={[0, 100]} tick={EJE} tickFormatter={formato} />
-        <Tooltip formatter={(v) => [formato(Number(v)), 'Cobertura']} />
+        <Tooltip formatter={(v) => [formato(Number(v)), 'Cobertura']} itemStyle={TEXTO_TOOLTIP} />
         <Line
           type="monotone"
           dataKey="valor"
