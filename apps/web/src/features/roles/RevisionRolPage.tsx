@@ -16,6 +16,7 @@ import { useEsMovil } from '@/lib/useEsMovil'
 import { ROLES_IMPORTAR } from '@/layout/menu'
 import { EstadoBadge } from '../catalogos/EstadoBadge'
 import { useAutorizarRol, useRol } from './api'
+import { BotonesExportar } from './BotonesExportar'
 import { LeyendaLineaTiempo, LineaTiempo } from './LineaTiempo'
 import { ListaUnidades } from './ListaUnidades'
 import { PanelNoCubiertos } from './PanelNoCubiertos'
@@ -138,6 +139,22 @@ export function RevisionRolPage() {
               tono={datos.resumen.noCubiertos ? 'text-red-700' : undefined}
             />
             <Tarjeta etiqueta="Unidades usadas" valor={`${datos.resumen.unidadesUsadas} de ${datos.unidades.length}`} />
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-xl border bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold">Exportar el rol</h2>
+              <p className="text-xs text-muted-foreground">Por operador o de todos, en CSV (Excel) o PDF para imprimir.</p>
+            </div>
+            <BotonesExportar
+              fecha={fecha}
+              operadores={datos.unidades
+                .filter((u) => u.operador && u.asignaciones.length > 0)
+                .map((u) => ({
+                  id: u.operador!.id,
+                  etiqueta: `${u.vehiculo.numeroEconomico} · ${u.operador!.nombre}`,
+                }))}
+            />
           </div>
 
           <div className="space-y-3">

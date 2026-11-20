@@ -73,6 +73,39 @@ export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): P
   return datos as T
 }
 
+/**
+ * Descarga un archivo de la API (por ejemplo el rol en CSV o PDF) con el
+ * token de la sesión y lo guarda con el nombre que manda el servidor en
+ * Content-Disposition. Devuelve ese nombre.
+ */
+export async function descargar(ruta: string, query: Record<string, ValorQuery> = {}): Promise<string> {
+  const url = new URL(URL_API + ruta)
+  for (const [clave, valor] of Object.entries(query)) {
+    if (valor !== undefined && valor !== null && valor !== '') url.searchParams.set(clave, String(valor))
+  }
+  const token = leerToken()
+  let respuesta: Response
+  try {
+    respuesta = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  } catch {
+    throw new ErrorApi(0, 'No se pudo conectar con el servidor. Revisa que la API esté levantada.')
+  }
+  if (!respuesta.ok) {
+    const datos: unknown = await respuesta.json().catch(() => null)
+    if (respuesta.status === 401 && token) alRecibir401?.()
+    throw new ErrorApi(respuesta.status, mensajeDeError(datos), datos)
+  }
+  const nombre = /filename="([^"]+)"/.exec(respuesta.headers.get('Content-Disposition') ?? '')?.[1] ?? 'archivo'
+  const enlace = document.createElement('a')
+  enlace.href = URL.createObjectURL(await respuesta.blob())
+  enlace.download = nombre
+  document.body.append(enlace)
+  enlace.click()
+  enlace.remove()
+  URL.revokeObjectURL(enlace.href)
+  return nombre
+}
+
 /** NestJS manda `message` como texto o como lista de textos (validación). */
 function mensajeDeError(datos: unknown): string {
   const mensaje = (datos as { message?: unknown } | null)?.message

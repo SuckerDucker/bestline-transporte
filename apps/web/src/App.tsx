@@ -28,6 +28,7 @@ const RedirigirMonitoreoDeHoy = lazy(() =>
 )
 const MiRolPage = lazy(() => import('./features/monitoreo/MiRolPage').then((m) => ({ default: m.MiRolPage })))
 const RedirigirMiRolDeHoy = lazy(() => import('./features/monitoreo/MiRolPage').then((m) => ({ default: m.RedirigirMiRolDeHoy })))
+const IndicadoresPage = lazy(() => import('./features/indicadores/IndicadoresPage').then((m) => ({ default: m.IndicadoresPage })))
 const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
@@ -77,6 +78,8 @@ function App() {
             {/* Monitoreo del día: estados e incidencias (la API revisa los permisos) */}
             <Route path="monitoreo" element={<RedirigirMonitoreoDeHoy />} />
             <Route path="monitoreo/:fecha" element={<MonitoreoPage />} />
+            {/* Indicadores del rango de días (gráficas con Recharts) */}
+            <Route path="indicadores" element={<IndicadoresPage />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="operadores" element={<OperadoresPage />} />
             <Route path="zonas" element={<ZonasPage />} />

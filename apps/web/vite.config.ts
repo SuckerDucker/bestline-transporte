@@ -25,6 +25,12 @@ export default defineConfig({
           groups: [
             // Leaflet solo lo usa Rutas sugeridas: va aparte y se descarga al abrir esa pantalla.
             { name: 'mapa', test: /node_modules[\\/](leaflet|react-leaflet|@react-leaflet)[\\/]/, priority: 10 },
+            // Recharts y sus dependencias solo los usa Indicadores: también van aparte.
+            {
+              name: 'graficas',
+              test: /node_modules[\\/](recharts|d3-[a-z-]+|victory-vendor|@reduxjs|react-redux|immer|reselect|es-toolkit|decimal\.js-light|eventemitter3)[\\/]/,
+              priority: 10,
+            },
             { name: 'librerias', test: /node_modules/ },
           ],
         },

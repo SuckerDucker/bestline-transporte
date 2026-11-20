@@ -24,6 +24,9 @@ export function configurarApp(app: INestApplication): void {
   // Solo el frontend de desarrollo (Vite) puede llamar a la API desde el navegador.
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+    // El navegador solo deja leer este encabezado si se expone: trae el
+    // nombre del archivo exportado (rol en CSV o PDF).
+    exposedHeaders: ['Content-Disposition'],
   });
 
   // Documentación OpenAPI en /api/docs.

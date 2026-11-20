@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
+  BarChart3,
   Bus,
   CalendarCog,
   CalendarRange,
@@ -97,6 +98,14 @@ export const MENU: readonly OpcionMenu[] = [
     etiqueta: 'Monitoreo',
     titulo: 'Monitoreo del día',
     icono: Activity,
+    grupo: 'Operación',
+    roles: ROLES_CATALOGOS,
+  },
+  {
+    ruta: '/indicadores',
+    etiqueta: 'Indicadores',
+    titulo: 'Indicadores',
+    icono: BarChart3,
     grupo: 'Operación',
     roles: ROLES_CATALOGOS,
   },

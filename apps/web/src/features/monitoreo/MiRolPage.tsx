@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { horaCancun, hoyCancun } from '@/lib/fechas'
 import { cn } from '@/lib/utils'
 import { EstadoBadge } from '../catalogos/EstadoBadge'
+import { BotonesExportar } from '../roles/BotonesExportar'
 import { ESTADO_SERVICIO, NOMBRE_TIPO } from '../servicios/tipos'
 import { type FilaMonitoreo, type MisServicios, useMisServicios } from './api'
 import { Aviso } from './Aviso'
@@ -57,6 +58,8 @@ export function MiRolPage() {
       ) : (
         <>
           <Encabezado datos={datos} />
+          {/* El PDF o CSV de su propio rol (la API solo le da el suyo). */}
+          {datos.servicios.length > 0 && <BotonesExportar fecha={fecha} />}
           {datos.servicios.length === 0 ? (
             <Aviso tono="aviso">No tienes servicios asignados este día.</Aviso>
           ) : (
