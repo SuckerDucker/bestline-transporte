@@ -11,6 +11,7 @@ export const ESTADOS_SERVICIO = [
   'COMPLETADO',
   'CANCELADO',
   'INCIDENCIA',
+  'NO_SHOW',
 ] as const
 export type EstadoServicio = (typeof ESTADOS_SERVICIO)[number]
 
@@ -20,10 +21,11 @@ export const ESTADO_SERVICIO: Record<EstadoServicio, { etiqueta: string; tono: T
   PENDIENTE: { etiqueta: 'Pendiente', tono: 'neutro' },
   PROGRAMADO: { etiqueta: 'Programado', tono: 'info' },
   EN_RUTA: { etiqueta: 'En ruta', tono: 'aviso' },
-  EN_SERVICIO: { etiqueta: 'En servicio', tono: 'aviso' },
+  EN_SERVICIO: { etiqueta: 'En servicio', tono: 'violeta' },
   COMPLETADO: { etiqueta: 'Completado', tono: 'exito' },
   CANCELADO: { etiqueta: 'Cancelado', tono: 'neutro' },
   INCIDENCIA: { etiqueta: 'Incidencia', tono: 'error' },
+  NO_SHOW: { etiqueta: 'No se presentó', tono: 'error' },
 }
 
 interface Nombre {

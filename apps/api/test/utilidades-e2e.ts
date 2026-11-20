@@ -39,11 +39,17 @@ export async function limpiarBase(prisma: PrismaService): Promise<void> {
   if (!/_test(\?|$)/.test(url)) {
     throw new Error('limpiarBase solo se puede usar con la base de pruebas');
   }
-  await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE incidencia, servicio_no_cubierto, asignacion, rol_diario,
-      servicio, importacion, bitacora, tiempo_traslado, hotel, zona, vehiculo,
-      operador, mayorista, parametro_operacion, usuario RESTART IDENTITY CASCADE`,
-  );
+  // Si otra conexión tiene bloqueada una tabla, el TRUNCATE falla a los 10 s
+  // con un error claro en lugar de esperar hasta el límite de la prueba.
+  // SET LOCAL vale solo dentro de esta transacción (misma conexión).
+  await prisma.$transaction([
+    prisma.$executeRawUnsafe(`SET LOCAL lock_timeout = '10s'`),
+    prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE incidencia, servicio_no_cubierto, asignacion, rol_diario,
+        servicio, importacion, bitacora, tiempo_traslado, hotel, zona, vehiculo,
+        operador, mayorista, parametro_operacion, usuario RESTART IDENTITY CASCADE`,
+    ),
+  ]);
 }
 
 /** Crea un usuario con la contraseña de prueba. */

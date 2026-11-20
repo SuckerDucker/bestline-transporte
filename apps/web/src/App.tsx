@@ -5,7 +5,7 @@ import { Skeleton } from './components/ui/skeleton'
 import { LoginPage } from './features/auth/LoginPage'
 import { InicioPage } from './features/inicio/InicioPage'
 import { Layout } from './layout/Layout'
-import { ROLES_ADMINISTRACION, ROLES_CATALOGOS, ROLES_IMPORTAR } from './layout/menu'
+import { ROLES_ADMINISTRACION, ROLES_CATALOGOS, ROLES_IMPORTAR, ROLES_OPERADOR } from './layout/menu'
 
 // Las pantallas internas se descargan solo cuando se abren (paquete inicial más ligero).
 const ImportarPage = lazy(() => import('./features/importacion/ImportarPage').then((m) => ({ default: m.ImportarPage })))
@@ -22,6 +22,12 @@ const RutasPage = lazy(() => import('./features/rutas/RutasPage').then((m) => ({
 const RedirigirRutasDeManana = lazy(() =>
   import('./features/rutas/RutasPage').then((m) => ({ default: m.RedirigirRutasDeManana })),
 )
+const MonitoreoPage = lazy(() => import('./features/monitoreo/MonitoreoPage').then((m) => ({ default: m.MonitoreoPage })))
+const RedirigirMonitoreoDeHoy = lazy(() =>
+  import('./features/monitoreo/MonitoreoPage').then((m) => ({ default: m.RedirigirMonitoreoDeHoy })),
+)
+const MiRolPage = lazy(() => import('./features/monitoreo/MiRolPage').then((m) => ({ default: m.MiRolPage })))
+const RedirigirMiRolDeHoy = lazy(() => import('./features/monitoreo/MiRolPage').then((m) => ({ default: m.RedirigirMiRolDeHoy })))
 const ServiciosPage = lazy(() => import('./features/servicios/ServiciosPage').then((m) => ({ default: m.ServiciosPage })))
 const VehiculosPage = lazy(() => import('./features/vehiculos/VehiculosPage').then((m) => ({ default: m.VehiculosPage })))
 const OperadoresPage = lazy(() => import('./features/operadores/OperadoresPage').then((m) => ({ default: m.OperadoresPage })))
@@ -68,6 +74,9 @@ function App() {
             {/* Rutas sugeridas sobre el mapa (solo consulta) */}
             <Route path="rutas" element={<RedirigirRutasDeManana />} />
             <Route path="rutas/:fecha" element={<RutasPage />} />
+            {/* Monitoreo del día: estados e incidencias (la API revisa los permisos) */}
+            <Route path="monitoreo" element={<RedirigirMonitoreoDeHoy />} />
+            <Route path="monitoreo/:fecha" element={<MonitoreoPage />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="operadores" element={<OperadoresPage />} />
             <Route path="zonas" element={<ZonasPage />} />
@@ -87,6 +96,17 @@ function App() {
           >
             <Route path="importar" element={<ImportarPage />} />
             <Route path="generar-rol" element={<GenerarRolPage />} />
+          </Route>
+          {/* Mi rol: solo el OPERADOR, con sus servicios del día */}
+          <Route
+            element={
+              <Suspense fallback={<Cargando />}>
+                <RutaProtegida roles={ROLES_OPERADOR} />
+              </Suspense>
+            }
+          >
+            <Route path="mi-rol" element={<RedirigirMiRolDeHoy />} />
+            <Route path="mi-rol/:fecha" element={<MiRolPage />} />
           </Route>
           {/* Administración: solo ADMINISTRADOR */}
           <Route

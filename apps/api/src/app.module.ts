@@ -10,6 +10,7 @@ import { ParametrosModule } from './parametros/parametros.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ResumenModule } from './resumen/resumen.module.js';
 import { RolesModule } from './roles/roles.module.js';
+import { MonitoreoModule } from './monitoreo/monitoreo.module.js';
 import { RutasModule } from './rutas/rutas.module.js';
 import { ServiciosModule } from './servicios/servicios.module.js';
 import { TiemposTrasladoModule } from './tiempos-traslado/tiempos-traslado.module.js';
@@ -40,6 +41,7 @@ import { ZonasModule } from './zonas/zonas.module.js';
     ServiciosModule,
     RolesModule,
     RutasModule,
+    MonitoreoModule,
     // Pantalla de inicio (solo lectura)
     ResumenModule,
   ],

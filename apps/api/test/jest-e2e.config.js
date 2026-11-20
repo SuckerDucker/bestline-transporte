@@ -14,6 +14,11 @@ const config = {
   resolver: '<rootDir>/../jest.resolver.cjs',
   globalSetup: '<rootDir>/preparar-base-e2e.js',
   setupFiles: ['<rootDir>/entorno-e2e.js'],
+  // Límite de 30 s por prueba y por hook (beforeAll): con el equipo cargado
+  // (p. ej. otras pruebas corriendo a la vez) el beforeAll de una suite, que
+  // cifra contraseñas con bcrypt e inicia sesiones, llegó a pasar de los 5 s
+  // por omisión y tumbó las 10 pruebas de revision-rol.
+  testTimeout: 30_000,
 };
 
 export default config;

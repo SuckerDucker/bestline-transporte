@@ -47,6 +47,8 @@ enum EstadoServicio {
   COMPLETADO
   CANCELADO
   INCIDENCIA
+  // El pasajero no se presentó (se marca desde Monitoreo).
+  NO_SHOW
 }
 
 enum EstadoRol {
@@ -82,6 +84,8 @@ model Usuario {
   importaciones    Importacion[]
   rolesAutorizados RolDiario[]
   incidencias      Incidencia[]
+  // Si el usuario es OPERADOR: su registro del catálogo de operadores.
+  operador         Operador?
 
   @@map("usuario")
 }
@@ -210,8 +214,12 @@ model Operador {
   // Hora de cita HH:mm (America/Cancun), dentro de uno de los bloques
   // hora_cita.bloque_*. Sin hora de cita el operador no participa en el rol.
   horaCita   String? @map("hora_cita") @db.VarChar(5)
+  // Usuario con el que el operador entra al sistema (rol OPERADOR) para ver y
+  // actualizar sus servicios. Un usuario es a lo más un operador.
+  usuarioId  Int?    @unique @map("usuario_id")
 
   vehiculo     Vehiculo?    @relation(fields: [vehiculoId], references: [id])
+  usuario      Usuario?     @relation(fields: [usuarioId], references: [id])
   asignaciones Asignacion[]
 
   @@map("operador")
@@ -234,6 +242,9 @@ model Servicio {
   hotelId       Int?              @map("hotel_id")
   vuelo         String?           @db.VarChar(15)
   estado        EstadoServicio    @default(PENDIENTE)
+  // Horas reales del monitoreo: al pasar a EN_RUTA y a COMPLETADO.
+  inicioReal    DateTime?         @map("inicio_real") @db.Timestamptz(3)
+  terminoReal   DateTime?         @map("termino_real") @db.Timestamptz(3)
 
   mayorista    Mayorista            @relation(fields: [mayoristaId], references: [id])
   importacion  Importacion?         @relation(fields: [importacionId], references: [id])

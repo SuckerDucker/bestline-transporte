@@ -8,6 +8,7 @@ const fn = () => jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const modelo = () => ({
   findMany: fn(),
   findUnique: fn(),
+  findUniqueOrThrow: fn(),
   findFirst: fn(),
   count: fn(),
   create: fn(),
@@ -40,6 +41,7 @@ export function crearPrismaSimulado() {
     asignacion: modelo(),
     servicioNoCubierto: modelo(),
     servicio: modelo(),
+    incidencia: modelo(),
     $transaction: fn(),
     $queryRaw: fn(),
   };

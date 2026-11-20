@@ -20,5 +20,8 @@ const DIA_ISO = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeri
 export const minutosDelDia = (iso: string, fecha: string) =>
   Math.round((Date.parse(iso) - Date.parse(`${fecha}T05:00:00.000Z`)) / 60_000)
 
+/** Fecha de hoy en Cancún, AAAA-MM-DD. */
+export const hoyCancun = (ahora = new Date()) => DIA_ISO.format(ahora)
+
 /** Fecha de mañana en Cancún, AAAA-MM-DD (el rol se genera el día anterior). */
 export const mananaCancun = (ahora = new Date()) => DIA_ISO.format(new Date(ahora.getTime() + 24 * 60 * 60 * 1000))

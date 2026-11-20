@@ -590,6 +590,20 @@ async function main(): Promise<void> {
     else await prisma.operador.create({ data: datos });
   }
 
+  // 8b) El usuario operador@bestline.local es el operador 01 (José Hernández,
+  // BL-01): con él entra a "Mi rol". Se busca por correo y por nombre.
+  const usuarioOperador = await prisma.usuario.findUniqueOrThrow({
+    where: { email: 'operador@bestline.local' },
+  });
+  await prisma.operador.updateMany({
+    where: { usuarioId: usuarioOperador.id },
+    data: { usuarioId: null },
+  });
+  await prisma.operador.updateMany({
+    where: { nombre: OPERADORES[0].nombre },
+    data: { usuarioId: usuarioOperador.id },
+  });
+
   // 9) Servicios: 60 servicios del 2026-11-10.
   // Datos de ejemplo construidos con los parámetros reales de la empresa
   // (REGLA CONFIRMADA CON LA EMPRESA, distribución diaria):
