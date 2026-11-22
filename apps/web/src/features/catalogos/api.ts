@@ -19,12 +19,13 @@ const sinTodos = (filtros: Filtros): Filtros =>
   Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor !== TODOS))
 
 /** Listado paginado de un catálogo. Mantiene la página anterior mientras carga. */
-export function useListado<T>(recurso: Recurso, filtros: Filtros) {
+export function useListado<T>(recurso: Recurso, filtros: Filtros, habilitado = true) {
   const consulta = sinTodos(filtros)
   return useQuery({
     queryKey: [recurso, consulta],
     queryFn: () => pedir<Paginado<T>>(`/${recurso}`, { query: consulta }),
     placeholderData: keepPreviousData,
+    enabled: habilitado,
   })
 }
 

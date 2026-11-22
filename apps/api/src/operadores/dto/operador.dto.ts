@@ -69,6 +69,18 @@ export class CrearOperadorDto {
     message: 'horaCita debe tener el formato HH:mm (00:00 a 23:59)',
   })
   horaCita?: string | null;
+
+  @ApiPropertyOptional({
+    example: 6,
+    nullable: true,
+    description:
+      'Usuario con rol OPERADOR con el que entra a "Mi rol" (un usuario es a lo más un operador). null = sin cuenta vinculada',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'usuarioId debe ser un número entero' })
+  @Min(1, { message: 'usuarioId debe ser mayor o igual a 1' })
+  usuarioId?: number | null;
 }
 
 /** En la edición todos los campos son opcionales. */

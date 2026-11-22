@@ -120,4 +120,35 @@ describe('Operadores con vehículo y hora de cita (e2e)', () => {
 
     await crear({ nombre: 'Operador B', vehiculoId }).expect(201);
   });
+
+  it('vincula una cuenta OPERADOR, rechaza otro rol y una cuenta ya ocupada', async () => {
+    const cuenta = await crearUsuario(
+      prisma,
+      'chofer@prueba.local',
+      RolUsuario.OPERADOR,
+    );
+    const a = await prisma.operador.findFirstOrThrow({
+      where: { nombre: 'Operador A' },
+    });
+    const b = await prisma.operador.findFirstOrThrow({
+      where: { nombre: 'Operador B' },
+    });
+    const editar = (id: number, usuarioId: number | null) =>
+      request(app.getHttpServer())
+        .patch(`/api/operadores/${id}`)
+        .set('Authorization', `Bearer ${tokenAdmin}`)
+        .send({ usuarioId });
+
+    await editar(a.id, cuenta.id)
+      .expect(200)
+      .expect((r) => expect(r.body.usuarioId).toBe(cuenta.id));
+    await editar(b.id, cuenta.id).expect(409);
+    const admin = await prisma.usuario.findUniqueOrThrow({
+      where: { email: 'admin@prueba.local' },
+    });
+    await editar(b.id, admin.id).expect(400);
+    await editar(a.id, null)
+      .expect(200)
+      .expect((r) => expect(r.body.usuarioId).toBeNull());
+  });
 });

@@ -14,6 +14,7 @@ import { BarraFiltros } from '../catalogos/BarraFiltros'
 import { Encabezado } from '../catalogos/Encabezado'
 import { EstadoBadge } from '../catalogos/EstadoBadge'
 import type { Operador, Vehiculo } from '../catalogos/tipos'
+import type { UsuarioAdmin } from '../usuarios/api'
 import { aDatosOperador, type ValoresOperador } from './esquema'
 import { FormularioOperador } from './FormularioOperador'
 
@@ -41,6 +42,8 @@ export function OperadoresPage() {
   // Vehículos para el selector de unidad (sin los dados de baja).
   const vehiculos = useListado<Vehiculo>('vehiculos', { limite: 100 })
   const opcionesVehiculo = (vehiculos.data?.datos ?? []).filter((v) => v.estado !== 'BAJA')
+  // Cuentas para vincular: la API de usuarios es solo para ADMINISTRADOR.
+  const usuarios = useListado<UsuarioAdmin>('usuarios', { rol: 'OPERADOR', limite: 100 }, puedeEscribir)
   const guardar = useGuardar<Operador>('operadores')
   const desactivar = useQuitar('operadores', 'desactivar')
 
@@ -169,6 +172,7 @@ export function OperadoresPage() {
           key={enEdicion === 'nuevo' ? 'nuevo' : enEdicion?.id}
           inicial={enEdicion === 'nuevo' ? null : enEdicion}
           vehiculos={opcionesVehiculo}
+          usuarios={usuarios.data?.datos ?? []}
           guardando={guardar.isPending}
           alGuardar={alGuardar}
           alCancelar={() => setEnEdicion(null)}

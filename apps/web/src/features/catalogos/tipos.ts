@@ -39,6 +39,8 @@ export interface Operador {
   vehiculoId: number | null
   /** HH:mm dentro de un bloque de Parámetros; null = no participa en el rol. */
   horaCita: string | null
+  /** Cuenta (rol OPERADOR) con la que entra a "Mi rol"; null = sin cuenta. */
+  usuarioId: number | null
   vehiculo: Pick<Vehiculo, 'id' | 'numeroEconomico' | 'tipo' | 'capacidad' | 'estado'> | null
 }
 

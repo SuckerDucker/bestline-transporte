@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 /** Valor del selector cuando el operador no tiene vehículo. */
 export const SIN_VEHICULO = 'ninguno'
+/** Valor del selector cuando el operador no tiene cuenta de usuario. */
+export const SIN_USUARIO = 'ninguno'
 
 /** Validación del formulario de operador (mismas reglas que la API). */
 export const esquemaOperador = z.object({
@@ -14,6 +16,8 @@ export const esquemaOperador = z.object({
   disponible: z.boolean(),
   /** Id del vehículo como texto (lo usa el Select) o SIN_VEHICULO. */
   vehiculo: z.string(),
+  /** Id de la cuenta con rol OPERADOR como texto o SIN_USUARIO. */
+  usuario: z.string(),
   /** Vacía = sin hora de cita: el operador no participa en el rol. La API revisa que caiga en un bloque. */
   horaCita: z
     .string()
@@ -22,9 +26,10 @@ export const esquemaOperador = z.object({
 })
 export type ValoresOperador = z.infer<typeof esquemaOperador>
 
-/** Valores del formulario → cuerpo de la API (vehiculoId y horaCita pueden ser null). */
-export const aDatosOperador = ({ vehiculo, horaCita, ...resto }: ValoresOperador) => ({
+/** Valores del formulario → cuerpo de la API (vehiculoId, usuarioId y horaCita pueden ser null). */
+export const aDatosOperador = ({ vehiculo, usuario, horaCita, ...resto }: ValoresOperador) => ({
   ...resto,
   vehiculoId: vehiculo === SIN_VEHICULO ? null : Number(vehiculo),
+  usuarioId: usuario === SIN_USUARIO ? null : Number(usuario),
   horaCita: horaCita === '' ? null : horaCita,
 })

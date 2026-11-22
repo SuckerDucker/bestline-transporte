@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Operador } from '../catalogos/tipos'
-import { aDatosOperador, SIN_VEHICULO } from './esquema'
+import { aDatosOperador, SIN_USUARIO, SIN_VEHICULO } from './esquema'
 import { FormularioOperador } from './FormularioOperador'
 
 const VEHICULOS = [
@@ -17,13 +17,16 @@ const OPERADOR: Operador = {
   disponible: true,
   vehiculoId: 3,
   horaCita: '04:15',
+  usuarioId: null,
   vehiculo: { id: 3, numeroEconomico: 'BL-03', tipo: 'Van', capacidad: 14, estado: 'DISPONIBLE' },
 }
+const USUARIOS = [{ id: 6, nombre: 'José Hernández', email: 'jose@bestline.local', activo: true }]
 const renderizarFormulario = (inicial: Operador | null, alGuardar = vi.fn()) => {
   render(
     <FormularioOperador
       inicial={inicial}
       vehiculos={VEHICULOS}
+      usuarios={USUARIOS}
       guardando={false}
       alGuardar={alGuardar}
       alCancelar={vi.fn()}
@@ -35,15 +38,17 @@ const renderizarFormulario = (inicial: Operador | null, alGuardar = vi.fn()) => 
 describe('aDatosOperador', () => {
   it('convierte la unidad y la hora de cita al cuerpo de la API', () => {
     const base = { nombre: 'A', licencia: 'L', telefono: '998-000-0000', disponible: true }
-    expect(aDatosOperador({ ...base, vehiculo: '9', horaCita: '04:30' })).toEqual({
+    expect(aDatosOperador({ ...base, vehiculo: '9', usuario: '6', horaCita: '04:30' })).toEqual({
       ...base,
       vehiculoId: 9,
+      usuarioId: 6,
       horaCita: '04:30',
     })
     // Sin unidad y sin hora: null (el operador no participa en el rol).
-    expect(aDatosOperador({ ...base, vehiculo: SIN_VEHICULO, horaCita: '' })).toEqual({
+    expect(aDatosOperador({ ...base, vehiculo: SIN_VEHICULO, usuario: SIN_USUARIO, horaCita: '' })).toEqual({
       ...base,
       vehiculoId: null,
+      usuarioId: null,
       horaCita: null,
     })
   })
@@ -66,6 +71,18 @@ describe('Formulario de operador', () => {
 
     await vi.waitFor(() => expect(alGuardar).toHaveBeenCalled())
     expect(alGuardar.mock.calls[0][0]).toMatchObject({ vehiculo: '9', horaCita: '' })
+  })
+
+  it('vincula una cuenta con rol Operador', async () => {
+    const alGuardar = renderizarFormulario(OPERADOR)
+    expect(screen.getByRole('combobox', { name: 'Usuario vinculado' })).toHaveTextContent('Sin cuenta vinculada')
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Usuario vinculado' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'José Hernández · jose@bestline.local' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await vi.waitFor(() => expect(alGuardar).toHaveBeenCalled())
+    expect(alGuardar.mock.calls[0][0]).toMatchObject({ usuario: '6' })
   })
 
   it('rechaza una hora de cita mal escrita', async () => {

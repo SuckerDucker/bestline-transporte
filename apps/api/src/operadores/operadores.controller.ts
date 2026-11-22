@@ -42,6 +42,7 @@ const EJEMPLO = {
   disponible: true,
   vehiculoId: 3,
   horaCita: '04:15',
+  usuarioId: 6,
   vehiculo: {
     id: 3,
     numeroEconomico: 'BL-03',
@@ -147,6 +148,10 @@ export class OperadoresController {
       sinUnidad: {
         summary: 'Quitar el vehículo (no participa en el rol)',
         value: { vehiculoId: null },
+      },
+      cuenta: {
+        summary: 'Vincular la cuenta de usuario (rol OPERADOR)',
+        value: { usuarioId: 6 },
       },
     },
   })
