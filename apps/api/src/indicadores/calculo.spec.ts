@@ -4,6 +4,7 @@ import {
   type DatosDia,
   horasJornada,
   indicadoresDelDia,
+  minutosElaboracion,
   ocupacionPromedio,
   resumenDelRango,
 } from './calculo.js';
@@ -34,7 +35,12 @@ const asignacion = (
 /** Día con datos conocidos: 2 unidades, 4 asignados, 1 no cubierto. */
 const DIA: DatosDia = {
   fecha: '2026-11-10',
-  rol: { estado: 'AUTORIZADO' },
+  // Generado y autorizado 12 min 30 s después.
+  rol: {
+    estado: 'AUTORIZADO',
+    generadoEn: new Date('2026-11-09T22:00:00Z'),
+    autorizadoEn: new Date('2026-11-09T22:12:30Z'),
+  },
   estados: ['COMPLETADO', 'COMPLETADO', 'CANCELADO', 'NO_SHOW', 'PENDIENTE'],
   asignaciones: [
     // BL-01: termina en CUN (zona de término) a las 12:30 → 04:00 a 12:30 = 8.5 h
@@ -79,6 +85,7 @@ describe('indicadoresDelDia', () => {
       incidenciasPorTipo: { RETRASO: 2, OTRO: 1, FALLA_MECANICA: 0 },
       // (7/14 + 14/14 + 10/20 + 5/20) / 4 = (0.5 + 1 + 0.5 + 0.25) / 4 = 0.5625
       ocupacion: 0.563,
+      tiempoElaboracionMin: 12.5,
     });
     expect(r.unidades).toEqual([
       {
@@ -117,8 +124,38 @@ describe('indicadoresDelDia', () => {
       cobertura: null,
       empalmes: null,
       ocupacion: null,
+      tiempoElaboracionMin: null,
       unidades: [],
     });
+  });
+
+  it('tiempo de elaboración: un rol PROPUESTO no lo tiene, aunque traiga fecha', () => {
+    const r = indicadoresDelDia({
+      ...DIA,
+      rol: { ...DIA.rol!, estado: 'PROPUESTO' },
+    });
+    expect(r.tiempoElaboracionMin).toBeNull();
+  });
+});
+
+describe('minutosElaboracion', () => {
+  const generado = new Date('2026-11-09T22:00:00Z');
+
+  it('minutos con un decimal, también en 0 y de un día a otro', () => {
+    expect(minutosElaboracion(generado, new Date('2026-11-09T22:12:30Z'))).toBe(
+      12.5,
+    );
+    expect(minutosElaboracion(generado, generado)).toBe(0);
+    expect(minutosElaboracion(generado, new Date('2026-11-10T22:00:00Z'))).toBe(
+      1440,
+    );
+  });
+
+  it('null sin autorización o si se autorizó antes de generar', () => {
+    expect(minutosElaboracion(generado, null)).toBeNull();
+    expect(
+      minutosElaboracion(generado, new Date('2026-11-09T21:59:59Z')),
+    ).toBeNull();
   });
 });
 
@@ -159,7 +196,11 @@ describe('resumenDelRango', () => {
     const dia2 = indicadoresDelDia({
       ...DIA,
       fecha: '2026-11-11',
-      rol: { estado: 'PROPUESTO' },
+      rol: {
+        estado: 'PROPUESTO',
+        generadoEn: new Date('2026-11-10T22:00:00Z'),
+        autorizadoEn: null,
+      },
       asignaciones: [asignacion(1, 14, '10:00', 1)],
       noCubiertos: ['EMPALME', 'EMPALME', 'JORNADA'],
       estados: ['PROGRAMADO', 'PENDIENTE', 'PENDIENTE', 'PENDIENTE'],
@@ -214,13 +255,39 @@ describe('resumenDelRango', () => {
     ]);
   });
 
-  it('sin días con rol: cobertura, empalmes y ocupación en null', () => {
+  it('promedia el tiempo de elaboración solo de los roles autorizados', () => {
+    const autorizado = (fecha: string, fin: string) =>
+      indicadoresDelDia({
+        ...DIA,
+        fecha,
+        rol: {
+          estado: 'AUTORIZADO',
+          generadoEn: new Date('2026-11-09T22:00:00Z'),
+          autorizadoEn: new Date(fin),
+        },
+      });
+    const propuesto = indicadoresDelDia({
+      ...DIA,
+      fecha: '2026-11-12',
+      rol: { ...DIA.rol!, estado: 'PROPUESTO', autorizadoEn: null },
+    });
+    const r = resumenDelRango([
+      autorizado('2026-11-10', '2026-11-09T22:12:30Z'),
+      autorizado('2026-11-11', '2026-11-09T22:17:30Z'),
+      propuesto,
+    ]);
+    // (12.5 + 17.5) / 2; el día PROPUESTO no cuenta como 0.
+    expect(r.tiempoElaboracionPromedioMin).toBe(15);
+  });
+
+  it('sin días con rol: cobertura, empalmes, ocupación y elaboración en null', () => {
     const r = resumenDelRango([]);
     expect(r).toMatchObject({
       dias: 0,
       cobertura: null,
       empalmes: null,
       ocupacion: null,
+      tiempoElaboracionPromedioMin: null,
       unidades: [],
     });
   });

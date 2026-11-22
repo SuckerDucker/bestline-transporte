@@ -306,6 +306,11 @@ describe('Motor de asignación: roles (e2e)', () => {
       reemplazado: true,
       rol: { id: antes.id },
     });
+    // Regenerar actualiza generado_en: de ahí se mide el tiempo de elaboración.
+    const despues = await prisma.rolDiario.findFirstOrThrow();
+    expect(despues.generadoEn.getTime()).toBeGreaterThan(
+      antes.generadoEn.getTime(),
+    );
     expect(await conteo()).toEqual({
       roles: 1,
       asignaciones: 3,

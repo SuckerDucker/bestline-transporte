@@ -155,7 +155,13 @@ export class IndicadoresService {
       resultado.push(
         indicadoresDelDia({
           fecha,
-          rol: rol ? { estado: rol.estado } : null,
+          rol: rol
+            ? {
+                estado: rol.estado,
+                generadoEn: rol.generadoEn,
+                autorizadoEn: rol.autorizadoEn,
+              }
+            : null,
           estados: (serviciosPorDia.get(fecha) ?? []).map((s) => s.estado),
           asignaciones,
           noCubiertos: (rol?.noCubiertos ?? []).map((n) => n.motivo as Motivo),

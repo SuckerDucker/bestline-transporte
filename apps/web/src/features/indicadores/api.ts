@@ -33,13 +33,17 @@ export interface IndicadoresDia {
   incidencias: number
   incidenciasPorTipo: Record<TipoIncidencia, number>
   ocupacion: number | null
+  /** Minutos de la última generación a la autorización; null si no está AUTORIZADO. */
+  tiempoElaboracionMin: number | null
   unidades: UnidadDia[]
 }
 
 export interface ResumenIndicadores
-  extends Omit<IndicadoresDia, 'fecha' | 'estadoRol' | 'unidades'> {
+  extends Omit<IndicadoresDia, 'fecha' | 'estadoRol' | 'unidades' | 'tiempoElaboracionMin'> {
   dias: number
   diasConRol: number
+  /** Promedio de los roles autorizados del rango. */
+  tiempoElaboracionPromedioMin: number | null
   unidades: {
     vehiculoId: number
     numeroEconomico: string

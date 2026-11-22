@@ -12,6 +12,9 @@ export const NOMBRE_INCIDENCIA: Record<TipoIncidencia, string> = {
 
 export const porcentaje = (v: number) => `${v.toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
 export const entero = (v: number) => v.toLocaleString('es-MX')
+/** Minutos con un decimal; "—" si no hay valor. */
+export const minutos = (v: number | null) =>
+  v === null ? '—' : v.toLocaleString('es-MX', { maximumFractionDigits: 1 })
 /** "2026-11-10" → "10/11" */
 export const diaCorto = (fecha: string) => fecha.slice(8, 10) + '/' + fecha.slice(5, 7)
 

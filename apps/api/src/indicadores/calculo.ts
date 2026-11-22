@@ -39,7 +39,11 @@ export interface AsignacionDia {
 
 export interface DatosDia {
   fecha: string;
-  rol: { estado: 'PROPUESTO' | 'AUTORIZADO' } | null;
+  rol: {
+    estado: 'PROPUESTO' | 'AUTORIZADO';
+    generadoEn: Date;
+    autorizadoEn: Date | null;
+  } | null;
   /** Estado de cada servicio del día (todos, también los que no están en el rol). */
   estados: string[];
   asignaciones: AsignacionDia[];
@@ -75,6 +79,20 @@ export function ocupacionPromedio(
   if (a.length === 0) return null;
   const suma = a.reduce((s, x) => s + x.pasajeros / x.capacidad, 0);
   return redondear(suma / a.length, 3);
+}
+
+/**
+ * Tiempo de elaboración del rol (RF-19, CU-20): minutos desde la última
+ * generación hasta la autorización. Regenerar reinicia la medición. Es null
+ * sin autorización o si las fechas son incoherentes (autorizado antes de generar).
+ */
+export function minutosElaboracion(
+  generadoEn: Date,
+  autorizadoEn: Date | null,
+): number | null {
+  if (!autorizadoEn) return null;
+  const diferencia = autorizadoEn.getTime() - generadoEn.getTime();
+  return diferencia < 0 ? null : redondear(diferencia / MINUTO);
 }
 
 /**
@@ -145,6 +163,10 @@ export function indicadoresDelDia(d: DatosDia) {
     incidencias: d.incidencias.length,
     incidenciasPorTipo: contar(TIPOS_INCIDENCIA, d.incidencias),
     ocupacion: ocupacionPromedio(d.asignaciones),
+    tiempoElaboracionMin:
+      d.rol?.estado === 'AUTORIZADO'
+        ? minutosElaboracion(d.rol.generadoEn, d.rol.autorizadoEn)
+        : null,
     unidades: porUnidad(d),
   };
 }
@@ -168,6 +190,7 @@ export function resumenDelRango(dias: IndicadoresDia[]) {
   const asignados = conRol.reduce((s, d) => s + d.asignados, 0);
   const noCubiertos = conRol.reduce((s, d) => s + d.noCubiertos, 0);
   const autorizados = dias.filter((d) => d.empalmes !== null);
+  const elaboracion = dias.flatMap((d) => d.tiempoElaboracionMin ?? []);
   const unidades = new Map<
     number,
     {
@@ -216,6 +239,9 @@ export function resumenDelRango(dias: IndicadoresDia[]) {
       TIPOS_INCIDENCIA,
     ),
     ocupacion: asignados ? redondear(totalOcupacion / asignados, 3) : null,
+    tiempoElaboracionPromedioMin: elaboracion.length
+      ? redondear(elaboracion.reduce((s, m) => s + m, 0) / elaboracion.length)
+      : null,
     unidades: [...unidades]
       .map(([vehiculoId, u]) => ({
         vehiculoId,

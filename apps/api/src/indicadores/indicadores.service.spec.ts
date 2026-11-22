@@ -64,6 +64,8 @@ describe('IndicadoresService', () => {
         id: 14,
         fecha: new Date('2026-11-05T00:00:00Z'),
         estado: 'PROPUESTO',
+        generadoEn: new Date('2026-11-04T22:00:00Z'),
+        autorizadoEn: null,
         asignaciones: [
           {
             vehiculoId: 1,
