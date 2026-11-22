@@ -51,6 +51,7 @@ const dia = (fecha: string, extra: Partial<IndicadoresDia> = {}): IndicadoresDia
   incidencias: 0,
   incidenciasPorTipo: { RETRASO: 0, FALLA_MECANICA: 0, PASAJERO_NO_SE_PRESENTO: 0, CAMBIO_DE_HORA: 0, OTRO: 0 },
   ocupacion: null,
+  tiempoElaboracionMin: null,
   unidades: [],
   ...extra,
 })
@@ -72,6 +73,7 @@ const DATOS: Indicadores = {
     incidencias: 2,
     incidenciasPorTipo: INCIDENCIAS,
     ocupacion: 0.299,
+    tiempoElaboracionPromedioMin: 12.5,
     unidades: [
       { vehiculoId: 1, numeroEconomico: 'BL-01', servicios: 7, ocupacion: 0.479, horasJornadaPromedio: 9.38 },
       { vehiculoId: 10, numeroEconomico: 'BL-10', servicios: 9, ocupacion: 0.126, horasJornadaPromedio: 8.3 },
@@ -90,6 +92,7 @@ const DATOS: Indicadores = {
       completados: 30,
       incidencias: 2,
       ocupacion: 0.302,
+      tiempoElaboracionMin: 12.5,
     }),
   ],
 }
@@ -134,8 +137,21 @@ describe('Indicadores', () => {
     expect(incidencias).toHaveTextContent('Pasajero no se presentó=1')
 
     const tabla = screen.getByRole('table', { name: 'Indicadores por día' })
-    expect(within(tabla).getAllByRole('row')).toHaveLength(3)
+    // Encabezado, 2 días con rol y el promedio del rango.
+    expect(within(tabla).getAllByRole('row')).toHaveLength(4)
     expect(tabla).toHaveTextContent('Propuesto')
+  })
+
+  it('muestra el tiempo de elaboración por día ("—" si es PROPUESTO) y el promedio del rango', async () => {
+    simularApi(() => ({ cuerpo: DATOS }))
+    renderizarPagina()
+
+    const tabla = await screen.findByRole('table', { name: 'Indicadores por día' })
+    expect(within(tabla).getByRole('columnheader', { name: 'Elaboración (min)' })).toBeInTheDocument()
+    const [, propuesto, autorizado, promedio] = within(tabla).getAllByRole('row')
+    expect(within(propuesto).getAllByRole('cell').at(-1)).toHaveTextContent('—')
+    expect(within(autorizado).getAllByRole('cell').at(-1)).toHaveTextContent('12.5')
+    expect(promedio).toHaveTextContent('Promedio del rango (roles autorizados)12.5')
   })
 
   it('cambia el rango desde los campos de fecha', async () => {

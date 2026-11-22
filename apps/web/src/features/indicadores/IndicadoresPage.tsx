@@ -4,13 +4,13 @@ import { Campo } from '@/components/comunes/Campo'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { hoyCancun } from '@/lib/fechas'
 import { cn } from '@/lib/utils'
 import { useEsMovil } from '@/lib/useEsMovil'
 import { Aviso } from '../monitoreo/Aviso'
 import { type Indicadores, useIndicadores } from './api'
-import { datosGraficas, diaCorto, entero, porcentaje, restarDias } from './formato'
+import { datosGraficas, diaCorto, entero, minutos, porcentaje, restarDias } from './formato'
 import { GraficaBarras, GraficaLinea, TarjetaGrafica } from './Graficas'
 
 /** Rango por omisión: los últimos 30 días hasta hoy (la API acepta hasta 31). */
@@ -201,6 +201,7 @@ function TablaDias({ datos }: { datos: Indicadores }) {
             <TableHead className="text-right">Completados</TableHead>
             <TableHead className="text-right">Incidencias</TableHead>
             <TableHead className="text-right">Ocupación</TableHead>
+            <TableHead className="text-right">Elaboración (min)</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -218,14 +219,24 @@ function TablaDias({ datos }: { datos: Indicadores }) {
               <TableCell className="text-right">{d.completados}</TableCell>
               <TableCell className="text-right">{d.incidencias}</TableCell>
               <TableCell className="text-right">{d.ocupacion === null ? '—' : porcentaje(d.ocupacion * 100)}</TableCell>
+              <TableCell className="text-right">{minutos(d.tiempoElaboracionMin)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
+        <TableFooter>
+          <TableRow className="tabular-nums">
+            <TableCell colSpan={10}>Promedio del rango (roles autorizados)</TableCell>
+            <TableCell className="text-right">{minutos(datos.resumen.tiempoElaboracionPromedioMin)}</TableCell>
+          </TableRow>
+        </TableFooter>
       </Table>
-      <p className="flex items-center gap-1.5 border-t px-4 py-2 text-xs text-muted-foreground">
-        <CircleAlert className="size-3.5" />
-        Empalmes "—": el rol del día sigue PROPUESTO; el verificador se corre sobre los roles autorizados.
-      </p>
+      <div className="space-y-1 border-t px-4 py-2 text-xs text-muted-foreground">
+        <p className="flex items-start gap-1.5">
+          <CircleAlert className="mt-px size-3.5 shrink-0" />
+          Empalmes y elaboración "—": el rol del día sigue PROPUESTO.
+        </p>
+        <p className="pl-5">Elaboración: minutos desde la última generación hasta la autorización; regenerar reinicia la medición.</p>
+      </div>
     </div>
   )
 }
