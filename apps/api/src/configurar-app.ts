@@ -1,5 +1,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  type OpenAPIObject,
+  SwaggerModule,
+} from '@nestjs/swagger';
 
 /**
  * Configuración común de la aplicación. Se usa en main.ts y en las pruebas e2e
@@ -29,7 +33,23 @@ export function configurarApp(app: INestApplication): void {
     exposedHeaders: ['Content-Disposition'],
   });
 
-  // Documentación OpenAPI en /api/docs.
+  // Documentación OpenAPI en /api/docs. En producción se apaga por defecto
+  // (SWAGGER_HABILITADO=false) y se enciende solo para consultarla.
+  if (swaggerHabilitado()) {
+    SwaggerModule.setup('api/docs', app, crearDocumentoOpenApi(app), {
+      // Conserva el token al recargar la página de Swagger.
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
+}
+
+/** Swagger queda encendido salvo que la variable diga exactamente "false". */
+export function swaggerHabilitado(): boolean {
+  return process.env.SWAGGER_HABILITADO !== 'false';
+}
+
+/** Documento OpenAPI de la API (también lo usa el exportador a docs/api). */
+export function crearDocumentoOpenApi(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('Best Line · API de Operaciones')
     .setDescription(
@@ -39,9 +59,5 @@ export function configurarApp(app: INestApplication): void {
     // Botón Authorize: se pega el accessToken de POST /api/auth/login.
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build();
-  const documento = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, documento, {
-    // Conserva el token al recargar la página de Swagger.
-    swaggerOptions: { persistAuthorization: true },
-  });
+  return SwaggerModule.createDocument(app, config);
 }
