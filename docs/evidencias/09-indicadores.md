@@ -6,8 +6,20 @@
 |---|---|---|
 | **CU por confirmar** | Consultar indicadores de operación | Cobertura, empalmes, no cubiertos por motivo, completados, cancelados, no show, incidencias, ocupación y horas de jornada por día y del rango |
 | **CU por confirmar** | Exportar el rol del día | Rol por operador o de todos, en CSV y en PDF para imprimir |
+| **RF-19, CU-20** | Tiempo de elaboración del rol | Minutos desde la última generación hasta la autorización, por día y promedio del rango |
 
-Las claves de caso de uso y de requerimiento no están en el repositorio; hay que tomarlas de la memoria.
+Las claves RF-19 y CU-20 las indicó el alumno para el tiempo de elaboración. Las demás claves de caso de uso y de requerimiento no están en el repositorio; hay que tomarlas de la memoria.
+
+## Tiempo de elaboración del rol (RF-19, CU-20)
+
+- **Cálculo:** `autorizado_en − generado_en`, en minutos con un decimal, solo en roles AUTORIZADOS (`minutosElaboracion` en `indicadores/calculo.ts`). Un rol PROPUESTO muestra "—" y no cuenta como 0 en el promedio.
+- **Promedio del rango:** media de los tiempos de los roles autorizados del rango.
+- **Pantalla:** columna *Elaboración (min)* en la tabla *Por día* y fila *Promedio del rango*.
+- **API:** `tiempoElaboracionMin` en cada día y `tiempoElaboracionPromedioMin` en el resumen de `GET /api/indicadores`. No se agregaron tablas ni columnas.
+- **`generado_en` al regenerar:** se revisó y se actualiza correctamente. Faltaba una prueba y se agregó. Un rol AUTORIZADO no se puede regenerar (409), así que su tiempo ya no cambia.
+- **Un solo reloj:** al crear el rol, `generado_en` venía de PostgreSQL (`now()`), y al regenerar y autorizar, de Node. Ahora las tres fechas usan `new Date()` de la API. Los timestamps históricos no se modificaron.
+
+**Limitación:** el indicador mide desde la **última** generación. Si el rol se regeneró, el tiempo anterior a esa regeneración no se cuenta, porque `generado_en` guarda una sola fecha. Tampoco distingue tiempo de trabajo de tiempo de espera: un rol generado en la noche y autorizado a la mañana siguiente cuenta todas esas horas.
 
 ## Qué se hizo
 
@@ -105,9 +117,9 @@ Los hizo la migración `20261119230000_monitoreo_estados_horas_usuario_operador`
 
 | Suite | Resultado | Cobertura |
 |---|---|---|
-| API unitarias (`npm run test:cov`) | 370 de 370 en 30 suites. Nuevas: `calculo.spec.ts`, que calcula cada indicador con un día de datos conocidos y el rango; `indicadores.service.spec.ts`; `rol-exportado.spec.ts`, con el CSV, el lado del hotel y un PDF real; y `exportacion.service.spec.ts`, con los permisos del operador | Global 85.5 % de líneas. `calculo.ts`, `exportacion.service.ts` y `rol-exportado.ts` al 100 %; `indicadores.service.ts` al 98 % (los controllers se cubren con la e2e) |
-| API e2e (`npm run test:e2e`) | 117 de 117 en 16 suites. Nueva: `indicadores.e2e-spec.ts`, con 6 pruebas. Genera y autoriza un rol con la API real, y revisa la cobertura del 75 %, los 0 empalmes, CSV con `text/csv`, PDF con `application/pdf` que empieza con `%PDF`, el 403 del operador con otro `operadorId`, y los 400, 401 y 404 | — |
-| Web (`npm run test:cov`) | 122 de 122. Nuevas: `IndicadoresPage.test.tsx`, con 7 pruebas y Recharts simulado (KPI, datos de cada gráfica, cambio de rango, vacío, sin datos, error y carga), y `BotonesExportar.test.tsx`, con 2 | `features/indicadores` 89.1 %, `BotonesExportar.tsx` 100 % |
+| API unitarias (`npm run test:cov`) | 374 de 374 en 30 suites (4 nuevas del tiempo de elaboración). Nuevas de la fase: `calculo.spec.ts`, que calcula cada indicador con un día de datos conocidos y el rango; `indicadores.service.spec.ts`; `rol-exportado.spec.ts`, con el CSV, el lado del hotel y un PDF real; y `exportacion.service.spec.ts`, con los permisos del operador | Global 85.5 % de líneas. `calculo.ts`, `exportacion.service.ts` y `rol-exportado.ts` al 100 %; `indicadores.service.ts` al 98 % (los controllers se cubren con la e2e) |
+| API e2e (`npm run test:e2e`) | 118 de 118 en 16 suites. `roles.e2e-spec.ts` revisa que regenerar actualice `generado_en`. Nueva de la fase: `indicadores.e2e-spec.ts`, con 7 pruebas (una del tiempo de elaboración). Genera y autoriza un rol con la API real, y revisa la cobertura del 75 %, los 0 empalmes, CSV con `text/csv`, PDF con `application/pdf` que empieza con `%PDF`, el 403 del operador con otro `operadorId`, y los 400, 401 y 404 | — |
+| Web (`npm run test:cov`) | 123 de 123. Nuevas de la fase: `IndicadoresPage.test.tsx`, con 8 pruebas y Recharts simulado (KPI, datos de cada gráfica, tiempo de elaboración, cambio de rango, vacío, sin datos, error y carga), y `BotonesExportar.test.tsx`, con 2 | `features/indicadores` 89.5 % de líneas, `BotonesExportar.tsx` 100 % |
 | Lint y build | API y web sin avisos de lint; `nest build` y `vite build` correctos | — |
 
 ## Revisión visual (Playwright, 1440 y 390 px)
@@ -140,6 +152,9 @@ Valores de la base de desarrollo tal como la dejan el seed y la importación, si
 | Completados / cancelados / no show | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |
 | Incidencias | 0 | 0 | 0 |
 | Ocupación promedio | 29.6 % | 30.2 % | 29.9 % |
+| Tiempo de elaboración del rol | — (rol PROPUESTO) | 12.9 min (**dato de prueba**) | 12.9 min (**dato de prueba**) |
+
+**El 12.9 min es un dato de prueba, no un tiempo real de la empresa.** Sale de `generado_en` (11/11/2026 23:20:27) y `autorizado_en` (11/11/2026 23:33:18) del rol del 10/11, que se generó y autorizó durante el desarrollo. No debe presentarse como tiempo real de elaboración en Resultados.
 
 Completados, cancelados, no show e incidencias están en 0 porque en la base de desarrollo todavía no se ha registrado el monitoreo de esos días. Las capturas se tomaron con un monitoreo simulado que después se revirtió.
 
