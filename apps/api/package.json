@@ -8,6 +8,8 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
+    "build:seed": "tsc -p tsconfig.seed.json",
+    "openapi": "nest build && node dist/exportar-openapi.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
