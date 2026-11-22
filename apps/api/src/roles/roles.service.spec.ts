@@ -98,7 +98,11 @@ describe('RolesService', () => {
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.rolDiario.create).toHaveBeenCalledWith({
-        data: { fecha: new Date('2026-11-10T00:00:00Z'), estado: 'PROPUESTO' },
+        data: {
+          fecha: new Date('2026-11-10T00:00:00Z'),
+          estado: 'PROPUESTO',
+          generadoEn: expect.any(Date) as Date,
+        },
       });
       // S-1 a las 05:00 de Cancún (minuto 300): inicio 04:50 y liberación 05:30
       // (+30 min de CUN a ZH), en BL-01, cuyo operador tiene cita a las 04:00.
@@ -168,6 +172,11 @@ describe('RolesService', () => {
         where: { rolId: 7 },
       });
       expect(prisma.rolDiario.create).not.toHaveBeenCalled();
+      // Regenerar reinicia la medición del tiempo de elaboración.
+      expect(prisma.rolDiario.update).toHaveBeenCalledWith({
+        where: { id: 7 },
+        data: { estado: 'PROPUESTO', generadoEn: expect.any(Date) as Date },
+      });
       expect(resultado?.reemplazado).toBe(true);
       const [{ data }] = prisma.bitacora.create.mock.calls[0] as [
         { data: { accion: string } },

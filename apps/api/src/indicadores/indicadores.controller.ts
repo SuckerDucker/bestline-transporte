@@ -40,6 +40,7 @@ const DIA_EJEMPLO = {
   incidencias: 2,
   incidenciasPorTipo: INCIDENCIAS_EJEMPLO,
   ocupacion: 0.412,
+  tiempoElaboracionMin: 12.5,
   unidades: [
     {
       vehiculoId: 1,
@@ -69,7 +70,7 @@ export class IndicadoresController {
   @ApiOperation({
     summary: 'Indicadores por día y del rango',
     description:
-      'Por día: servicios, asignados, no cubiertos por motivo, % de cobertura (asignados / servicios del rol), empalmes (violaciones del verificador en roles AUTORIZADOS; debe dar 0), completados, cancelados, no show, incidencias por tipo, ocupación promedio (pasajeros / capacidad) y horas de jornada por unidad (de la cita hasta que queda libre, con el regreso al encierro si no termina en zona de término). Máximo 31 días.',
+      'Por día: servicios, asignados, no cubiertos por motivo, % de cobertura (asignados / servicios del rol), empalmes (violaciones del verificador en roles AUTORIZADOS; debe dar 0), completados, cancelados, no show, incidencias por tipo, ocupación promedio (pasajeros / capacidad) y horas de jornada por unidad (de la cita hasta que queda libre, con el regreso al encierro si no termina en zona de término). Tiempo de elaboración del rol (RF-19, CU-20): minutos desde la última generación hasta la autorización, solo en roles AUTORIZADOS; regenerar reinicia la medición. Máximo 31 días.',
   })
   @ApiOkResponse({
     description: 'Indicadores',
@@ -92,6 +93,7 @@ export class IndicadoresController {
           incidencias: 2,
           incidenciasPorTipo: INCIDENCIAS_EJEMPLO,
           ocupacion: 0.412,
+          tiempoElaboracionPromedioMin: 12.5,
           unidades: [
             {
               vehiculoId: 1,

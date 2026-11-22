@@ -119,7 +119,12 @@ export class RolesService {
           });
         } else {
           guardado = await tx.rolDiario.create({
-            data: { fecha: fechaDelRol(fecha), estado: 'PROPUESTO' },
+            // Mismo reloj que al regenerar y autorizar (tiempo de elaboración).
+            data: {
+              fecha: fechaDelRol(fecha),
+              estado: 'PROPUESTO',
+              generadoEn: new Date(),
+            },
           });
         }
         await tx.asignacion.createMany({

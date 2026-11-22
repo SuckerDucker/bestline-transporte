@@ -31,6 +31,7 @@ describe('Indicadores y exportación del rol (e2e)', () => {
   let prisma: PrismaService;
   const token: Partial<Record<RolUsuario, string>> = {};
   const operador: number[] = [];
+  let generadoAlGenerar: Date;
   const api = () => request(app.getHttpServer());
   const con = (rol: RolUsuario) => ({ Authorization: `Bearer ${token[rol]}` });
 
@@ -132,6 +133,7 @@ describe('Indicadores y exportación del rol (e2e)', () => {
       .set(con('COORDINADOR'))
       .send({ fecha: FECHA })
       .expect(201);
+    generadoAlGenerar = (await prisma.rolDiario.findFirstOrThrow()).generadoEn;
     await api()
       .post(`/api/roles/${FECHA}/autorizar`)
       .set(con('COORDINADOR'))
@@ -192,6 +194,25 @@ describe('Indicadores y exportación del rol (e2e)', () => {
         cobertura: 75,
         empalmes: 0,
       });
+    });
+
+    it('tiempo de elaboración: autorizar conserva generado_en y se miden los minutos hasta autorizado_en', async () => {
+      const rol = await prisma.rolDiario.findFirstOrThrow();
+      expect(rol.generadoEn).toEqual(generadoAlGenerar);
+      // Solo en la base de pruebas: un rol generado 25 min antes de autorizarlo.
+      await prisma.rolDiario.update({
+        where: { id: rol.id },
+        data: {
+          generadoEn: new Date(rol.autorizadoEn!.getTime() - 25 * 60_000),
+        },
+      });
+      const { body } = await api()
+        .get('/api/indicadores')
+        .query({ desde: FECHA, hasta: FECHA })
+        .set(con('COORDINADOR'))
+        .expect(200);
+      expect(body.dias[0].tiempoElaboracionMin).toBe(25);
+      expect(body.resumen.tiempoElaboracionPromedioMin).toBe(25);
     });
 
     it('400 con rango inválido; 403 al OPERADOR; 401 sin token', async () => {
