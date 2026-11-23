@@ -45,7 +45,7 @@ const EJEMPLO = {
 const ERROR_CAPACIDAD =
   'La capacidad de un vehículo Sprinter debe estar entre 1 y 20 pasajeros';
 
-@ApiTags('vehiculos')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('vehiculos')
 export class VehiculosController {
@@ -68,7 +68,11 @@ export class VehiculosController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un vehículo' })
+  @ApiOperation({
+    summary: 'Obtener un vehículo',
+    description:
+      'Cualquier rol autenticado.',
+  })
   @ApiOkResponse({ description: 'Vehículo', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError401()

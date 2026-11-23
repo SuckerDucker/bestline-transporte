@@ -24,7 +24,7 @@ const CSV_EJEMPLO =
   'fecha,unidad,tipo_unidad,operador,cita,orden,folio,tipo,modalidad,presentarse,hora,libre,origen,destino,hotel,pasajeros,vuelo,estado\r\n' +
   '2026-11-10,BL-01,Van,José Hernández,04:00,1,TUI-0016,TRASLADO,GRUPO,04:55,05:25,06:50,Zona Hotelera,Playa del Carmen,Hyatt Ziva Cancun,10,,PROGRAMADO';
 
-@ApiTags('Roles')
+@ApiTags('roles')
 @ApiBearerAuth()
 @ApiError401()
 @Controller('roles')

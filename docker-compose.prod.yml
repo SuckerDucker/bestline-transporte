@@ -1,0 +1,87 @@
+# Entorno de producción en la laptop (ver docs/despliegue.md).
+# Levantar: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# El nombre propio separa contenedores, redes y volumen de la base de desarrollo
+# (docker-compose.yml). Solo Nginx publica un puerto.
+name: bestline-prod
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Falta POSTGRES_USER en .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:?Falta POSTGRES_DB en .env.production}
+      TZ: America/Cancun
+      PGTZ: America/Cancun
+    volumes:
+      - datos_bd:/var/lib/postgresql/data
+    networks:
+      - interna
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build: ./apps/api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      TZ: America/Cancun
+      # La sesión de PostgreSQL se fuerza a timezone=UTC en PrismaService.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env.production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      ADMIN_NOMBRE: ${ADMIN_NOMBRE:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Falta ADMIN_EMAIL en .env.production}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Falta ADMIN_PASSWORD en .env.production}
+      OSRM_URL: ${OSRM_URL:-https://router.project-osrm.org}
+      SWAGGER_HABILITADO: ${SWAGGER_HABILITADO:-false}
+    networks:
+      - interna
+      - salida
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/salud').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+
+  nginx:
+    build: ./apps/web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - salida
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+networks:
+  # Sin salida a internet: solo la API llega a la base de datos.
+  interna:
+    internal: true
+  # Nginx hacia la API y la API hacia OSRM.
+  salida:
+
+volumes:
+  datos_bd:

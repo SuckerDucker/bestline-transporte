@@ -71,7 +71,11 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un usuario' })
+  @ApiOperation({
+    summary: 'Obtener un usuario',
+    description:
+      'Solo ADMINISTRADOR. Nunca devuelve password_hash.',
+  })
   @ApiOkResponse({ description: 'Usuario', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError404('No existe el usuario 99')

@@ -54,7 +54,7 @@ const DIA_EJEMPLO = {
   ],
 };
 
-@ApiTags('Indicadores')
+@ApiTags('indicadores')
 @ApiBearerAuth()
 @ApiError401()
 @Controller('indicadores')

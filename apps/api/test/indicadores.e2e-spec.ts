@@ -18,7 +18,7 @@ const INICIO_DIA = new Date(`${FECHA}T05:00:00Z`);
  * como texto.
  */
 const binario = (
-  res: NodeJS.ReadableStream,
+  res: request.Response,
   listo: (error: Error | null, cuerpo: Buffer) => void,
 ) => {
   const partes: Buffer[] = [];

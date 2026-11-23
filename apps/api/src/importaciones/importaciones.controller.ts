@@ -223,7 +223,10 @@ export class ImportacionesController {
 
   @Get(':id')
   @Roles(...ROLES_CONSULTAR)
-  @ApiOperation({ summary: 'Una importación con sus servicios' })
+  @ApiOperation({
+    summary: 'Una importación con sus servicios',
+    description: 'ADMINISTRADOR, COORDINADOR o SUPERVISOR.',
+  })
   @ApiOkResponse({
     description: 'Importación y servicios ordenados por hora',
     schema: {

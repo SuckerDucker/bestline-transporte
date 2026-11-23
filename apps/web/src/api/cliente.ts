@@ -3,6 +3,14 @@ import { leerToken } from '../auth/sesion'
 /** URL base de la API (configurable con VITE_API_URL en apps/web/.env). */
 const URL_API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
+/**
+ * URL completa de una ruta de la API. En producción VITE_API_URL es "/api"
+ * (relativa): se resuelve contra el origen de la página, así funciona igual
+ * desde localhost que desde la IP de la laptop.
+ */
+export const urlApi = (ruta: string, base = URL_API, origen = window.location.origin) =>
+  new URL(base + ruta, origen)
+
 /** Error de la API con su código HTTP y un mensaje listo para mostrar. */
 export class ErrorApi extends Error {
   readonly status: number
@@ -36,7 +44,7 @@ export function registrarManejador401(manejador: () => void) {
  * transforma las respuestas de error en ErrorApi con el mensaje del servidor.
  */
 export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): Promise<T> {
-  const url = new URL(URL_API + ruta)
+  const url = urlApi(ruta)
   for (const [clave, valor] of Object.entries(opciones.query ?? {})) {
     if (valor !== undefined && valor !== null && valor !== '') {
       url.searchParams.set(clave, String(valor))
@@ -79,7 +87,7 @@ export async function pedir<T>(ruta: string, opciones: OpcionesPeticion = {}): P
  * Content-Disposition. Devuelve ese nombre.
  */
 export async function descargar(ruta: string, query: Record<string, ValorQuery> = {}): Promise<string> {
-  const url = new URL(URL_API + ruta)
+  const url = urlApi(ruta)
   for (const [clave, valor] of Object.entries(query)) {
     if (valor !== undefined && valor !== null && valor !== '') url.searchParams.set(clave, String(valor))
   }

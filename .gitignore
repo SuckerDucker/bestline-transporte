@@ -1,12 +1,15 @@
 node_modules/
 dist/
+dist-seed/
 build/
 coverage/
 .env
 .env.*
 !.env.example
+!.env.production.example
 *.log
 pgdata/
+respaldos/
 *.tsbuildinfo
 
 # Cliente de Prisma generado (se regenera con "npx prisma generate")

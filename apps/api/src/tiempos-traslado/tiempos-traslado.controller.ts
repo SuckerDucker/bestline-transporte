@@ -30,7 +30,7 @@ const EJEMPLO = {
 };
 
 /** Matriz de tiempos de traslado entre zonas (CU-09, RF-08). */
-@ApiTags('tiempos-traslado')
+@ApiTags('parámetros')
 @ApiBearerAuth()
 @ApiError401()
 @Controller('tiempos-traslado')

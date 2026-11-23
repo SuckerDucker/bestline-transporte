@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Prisma } from '../generated/prisma/client.js';
+import { type Prisma, RolUsuario } from '../generated/prisma/client.js';
 import { registrarBitacora } from '../comun/bitacora.js';
 import { traducirErrorPrisma } from '../comun/errores-prisma.js';
 import { type Paginado, rango } from '../comun/paginacion.js';
@@ -79,6 +79,7 @@ export class OperadoresService {
   ): Promise<OperadorRespuesta> {
     await this.revisarHoraCita(dto.horaCita);
     const numero = await this.revisarVehiculo(dto.vehiculoId);
+    await this.revisarUsuario(dto.usuarioId);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const operador = await tx.operador.create({
@@ -89,7 +90,9 @@ export class OperadoresService {
         return operador;
       });
     } catch (error) {
-      traducirErrorPrisma(error, { duplicado: yaTieneOperador(numero) });
+      traducirErrorPrisma(error, {
+        duplicado: duplicado(numero, dto.usuarioId),
+      });
     }
   }
 
@@ -101,6 +104,7 @@ export class OperadoresService {
     await this.obtener(id);
     await this.revisarHoraCita(dto.horaCita);
     const numero = await this.revisarVehiculo(dto.vehiculoId, id);
+    await this.revisarUsuario(dto.usuarioId, id);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const operador = await tx.operador.update({
@@ -112,8 +116,10 @@ export class OperadoresService {
         return operador;
       });
     } catch (error) {
-      // Por si otra petición asignó el mismo vehículo entre la revisión y el guardado.
-      traducirErrorPrisma(error, { duplicado: yaTieneOperador(numero) });
+      // Por si otra petición tomó el vehículo o el usuario entre la revisión y el guardado.
+      traducirErrorPrisma(error, {
+        duplicado: duplicado(numero, dto.usuarioId),
+      });
     }
   }
 
@@ -183,6 +189,34 @@ export class OperadoresService {
     }
     return vehiculo.numeroEconomico;
   }
+
+  /**
+   * La cuenta vinculada debe existir, tener rol OPERADOR (400) y no estar ya
+   * ligada a otro operador (409). Con ella el operador entra a "Mi rol".
+   */
+  private async revisarUsuario(
+    usuarioId: number | null | undefined,
+    operadorId?: number,
+  ): Promise<void> {
+    if (usuarioId === undefined || usuarioId === null) return;
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { rol: true, operador: { select: { id: true, nombre: true } } },
+    });
+    if (!usuario) {
+      throw new BadRequestException(`No existe el usuario ${usuarioId}`);
+    }
+    if (usuario.rol !== RolUsuario.OPERADOR) {
+      throw new BadRequestException(
+        'El usuario vinculado debe tener rol OPERADOR',
+      );
+    }
+    if (usuario.operador && usuario.operador.id !== operadorId) {
+      throw new ConflictException(
+        `El usuario ya está vinculado al operador ${usuario.operador.nombre}`,
+      );
+    }
+  }
 }
 
 /** Parámetros con los bloques de hora de cita, en el orden en que se muestran. */
@@ -193,3 +227,13 @@ const CLAVES_BLOQUE = [
 
 const yaTieneOperador = (numero = '') =>
   `El vehículo ${numero} ya tiene un operador asignado`;
+
+/** Mensaje del 409 de la base: si se enviaron ambos, no se sabe cuál chocó. */
+const duplicado = (numero?: string, usuarioId?: number | null) => {
+  if (usuarioId === undefined || usuarioId === null) {
+    return yaTieneOperador(numero);
+  }
+  return numero
+    ? 'El vehículo o el usuario ya está vinculado a otro operador'
+    : 'El usuario ya está vinculado a otro operador';
+};

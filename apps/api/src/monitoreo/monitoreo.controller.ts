@@ -96,7 +96,7 @@ const INCIDENCIA_EJEMPLO = {
   usuario: { id: 5, nombre: 'Jorge Ramírez' },
 };
 
-@ApiTags('Monitoreo')
+@ApiTags('monitoreo')
 @ApiBearerAuth()
 @ApiError401()
 @Controller('monitoreo')

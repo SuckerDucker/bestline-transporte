@@ -213,6 +213,81 @@ describe('OperadoresService', () => {
     });
   });
 
+  describe('usuario vinculado', () => {
+    beforeEach(() => {
+      prisma.operador.findUnique.mockResolvedValue(operador());
+      prisma.operador.update.mockResolvedValue(operador({ usuarioId: 6 }));
+    });
+
+    it('vincula un usuario OPERADOR libre y lo quita con null', async () => {
+      prisma.usuario.findUnique.mockResolvedValue({
+        rol: 'OPERADOR',
+        operador: null,
+      });
+      await servicio.actualizar(3, { usuarioId: 6 }, ADMIN);
+      expect(prisma.operador.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: { usuarioId: 6 } }),
+      );
+
+      prisma.usuario.findUnique.mockClear();
+      await servicio.actualizar(3, { usuarioId: null }, ADMIN);
+      expect(prisma.usuario.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('400 si el usuario no existe o no tiene rol OPERADOR', async () => {
+      prisma.usuario.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        servicio.actualizar(3, { usuarioId: 99 }, ADMIN),
+      ).rejects.toThrow(new BadRequestException('No existe el usuario 99'));
+
+      prisma.usuario.findUnique.mockResolvedValueOnce({
+        rol: 'SUPERVISOR',
+        operador: null,
+      });
+      await expect(
+        servicio.actualizar(3, { usuarioId: 5 }, ADMIN),
+      ).rejects.toThrow(
+        new BadRequestException('El usuario vinculado debe tener rol OPERADOR'),
+      );
+      expect(prisma.operador.update).not.toHaveBeenCalled();
+    });
+
+    it('409 si ya es de otro operador; puede conservar el suyo', async () => {
+      prisma.usuario.findUnique.mockResolvedValue({
+        rol: 'OPERADOR',
+        operador: { id: 8, nombre: 'Manuel Flores' },
+      });
+      await expect(
+        servicio.actualizar(3, { usuarioId: 6 }, ADMIN),
+      ).rejects.toThrow(
+        new ConflictException(
+          'El usuario ya está vinculado al operador Manuel Flores',
+        ),
+      );
+
+      prisma.usuario.findUnique.mockResolvedValue({
+        rol: 'OPERADOR',
+        operador: { id: 3, nombre: 'Luis García' },
+      });
+      await expect(
+        servicio.actualizar(3, { usuarioId: 6 }, ADMIN),
+      ).resolves.toBeDefined();
+    });
+
+    it('409 claro si la base rechaza el usuario repetido (P2002)', async () => {
+      prisma.usuario.findUnique.mockResolvedValue({
+        rol: 'OPERADOR',
+        operador: null,
+      });
+      prisma.operador.update.mockRejectedValue(errorPrisma('P2002'));
+      await expect(
+        servicio.actualizar(3, { usuarioId: 6 }, ADMIN),
+      ).rejects.toThrow(
+        new ConflictException('El usuario ya está vinculado a otro operador'),
+      );
+    });
+  });
+
   describe('hora de cita dentro de los bloques', () => {
     const dto = {
       nombre: 'Ricardo Díaz',

@@ -2,13 +2,17 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../comun/decoradores.js';
 
-@ApiTags('health')
+@ApiTags('salud')
 @Controller('health')
 export class HealthController {
   /** Permite comprobar que la API está levantada. */
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Verificar que la API responde' })
+  @ApiOperation({
+    summary: 'Verificar que la API responde',
+    description:
+      'Solo indica que el proceso responde; no revisa la base de datos (para eso está /api/salud).',
+  })
   @ApiOkResponse({
     description: 'La API responde',
     schema: { example: { status: 'ok' } },

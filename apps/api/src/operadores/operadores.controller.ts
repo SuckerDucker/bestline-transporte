@@ -42,6 +42,7 @@ const EJEMPLO = {
   disponible: true,
   vehiculoId: 3,
   horaCita: '04:15',
+  usuarioId: 6,
   vehiculo: {
     id: 3,
     numeroEconomico: 'BL-03',
@@ -56,7 +57,7 @@ const FUERA_DE_BLOQUE =
   'La hora de cita 06:30 no está en ningún bloque: matutino 04:00-05:00 o vespertino 12:00-13:00';
 const VEHICULO_OCUPADO = 'El vehículo BL-03 ya tiene un operador asignado';
 
-@ApiTags('operadores')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('operadores')
 export class OperadoresController {
@@ -79,7 +80,11 @@ export class OperadoresController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un operador' })
+  @ApiOperation({
+    summary: 'Obtener un operador',
+    description:
+      'Cualquier rol autenticado.',
+  })
   @ApiOkResponse({ description: 'Operador', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError401()
@@ -147,6 +152,10 @@ export class OperadoresController {
       sinUnidad: {
         summary: 'Quitar el vehículo (no participa en el rol)',
         value: { vehiculoId: null },
+      },
+      cuenta: {
+        summary: 'Vincular la cuenta de usuario (rol OPERADOR)',
+        value: { usuarioId: 6 },
       },
     },
   })

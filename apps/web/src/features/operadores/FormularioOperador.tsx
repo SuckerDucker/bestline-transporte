@@ -7,18 +7,21 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Operador, Vehiculo } from '../catalogos/tipos'
-import { esquemaOperador, SIN_VEHICULO, type ValoresOperador } from './esquema'
+import type { UsuarioAdmin } from '../usuarios/api'
+import { esquemaOperador, SIN_USUARIO, SIN_VEHICULO, type ValoresOperador } from './esquema'
 
 interface Props {
   inicial: Operador | null
   /** Vehículos que se pueden asignar (la página los carga). */
   vehiculos: Pick<Vehiculo, 'id' | 'numeroEconomico' | 'tipo'>[]
+  /** Cuentas con rol OPERADOR que se pueden vincular (la página las carga). */
+  usuarios: Pick<UsuarioAdmin, 'id' | 'nombre' | 'email' | 'activo'>[]
   guardando: boolean
   alGuardar: (valores: ValoresOperador) => void
   alCancelar: () => void
 }
 
-export function FormularioOperador({ inicial, vehiculos, guardando, alGuardar, alCancelar }: Props) {
+export function FormularioOperador({ inicial, vehiculos, usuarios, guardando, alGuardar, alCancelar }: Props) {
   const {
     register,
     handleSubmit,
@@ -33,13 +36,21 @@ export function FormularioOperador({ inicial, vehiculos, guardando, alGuardar, a
           telefono: inicial.telefono,
           disponible: inicial.disponible,
           vehiculo: inicial.vehiculoId ? String(inicial.vehiculoId) : SIN_VEHICULO,
+          usuario: inicial.usuarioId ? String(inicial.usuarioId) : SIN_USUARIO,
           horaCita: inicial.horaCita ?? '',
         }
-      : { disponible: true, vehiculo: SIN_VEHICULO, horaCita: '' },
+      : { disponible: true, vehiculo: SIN_VEHICULO, usuario: SIN_USUARIO, horaCita: '' },
   })
   const opcionesVehiculo = [
     { valor: SIN_VEHICULO, etiqueta: 'Sin unidad (no participa en el rol)' },
     ...vehiculos.map((v) => ({ valor: String(v.id), etiqueta: `${v.numeroEconomico} · ${v.tipo}` })),
+  ]
+  const opcionesUsuario = [
+    { valor: SIN_USUARIO, etiqueta: 'Sin cuenta vinculada' },
+    ...usuarios.map((u) => ({
+      valor: String(u.id),
+      etiqueta: `${u.nombre} · ${u.email}${u.activo ? '' : ' (inactivo)'}`,
+    })),
   ]
 
   return (
@@ -88,6 +99,20 @@ export function FormularioOperador({ inicial, vehiculos, guardando, alGuardar, a
           />
         </Campo>
       </div>
+
+      <Campo
+        etiqueta="Usuario vinculado"
+        htmlFor="usuario"
+        ayuda='Cuenta con rol Operador con la que entra a "Mi rol". Se crea en Usuarios.'
+      >
+        <Controller
+          control={control}
+          name="usuario"
+          render={({ field }) => (
+            <SelectSimple id="usuario" valor={field.value} alCambiar={field.onChange} opciones={opcionesUsuario} />
+          )}
+        />
+      </Campo>
 
       <Controller
         control={control}
