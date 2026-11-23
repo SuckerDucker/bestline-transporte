@@ -34,7 +34,7 @@ export const ApiError401 = (mensaje = 'Token inválido o expirado') =>
 /** 403: el rol del usuario no tiene permiso. */
 export const ApiError403 = () =>
   ApiForbiddenResponse({
-    description: 'El rol no tiene permiso (solo ADMINISTRADOR puede escribir)',
+    description: 'El rol del usuario no tiene permiso para esta acción',
     schema: {
       example: {
         message: 'No tienes permiso para realizar esta acción',

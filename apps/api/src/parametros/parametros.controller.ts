@@ -37,7 +37,7 @@ const EJEMPLO = [
 ];
 
 /** Parámetros de operación (CU-08, RF-07). */
-@ApiTags('parametros')
+@ApiTags('parámetros')
 @ApiBearerAuth()
 @ApiError401()
 @Controller('parametros')

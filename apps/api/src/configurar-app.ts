@@ -58,6 +58,20 @@ export function crearDocumentoOpenApi(app: INestApplication): OpenAPIObject {
     .setVersion('0.2.0')
     // Botón Authorize: se pega el accessToken de POST /api/auth/login.
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
+    // Orden en que se muestran las secciones.
+    .addTag('auth', 'Inicio de sesión y usuario actual')
+    .addTag('catálogos', 'Vehículos, operadores, zonas, hoteles y mayoristas')
+    .addTag('parámetros', 'Parámetros de operación y matriz de tiempos')
+    .addTag('servicios', 'Consulta de los servicios importados')
+    .addTag('importaciones', 'Carga de archivos CSV y Excel de los mayoristas')
+    .addTag('roles', 'Generación, revisión, autorización y exportación del rol')
+    .addTag('rutas', 'Rutas sugeridas por unidad con OSRM')
+    .addTag('monitoreo', 'Estados de los servicios e incidencias del día')
+    .addTag('indicadores', 'Cobertura, ocupación, incidencias y tiempos')
+    .addTag('usuarios', 'Administración de cuentas')
+    .addTag('bitácora', 'Consulta de las acciones registradas')
+    .addTag('resumen', 'Datos de la pantalla de inicio')
+    .addTag('salud', 'Comprobación de la API y de la base de datos')
     .build();
   return SwaggerModule.createDocument(app, config);
 }

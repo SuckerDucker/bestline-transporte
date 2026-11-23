@@ -61,11 +61,8 @@ describe('Swagger apagado (SWAGGER_HABILITADO=false)', () => {
 
   it('no publica la página ni el documento, y la API sigue respondiendo', async () => {
     const servidor = app.getHttpServer();
-    // Sin ruta de Swagger, el guard global responde 401 o la ruta da 404.
-    const pagina = await request(servidor).get('/api/docs');
-    const documento = await request(servidor).get('/api/docs-json');
-    expect([401, 404]).toContain(pagina.status);
-    expect([401, 404]).toContain(documento.status);
+    await request(servidor).get('/api/docs').expect(404);
+    await request(servidor).get('/api/docs-json').expect(404);
     await request(servidor).get('/api/health').expect(200);
   });
 });

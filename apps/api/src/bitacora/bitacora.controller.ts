@@ -12,7 +12,7 @@ import { BitacoraService } from './bitacora.service.js';
 import { ConsultaBitacoraDto } from './dto/consulta-bitacora.dto.js';
 
 /** Consulta de la bitácora (CU-04, RF-03). Solo ADMINISTRADOR. */
-@ApiTags('bitacora')
+@ApiTags('bitácora')
 @ApiBearerAuth()
 @Roles(RolUsuario.ADMINISTRADOR)
 @Controller('bitacora')

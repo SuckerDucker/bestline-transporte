@@ -43,7 +43,7 @@ const EJEMPLO = {
   zona: { id: 2, nombre: 'Zona Hotelera' },
 };
 
-@ApiTags('hoteles')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('hoteles')
 export class HotelesController {
@@ -66,7 +66,11 @@ export class HotelesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un hotel' })
+  @ApiOperation({
+    summary: 'Obtener un hotel',
+    description:
+      'Cualquier rol autenticado.',
+  })
   @ApiOkResponse({ description: 'Hotel', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError401()

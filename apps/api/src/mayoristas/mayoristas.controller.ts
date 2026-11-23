@@ -9,7 +9,7 @@ import { ApiError401 } from '../comun/swagger.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Lista de mayoristas para los selectores (solo lectura). */
-@ApiTags('mayoristas')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('mayoristas')
 export class MayoristasController {

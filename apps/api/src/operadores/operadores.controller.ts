@@ -57,7 +57,7 @@ const FUERA_DE_BLOQUE =
   'La hora de cita 06:30 no está en ningún bloque: matutino 04:00-05:00 o vespertino 12:00-13:00';
 const VEHICULO_OCUPADO = 'El vehículo BL-03 ya tiene un operador asignado';
 
-@ApiTags('operadores')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('operadores')
 export class OperadoresController {
@@ -80,7 +80,11 @@ export class OperadoresController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un operador' })
+  @ApiOperation({
+    summary: 'Obtener un operador',
+    description:
+      'Cualquier rol autenticado.',
+  })
   @ApiOkResponse({ description: 'Operador', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError401()

@@ -43,7 +43,7 @@ const EJEMPLO = {
   esZonaTermino: false,
 };
 
-@ApiTags('zonas')
+@ApiTags('catálogos')
 @ApiBearerAuth()
 @Controller('zonas')
 export class ZonasController {
@@ -66,7 +66,11 @@ export class ZonasController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener una zona' })
+  @ApiOperation({
+    summary: 'Obtener una zona',
+    description:
+      'Cualquier rol autenticado.',
+  })
   @ApiOkResponse({ description: 'Zona', schema: { example: EJEMPLO } })
   @ApiError400('Validation failed (numeric string is expected)')
   @ApiError401()

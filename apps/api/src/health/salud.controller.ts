@@ -26,7 +26,8 @@ export class SaludController {
   @Get()
   @ApiOperation({
     summary: 'Verificar la API y su conexión a la base de datos',
-    description: 'Ruta pública para el healthcheck de Docker Compose.',
+    description:
+      'Ruta pública para el healthcheck de Docker Compose. Responde 503 si la base no contesta.',
   })
   @ApiOkResponse({
     description: 'La API y la base de datos responden',
