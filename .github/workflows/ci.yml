@@ -1,0 +1,86 @@
+# Integración continua: en cada PR y en cada push a main revisa la API y la web.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Un push nuevo a la misma rama cancela la revisión anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (lint, tipos, unitarias, e2e y build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: bestline_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d bestline_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    # Valores solo para CI: la base es desechable y no hay secretos reales.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/bestline_test?schema=public
+      DATABASE_URL_TEST: postgresql://ci:ci@localhost:5432/bestline_test?schema=public
+      JWT_SECRET: valor-solo-para-integracion-continua
+      JWT_EXPIRES_IN: 1h
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Generar el cliente de Prisma
+        run: npx prisma generate
+      - name: Lint
+        run: npm run lint
+      - name: Revisión de tipos
+        run: npx tsc --noEmit
+      - name: Pruebas unitarias
+        run: npm run test:cov
+      - name: Pruebas e2e
+        run: npm run test:e2e
+      - name: Build
+        run: npm run build && npm run build:seed
+
+  web:
+    name: Web (lint, pruebas y build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Pruebas
+        run: npm run test:cov
+      - name: Build
+        run: npm run build
