@@ -9,6 +9,7 @@ coverage/
 !.env.production.example
 *.log
 pgdata/
+respaldos/
 *.tsbuildinfo
 
 # Cliente de Prisma generado (se regenera con "npx prisma generate")

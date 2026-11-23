@@ -1,1 +1,19 @@
+# Todo el texto se guarda con LF, también en Windows.
 * text=auto eol=lf
+
+# Explícito para lo que corre dentro de Linux: con CRLF, el contenedor no
+# encuentra el intérprete del script o Nginx no lee su configuración.
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf
+.env.production.example text eol=lf
+
+# Archivos binarios: Git no debe convertirlos.
+*.xlsx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.dump binary
